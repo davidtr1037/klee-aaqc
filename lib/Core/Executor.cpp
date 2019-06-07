@@ -3372,15 +3372,32 @@ void Executor::executeAlloc(ExecutionState &state,
                             bool zeroMemory,
                             const ObjectState *reallocFrom,
                             size_t allocationAlignment) {
+  static unsigned id = 0;
+
   size = toUnique(state, size);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(size)) {
     const llvm::Value *allocSite = state.prevPC->inst;
     if (allocationAlignment == 0) {
       allocationAlignment = getAllocationAlignment(allocSite);
     }
+
     MemoryObject *mo =
         memory->allocate(CE->getZExtValue(), isLocal, /*isGlobal=*/false,
                          allocSite, allocationAlignment);
+
+    std::string uniqueName = "addr_" + llvm::utostr(id++);
+    errs() << "PW " << Context::get().getPointerWidth() << "\n";
+    const Array *array = arrayCache.CreateArray(uniqueName, Context::get().getPointerWidth() / 8);
+    MemoryObject *newMo = memory->allocate(Context::get().getPointerWidth() / 8, true, false, nullptr, 8);
+    if (!newMo) {
+      assert(false);
+    }
+
+    ObjectState *os = bindObjectInState(state, newMo, false, array);
+    ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
+    ref<Expr> eq = EqExpr::create(mo->getBaseExpr(), alpha);
+    addConstraint(state, eq);
+
     if (!mo) {
       bindLocal(target, state, 
                 ConstantExpr::alloc(0, Context::get().getPointerWidth()));
@@ -3392,6 +3409,7 @@ void Executor::executeAlloc(ExecutionState &state,
         os->initializeToRandom();
       }
       bindLocal(target, state, mo->getBaseExpr());
+      //bindLocal(target, state, alpha);
       
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
