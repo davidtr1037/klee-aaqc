@@ -46,6 +46,20 @@ namespace klee {
   public:
     std::set<const Array *> results;
   };
+
+  class AddressExprFinder : public ExprVisitor {
+  protected:
+
+    ExprVisitor::Action visitRead(const ReadExpr &re);
+
+  public:
+
+    AddressExprFinder() : result(true) {
+
+    }
+
+    bool result;
+  };
 }
 
 #endif

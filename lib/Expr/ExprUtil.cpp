@@ -119,6 +119,17 @@ ExprVisitor::Action ConstantArrayFinder::visitRead(const ReadExpr &re) {
 
   return Action::doChildren();
 }
+
+ExprVisitor::Action AddressExprFinder::visitRead(const ReadExpr &e) {
+  std::string name = e.updates.root->getName();
+  if (name.find("addr_") != 0) {
+    result = false;
+    return Action::skipChildren();
+  } else {
+    return Action::doChildren();
+  }
+}
+
 }
 
 template<typename InputIterator>
