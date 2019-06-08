@@ -54,11 +54,21 @@ namespace klee {
 
   public:
 
-    AddressExprFinder() : result(true) {
+    AddressExprFinder() : isPureAddressExpr(true) {
 
     }
 
-    bool result;
+    bool isPureAddressExpr;
+  };
+
+  class AddressArrayCollector : public ExprVisitor {
+  protected:
+
+    ExprVisitor::Action visitRead(const ReadExpr &re);
+
+  public:
+
+    std::set<std::string> arrays;
   };
 }
 

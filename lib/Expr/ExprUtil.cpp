@@ -123,11 +123,19 @@ ExprVisitor::Action ConstantArrayFinder::visitRead(const ReadExpr &re) {
 ExprVisitor::Action AddressExprFinder::visitRead(const ReadExpr &e) {
   std::string name = e.updates.root->getName();
   if (name.find("addr_") != 0) {
-    result = false;
+    isPureAddressExpr = false;
     return Action::skipChildren();
   } else {
     return Action::doChildren();
   }
+}
+
+ExprVisitor::Action AddressArrayCollector::visitRead(const ReadExpr &e) {
+  std::string name = e.updates.root->getName();
+  if (name.find("addr_") == 0) {
+    arrays.insert(name);
+  }
+  return Action::doChildren();
 }
 
 }
