@@ -74,6 +74,8 @@ private:
 
   std::map<std::string, std::string> fnAliases;
 
+  std::vector<ref<Expr>> addressConstraints;
+
 public:
   // Execution - Control Flow specific
 
@@ -177,6 +179,14 @@ public:
 
   bool merge(const ExecutionState &b);
   void dumpStack(llvm::raw_ostream &out) const;
+
+  void addAddressConstraint(ref<Expr> e) {
+    addressConstraints.push_back(e);
+  }
+
+  std::vector<ref<Expr>> &getAddressConstraints() {
+    return addressConstraints;
+  }
 };
 }
 

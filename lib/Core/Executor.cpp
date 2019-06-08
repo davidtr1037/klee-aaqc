@@ -3386,7 +3386,6 @@ void Executor::executeAlloc(ExecutionState &state,
                          allocSite, allocationAlignment);
 
     std::string uniqueName = "addr_" + llvm::utostr(id++);
-    errs() << "PW " << Context::get().getPointerWidth() << "\n";
     const Array *array = arrayCache.CreateArray(uniqueName, Context::get().getPointerWidth() / 8);
     MemoryObject *newMo = memory->allocate(Context::get().getPointerWidth() / 8, true, false, nullptr, 8);
     if (!newMo) {
