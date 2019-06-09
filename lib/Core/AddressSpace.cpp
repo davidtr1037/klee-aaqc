@@ -19,6 +19,7 @@
 #include "klee/ExecutionState.h"
 
 using namespace klee;
+using namespace llvm;
 
 ///
 
@@ -352,6 +353,18 @@ ref<Expr> AddressSpace::unfold(ExecutionState &state,
   uint64_t a = state.getAddress(hash);
   if (a) {
     return ConstantExpr::create(a, Context::get().getPointerWidth());
+  }
+
+  AddExpr *add = dyn_cast<AddExpr>(address);
+  if (add) {
+    ConstantExpr *lce = dyn_cast<ConstantExpr>(add->left);
+    if (lce) {
+      unsigned hash = add->right->hash();
+      uint64_t a = state.getAddress(hash);
+      if (a) {
+        return ConstantExpr::create(a + lce->getZExtValue(), Context::get().getPointerWidth());
+      }
+    }
   }
 
   /* collect dependencies */
