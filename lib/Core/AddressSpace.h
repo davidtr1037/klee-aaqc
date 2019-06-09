@@ -145,6 +145,8 @@ namespace klee {
     /// @return
     bool copyInConcrete(const MemoryObject *mo, const ObjectState *os,
                         uint64_t src_address);
+
+    ref<Expr> unfold(ExecutionState &state, TimingSolver *solver, ref<Expr> address) const;
   };
 } // End klee namespace
 

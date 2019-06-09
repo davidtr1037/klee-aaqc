@@ -3395,7 +3395,8 @@ void Executor::executeAlloc(ExecutionState &state,
     ObjectState *os = bindObjectInState(state, newMo, false, array);
     ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
     ref<Expr> eq = EqExpr::create(mo->getBaseExpr(), alpha);
-    addConstraint(state, eq);
+    //addConstraint(state, eq);
+    state.addAddressConstraint(uniqueName, eq);
 
     if (!mo) {
       bindLocal(target, state, 
@@ -3409,7 +3410,7 @@ void Executor::executeAlloc(ExecutionState &state,
       }
       bindLocal(target, state, mo->getBaseExpr());
       //bindLocal(target, state, alpha);
-      
+
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
         for (unsigned i=0; i<count; i++)
@@ -3576,6 +3577,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
 
   address = optimizer.optimizeExpr(address, true);
+  address = state.addressSpace.unfold(state, solver, address);
 
   // fast path: single in-bounds resolution
   ObjectPair op;

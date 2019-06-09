@@ -17,6 +17,7 @@
 #include "klee/Internal/Module/KInstruction.h"
 #include "klee/Internal/Module/KModule.h"
 #include "klee/OptionCategories.h"
+#include "klee/util/ExprUtil.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/Support/CommandLine.h"
@@ -103,6 +104,7 @@ ExecutionState::~ExecutionState() {
 
 ExecutionState::ExecutionState(const ExecutionState& state):
     fnAliases(state.fnAliases),
+    addressConstraints(state.addressConstraints),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -389,4 +391,31 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
     out << "\n";
     target = sf.caller;
   }
+}
+
+void ExecutionState::addAddressConstraint(std::string name, ref<Expr> e) {
+  addressConstraints[name] = e;
+}
+
+ref<Expr> ExecutionState::getAddressConstraint(std::string name) const {
+  auto i = addressConstraints.find(name);
+  if (i == addressConstraints.end()) {
+    return nullptr;
+  } else {
+    return i->second;
+  }
+}
+
+ref<Expr> ExecutionState::build(ref<Expr> e) const {
+  /* collect dependencies */
+  AddressArrayCollector collector;
+  collector.visit(e);
+
+  ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
+  for (std::string name : collector.arrays) {
+    ref<Expr> eq = getAddressConstraint(name);
+    all = AndExpr::create(all, eq);
+  }
+
+  return all;
 }

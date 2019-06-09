@@ -35,7 +35,15 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  bool success = solver->evaluate(Query(state.constraints, expr), result);
+  ConstraintManager cm;
+  for (ref<Expr> e : state.constraints) {
+    cm.addConstraint(e);
+  }
+  ref<Expr> extra = state.build(expr);
+  cm.addConstraint(extra);
+
+  bool success = solver->evaluate(Query(cm, expr), result);
+  //bool success = solver->evaluate(Query(state.constraints, expr), result);
 
   state.queryCost += timer.check();
 
@@ -55,7 +63,15 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  bool success = solver->mustBeTrue(Query(state.constraints, expr), result);
+  ConstraintManager cm;
+  for (ref<Expr> e : state.constraints) {
+    cm.addConstraint(e);
+  }
+  ref<Expr> extra = state.build(expr);
+  cm.addConstraint(extra);
+
+  bool success = solver->mustBeTrue(Query(cm, expr), result);
+  //bool success = solver->mustBeTrue(Query(state.constraints, expr), result);
 
   state.queryCost += timer.check();
 
@@ -98,7 +114,15 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  bool success = solver->getValue(Query(state.constraints, expr), result);
+  ConstraintManager cm;
+  for (ref<Expr> e : state.constraints) {
+    cm.addConstraint(e);
+  }
+  ref<Expr> extra = state.build(expr);
+  cm.addConstraint(extra);
+
+  bool success = solver->getValue(Query(cm, expr), result);
+  //bool success = solver->getValue(Query(state.constraints, expr), result);
 
   state.queryCost += timer.check();
 

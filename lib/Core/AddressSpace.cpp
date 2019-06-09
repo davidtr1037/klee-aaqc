@@ -14,6 +14,9 @@
 
 #include "klee/Expr.h"
 #include "klee/TimerStatIncrementer.h"
+#include "klee/Constraints.h"
+#include "klee/util/ExprUtil.h"
+#include "klee/ExecutionState.h"
 
 using namespace klee;
 
@@ -75,6 +78,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
                               ref<Expr> address,
                               ObjectPair &result,
                               bool &success) const {
+  address = unfold(state, solver, address);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(address)) {
     success = resolveOne(CE, result);
     return true;
@@ -197,6 +201,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
 bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
                            ref<Expr> p, ResolutionList &rl,
                            unsigned maxResolutions, time::Span timeout) const {
+  p = unfold(state, solver, p);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(p)) {
     ObjectPair res;
     if (resolveOne(CE, res))
@@ -325,6 +330,43 @@ bool AddressSpace::copyInConcrete(const MemoryObject *mo, const ObjectState *os,
     }
   }
   return true;
+}
+
+ref<Expr> AddressSpace::unfold(ExecutionState &state,
+                               TimingSolver *solver,
+                               ref<Expr> address) const {
+  if (isa<ConstantExpr>(address)) {
+    /* actually should not happen... (unless fixed) */
+    return address;
+  }
+
+  AddressExprFinder finder;
+  finder.visit(address);
+  if (!finder.isPureAddressExpr) {
+    /* contains a solver array which doesn't correspond to an address */
+    return address;
+  }
+
+  /* collect dependencies */
+  AddressArrayCollector collector;
+  collector.visit(address);
+
+  ConstraintManager cm;
+  for (std::string name : collector.arrays) {
+    ref<Expr> eq = state.getAddressConstraint(name);
+    if (eq.isNull()) {
+      assert(0);
+    }
+    cm.addConstraint(eq);
+  }
+
+  ref<ConstantExpr> value;
+  bool success = solver->solver->getValue(Query(cm, address), value);
+  if (!success) {
+    return address;
+  }
+
+  return value;
 }
 
 /***/
