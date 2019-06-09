@@ -3394,9 +3394,7 @@ void Executor::executeAlloc(ExecutionState &state,
 
     ObjectState *os = bindObjectInState(state, newMo, false, array);
     ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
-    ref<Expr> eq = EqExpr::create(mo->getBaseExpr(), alpha);
-    //addConstraint(state, eq);
-    state.addAddressConstraint(uniqueName, eq);
+    state.addAddressConstraint(uniqueName, mo->address, alpha);
 
     if (!mo) {
       bindLocal(target, state, 

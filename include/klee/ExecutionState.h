@@ -63,6 +63,11 @@ struct StackFrame {
   ~StackFrame();
 };
 
+struct AddressRecord {
+    uint64_t address;
+    ref<Expr> constraint;
+};
+
 /// @brief ExecutionState representing a path under exploration
 class ExecutionState {
 public:
@@ -74,7 +79,8 @@ private:
 
   std::map<std::string, std::string> fnAliases;
 
-  std::map<std::string, ref<Expr>> addressConstraints;
+  std::map<std::string, AddressRecord> addressConstraints;
+  std::map<unsigned, AddressRecord> cache;
 
 public:
   // Execution - Control Flow specific
@@ -180,9 +186,15 @@ public:
   bool merge(const ExecutionState &b);
   void dumpStack(llvm::raw_ostream &out) const;
 
-  void addAddressConstraint(std::string name, ref<Expr> e);
+  void addAddressConstraint(std::string name,
+                            uint64_t address,
+                            ref<Expr> e);
 
   ref<Expr> getAddressConstraint(std::string name) const;
+
+  uint64_t getAddress(std::string name) const;
+
+  uint64_t getAddress(unsigned int hash) const;
 
   ref<Expr> build(ref<Expr> e) const;
 };

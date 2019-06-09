@@ -105,6 +105,7 @@ ExecutionState::~ExecutionState() {
 ExecutionState::ExecutionState(const ExecutionState& state):
     fnAliases(state.fnAliases),
     addressConstraints(state.addressConstraints),
+    cache(state.cache),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -393,8 +394,16 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
   }
 }
 
-void ExecutionState::addAddressConstraint(std::string name, ref<Expr> e) {
-  addressConstraints[name] = e;
+void ExecutionState::addAddressConstraint(std::string name, uint64_t address, ref<Expr> alpha) {
+  ref<ConstantExpr> c = ConstantExpr::create(address, Context::get().getPointerWidth());
+  ref<Expr> eq = EqExpr::create(c, alpha);
+
+  AddressRecord record;
+  record.address = address;
+  record.constraint = eq;
+
+  addressConstraints[name] = record;
+  cache[alpha->hash()] = record;
 }
 
 ref<Expr> ExecutionState::getAddressConstraint(std::string name) const {
@@ -402,8 +411,26 @@ ref<Expr> ExecutionState::getAddressConstraint(std::string name) const {
   if (i == addressConstraints.end()) {
     return nullptr;
   } else {
-    return i->second;
+    return i->second.constraint;
   }
+}
+
+uint64_t ExecutionState::getAddress(std::string name) const {
+  auto i = addressConstraints.find(name);
+  if (i == addressConstraints.end()) {
+    assert(0);
+  }
+
+  return i->second.address;
+}
+
+uint64_t ExecutionState::getAddress(unsigned int hash) const {
+  auto i = cache.find(hash);
+  if (i == cache.end()) {
+    return 0;
+  }
+
+  return i->second.address;
 }
 
 ref<Expr> ExecutionState::build(ref<Expr> e) const {

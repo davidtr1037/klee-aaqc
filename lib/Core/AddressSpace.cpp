@@ -347,6 +347,13 @@ ref<Expr> AddressSpace::unfold(ExecutionState &state,
     return address;
   }
 
+  /* this is a temporary optimization */
+  unsigned hash = address->hash();
+  uint64_t a = state.getAddress(hash);
+  if (a) {
+    return ConstantExpr::create(a, Context::get().getPointerWidth());
+  }
+
   /* collect dependencies */
   AddressArrayCollector collector;
   collector.visit(address);
