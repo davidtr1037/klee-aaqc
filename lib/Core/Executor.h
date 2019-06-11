@@ -548,6 +548,8 @@ public:
   /// Returns the errno location in memory of the state
   int *getErrnoLocation(const ExecutionState &state) const;
 
+  ObjectPair createAddressObject(ExecutionState &state, uint64_t address);
+
   void rebaseObject(ExecutionState &state, ObjectPair &op);
 };
   

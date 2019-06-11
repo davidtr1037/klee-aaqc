@@ -3382,8 +3382,6 @@ void Executor::executeAlloc(ExecutionState &state,
                             bool zeroMemory,
                             const ObjectState *reallocFrom,
                             size_t allocationAlignment) {
-  static unsigned id = 0;
-
   size = toUnique(state, size);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(size)) {
     const llvm::Value *allocSite = state.prevPC->inst;
@@ -3395,21 +3393,8 @@ void Executor::executeAlloc(ExecutionState &state,
         memory->allocate(CE->getZExtValue(), isLocal, /*isGlobal=*/false,
                          allocSite, allocationAlignment);
 
-    std::string uniqueName = "addr_" + llvm::utostr(id++);
-    const Array *array = arrayCache.CreateArray(uniqueName, Context::get().getPointerWidth() / 8);
-    MemoryObject *newMo = memory->allocate(Context::get().getPointerWidth() / 8,
-                                           true,
-                                           false,
-                                           nullptr,
-                                           8);
-    if (!newMo) {
-      assert(false);
-    }
-
-    ObjectState *os = bindObjectInState(state, newMo, false, array);
-    ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
-    mo->symbolicAddress = alpha;
-    state.addAddressConstraint(uniqueName, mo->address, alpha);
+    ObjectPair op = createAddressObject(state, mo->address);
+    const MemoryObject *addrMo = op.first;
 
     if (!mo) {
       bindLocal(target, state, 
@@ -3422,7 +3407,7 @@ void Executor::executeAlloc(ExecutionState &state,
         os->initializeToRandom();
       }
       //bindLocal(target, state, mo->getBaseExpr());
-      bindLocal(target, state, alpha);
+      bindLocal(target, state, addrMo->symbolicAddress);
 
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
@@ -4099,8 +4084,31 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
   return alignment;
 }
 
+ObjectPair Executor::createAddressObject(ExecutionState &state, uint64_t address) {
+  static unsigned id = 0;
+
+  std::string uniqueName = "addr_" + llvm::utostr(id++);
+  const Array *array = arrayCache.CreateArray(uniqueName,
+                                              Context::get().getPointerWidth() / 8);
+  MemoryObject *mo = memory->allocate(Context::get().getPointerWidth() / 8,
+                                          true,
+                                          false,
+                                          nullptr,
+                                          8);
+  if (!mo) {
+    assert(false);
+  }
+
+  ObjectState *os = bindObjectInState(state, mo, false, array);
+  ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
+  mo->symbolicAddress = alpha;
+  state.addAddressConstraint(uniqueName, address, alpha);
+
+  return ObjectPair(mo, os);
+}
+
 void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
-  const MemoryObject *mo = op.first;
+  //const MemoryObject *mo = op.first;
 }
 
 void Executor::prepareForEarlyExit() {
