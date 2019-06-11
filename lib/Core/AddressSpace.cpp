@@ -341,6 +341,14 @@ ref<Expr> AddressSpace::unfold(ExecutionState &state,
     return address;
   }
 
+  std::map<uint64_t, uint64_t> lookup;
+  for (auto i : state.getCache()) {
+    lookup[i.first] = i.second.address;
+  }
+  AddressUnfolder unfolder(lookup);
+  ref<Expr> unfolded = unfolder.visit(address);
+  return unfolded;
+
   AddressExprFinder finder;
   finder.visit(address);
   if (!finder.isPureAddressExpr) {
