@@ -135,6 +135,23 @@ ExprVisitor::Action AddressArrayCollector::visitRead(const ReadExpr &e) {
   if (name.find("addr_") == 0) {
     arrays.insert(name);
   }
+
+  const UpdateNode *h = e.updates.head;
+  for (const UpdateNode *n = h; n != NULL; n = n->next) {
+    /* TODO: may result in infinite recursion? */
+    visit(n->value);
+  }
+
+  return Action::doChildren();
+}
+
+ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
+  auto i = lookup.find(e.hash());
+  if (i != lookup.end()) {
+    ref<ConstantExpr> ce = ConstantExpr::create(i->second, 64);
+    return Action::changeTo(ce);
+  }
+
   return Action::doChildren();
 }
 
