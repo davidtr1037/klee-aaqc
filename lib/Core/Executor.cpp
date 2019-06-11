@@ -728,8 +728,8 @@ void Executor::initializeGlobals(ExecutionState &state) {
       ObjectState *os = bindObjectInState(state, mo, false);
       globalObjects.insert(std::make_pair(v, mo));
       /* TODO: ... */
-      ConstantExpr *ce = dyn_cast<ConstantExpr>(mo->getBaseExpr());
-      if (!ce) {
+      ref<ConstantExpr> ce = dyn_cast<ConstantExpr>(mo->getBaseExpr());
+      if (ce.isNull()) {
         assert(false);
       }
       globalAddresses.insert(std::make_pair(v, ce));
@@ -761,8 +761,8 @@ void Executor::initializeGlobals(ExecutionState &state) {
       ObjectState *os = bindObjectInState(state, mo, false);
       globalObjects.insert(std::make_pair(v, mo));
       /* TODO: ... */
-      ConstantExpr *ce = dyn_cast<ConstantExpr>(mo->getBaseExpr());
-      if (!ce) {
+      ref<ConstantExpr> ce = dyn_cast<ConstantExpr>(mo->getBaseExpr());
+      if (ce.isNull()) {
         assert(false);
       }
       globalAddresses.insert(std::make_pair(v, ce));
