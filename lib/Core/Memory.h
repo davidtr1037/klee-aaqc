@@ -42,6 +42,7 @@ private:
 public:
   unsigned id;
   uint64_t address;
+  ref<Expr> symbolicAddress;
 
   /// size in bytes
   unsigned size;
@@ -77,6 +78,7 @@ public:
     : refCount(0),
       id(counter++), 
       address(_address),
+      symbolicAddress(nullptr),
       size(0),
       isFixed(true),
       parent(NULL),
@@ -90,6 +92,7 @@ public:
     : refCount(0), 
       id(counter++),
       address(_address),
+      symbolicAddress(nullptr),
       size(_size),
       name("unnamed"),
       isLocal(_isLocal),
@@ -109,8 +112,13 @@ public:
     this->name = name;
   }
 
-  ref<ConstantExpr> getBaseExpr() const { 
-    return ConstantExpr::create(address, Context::get().getPointerWidth());
+  ref<Expr> getBaseExpr() const {
+    //return ConstantExpr::create(address, Context::get().getPointerWidth());
+    if (symbolicAddress.isNull()) {
+      return ConstantExpr::create(address, Context::get().getPointerWidth());
+    } else {
+      return symbolicAddress;
+    }
   }
   ref<ConstantExpr> getSizeExpr() const { 
     return ConstantExpr::create(size, Context::get().getPointerWidth());

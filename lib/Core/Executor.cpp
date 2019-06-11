@@ -727,7 +727,12 @@ void Executor::initializeGlobals(ExecutionState &state) {
                                           /*alignment=*/globalObjectAlignment);
       ObjectState *os = bindObjectInState(state, mo, false);
       globalObjects.insert(std::make_pair(v, mo));
-      globalAddresses.insert(std::make_pair(v, mo->getBaseExpr()));
+      /* TODO: ... */
+      ConstantExpr *ce = dyn_cast<ConstantExpr>(mo->getBaseExpr());
+      if (!ce) {
+        assert(false);
+      }
+      globalAddresses.insert(std::make_pair(v, ce));
 
       // Program already running = object already initialized.  Read
       // concrete value and write it to our copy.
@@ -755,7 +760,12 @@ void Executor::initializeGlobals(ExecutionState &state) {
         llvm::report_fatal_error("out of memory");
       ObjectState *os = bindObjectInState(state, mo, false);
       globalObjects.insert(std::make_pair(v, mo));
-      globalAddresses.insert(std::make_pair(v, mo->getBaseExpr()));
+      /* TODO: ... */
+      ConstantExpr *ce = dyn_cast<ConstantExpr>(mo->getBaseExpr());
+      if (!ce) {
+        assert(false);
+      }
+      globalAddresses.insert(std::make_pair(v, ce));
 
       if (!i->hasInitializer())
           os->initializeToRandom();
@@ -3398,6 +3408,7 @@ void Executor::executeAlloc(ExecutionState &state,
 
     ObjectState *os = bindObjectInState(state, newMo, false, array);
     ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
+    mo->symbolicAddress = alpha;
     state.addAddressConstraint(uniqueName, mo->address, alpha);
 
     if (!mo) {
@@ -3410,8 +3421,8 @@ void Executor::executeAlloc(ExecutionState &state,
       } else {
         os->initializeToRandom();
       }
-      bindLocal(target, state, mo->getBaseExpr());
-      //bindLocal(target, state, alpha);
+      //bindLocal(target, state, mo->getBaseExpr());
+      bindLocal(target, state, alpha);
 
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
@@ -3578,8 +3589,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       value = state.constraints.simplifyExpr(value);
   }
 
-  address = optimizer.optimizeExpr(address, true);
   address = state.addressSpace.unfold(state, solver, address);
+  address = optimizer.optimizeExpr(address, true);
 
   // fast path: single in-bounds resolution
   ObjectPair op;
@@ -3599,7 +3610,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
     
     ref<Expr> offset = mo->getOffsetExpr(address);
+    /* TODO: ... */
+    offset = state.addressSpace.unfold(state, solver, offset);
     ref<Expr> check = mo->getBoundsCheckOffset(offset, bytes);
+    /* TODO: ... */
+    check = state.addressSpace.unfold(state, solver, check);
     check = optimizer.optimizeExpr(check, true);
 
     bool inBounds;
@@ -3664,10 +3679,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                 ReadOnly);
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-          wos->write(mo->getOffsetExpr(address), value);
+          ref<Expr> offset = state.addressSpace.unfold(state, solver, mo->getOffsetExpr(address));
+          wos->write(offset, value);
         }
       } else {
-        ref<Expr> result = os->read(mo->getOffsetExpr(address), type);
+        ref<Expr> offset = state.addressSpace.unfold(state, solver, mo->getOffsetExpr(address));
+        ref<Expr> result = os->read(offset, type);
         bindLocal(target, *bound, result);
       }
     }
