@@ -196,6 +196,10 @@ public:
 
   uint64_t getAddress(unsigned int hash) const;
 
+  std::map<unsigned, AddressRecord> &getCache() {
+    return cache;
+  }
+
   ref<Expr> build(ref<Expr> e) const;
 };
 }
