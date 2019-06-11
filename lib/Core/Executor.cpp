@@ -4099,6 +4099,10 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
   return alignment;
 }
 
+void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
+  const MemoryObject *mo = op.first;
+}
+
 void Executor::prepareForEarlyExit() {
   if (statsTracker) {
     // Make sure stats get flushed out

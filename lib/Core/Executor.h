@@ -547,6 +547,8 @@ public:
 
   /// Returns the errno location in memory of the state
   int *getErrnoLocation(const ExecutionState &state) const;
+
+  void rebaseObject(ExecutionState &state, ObjectPair &op);
 };
   
 } // End klee namespace

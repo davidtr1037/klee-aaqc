@@ -160,6 +160,8 @@ extern "C" {
 
   /* Get errno value of the current state */
   int klee_get_errno(void);
+
+  void klee_rebase_object(void *);
 #ifdef __cplusplus
 }
 #endif

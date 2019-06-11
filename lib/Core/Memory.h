@@ -113,7 +113,6 @@ public:
   }
 
   ref<Expr> getBaseExpr() const {
-    //return ConstantExpr::create(address, Context::get().getPointerWidth());
     if (symbolicAddress.isNull()) {
       return ConstantExpr::create(address, Context::get().getPointerWidth());
     } else {

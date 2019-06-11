@@ -136,6 +136,7 @@ static SpecialFunctionHandler::HandlerInfo handlerInfo[] = {
   add("__ubsan_handle_sub_overflow", handleSubOverflow, false),
   add("__ubsan_handle_mul_overflow", handleMulOverflow, false),
   add("__ubsan_handle_divrem_overflow", handleDivRemOverflow, false),
+  add("klee_rebase_object", handleRebase, true),
 
 #undef addDNR
 #undef add
@@ -881,4 +882,18 @@ void SpecialFunctionHandler::handleDivRemOverflow(ExecutionState &state,
                                                std::vector<ref<Expr> > &arguments) {
   executor.terminateStateOnError(state, "overflow on division or remainder",
                                  Executor::Overflow);
+}
+
+void SpecialFunctionHandler::handleRebase(ExecutionState &state,
+                                          KInstruction *target,
+                                          std::vector<ref<Expr> > &arguments) {
+  ref<Expr> address = arguments[0];
+
+  bool success;
+  ObjectPair op;
+  if (!state.addressSpace.resolveOne(state, executor.solver, address, op, success)) {
+    assert(0);
+  }
+
+  executor.rebaseObject(state, op);
 }
