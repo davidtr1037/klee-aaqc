@@ -3563,7 +3563,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                       bool isWrite,
                                       ref<Expr> address,
                                       ref<Expr> value /* undef if read */,
-                                      KInstruction *target /* undef if write */) {
+                                      KInstruction *target /* undef if write */,
+                                      bool retry) {
   Expr::Width type = (isWrite ? value->getWidth() : 
                      getWidthForLLVMType(target->inst->getType()));
   unsigned bytes = Expr::getMinBytesForWidth(type);
@@ -3639,12 +3640,23 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   // we are on an error path (no resolution, multiple resolution, one
   // resolution with out of bounds)
 
+  if (retry) {
+    klee_error("Unexpected multiple resolution...");
+  }
+
   address = optimizer.optimizeExpr(address, true);
   ResolutionList rl;  
   solver->setTimeout(coreSolverTimeout);
   bool incomplete = state.addressSpace.resolve(state, solver, address, rl,
                                                0, coreSolverTimeout);
   solver->setTimeout(time::Span());
+
+  if (!rl.empty()) {
+    klee_message("rebasing %lu objects", rl.size());
+    rebaseObjects(state, rl);
+    executeMemoryOperation(state, isWrite, address, value, target, true);
+    return;
+  }
   
   // XXX there is some query wasteage here. who cares?
   ExecutionState *unbound = &state;
