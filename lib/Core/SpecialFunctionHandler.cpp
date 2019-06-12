@@ -137,6 +137,7 @@ static SpecialFunctionHandler::HandlerInfo handlerInfo[] = {
   add("__ubsan_handle_mul_overflow", handleMulOverflow, false),
   add("__ubsan_handle_divrem_overflow", handleDivRemOverflow, false),
   add("klee_rebase_object", handleRebase, true),
+  add("klee_rebase_objects", handleMultipleRebase, true),
 
 #undef addDNR
 #undef add
@@ -896,4 +897,20 @@ void SpecialFunctionHandler::handleRebase(ExecutionState &state,
   }
 
   executor.rebaseObject(state, op);
+}
+
+void SpecialFunctionHandler::handleMultipleRebase(ExecutionState &state,
+                                                  KInstruction *target,
+                                                  std::vector<ref<Expr> > &arguments) {
+  std::vector<ObjectPair> ops;
+  for (ref<Expr> address : arguments) {
+    bool success;
+    ObjectPair op;
+    if (!state.addressSpace.resolveOne(state, executor.solver, address, op, success)) {
+      assert(0);
+    }
+    ops.push_back(op);
+  }
+
+  executor.rebaseObjects(state, ops);
 }

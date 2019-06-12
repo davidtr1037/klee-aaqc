@@ -162,6 +162,8 @@ extern "C" {
   int klee_get_errno(void);
 
   void klee_rebase_object(void *);
+
+  void klee_rebase_objects(void *, void *);
 #ifdef __cplusplus
 }
 #endif
