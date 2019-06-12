@@ -4103,13 +4103,62 @@ ObjectPair Executor::createAddressObject(ExecutionState &state, uint64_t address
   ObjectState *os = bindObjectInState(state, mo, false, array);
   ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
   mo->symbolicAddress = alpha;
+  mo->saName = uniqueName;
   state.addAddressConstraint(uniqueName, address, alpha);
 
   return ObjectPair(mo, os);
 }
 
 void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
-  //const MemoryObject *mo = op.first;
+  const MemoryObject *mo = op.first;
+  const ObjectState *os = op.second;
+
+  MemoryObject *newMO = memory->allocate(mo->size,
+                                         mo->isLocal,
+                                         mo->isGlobal,
+                                         mo->allocSite,
+                                         8);
+
+  /* update address constraint */
+  const MemoryObject *addrMO = os->getSymbolicObject();
+  state.addAddressConstraint(addrMO->saName, newMO->address, addrMO->symbolicAddress);
+
+  /* update address space */
+  /* TODO: avoid copy? */
+  ObjectState *clonedOS = new ObjectState(*op.second);
+  state.addressSpace.bindObject(newMO, clonedOS);
+  state.addressSpace.unbindObject(mo);
+}
+
+void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
+  unsigned int total_size = 0;
+  std::vector<unsigned> offsets;
+  for (ObjectPair &op : ops) {
+    offsets.push_back(total_size);
+    total_size += RoundUpToAlignment(op.first->size, 16);
+  }
+
+  MemoryObject *segmentMO = memory->allocate(total_size, true, false, nullptr, 8);
+  ObjectState *segmentOS = bindObjectInState(state, segmentMO, true);
+
+  for (unsigned i = 0; i < ops.size(); i++) {
+    ObjectPair &op = ops[i];
+    const MemoryObject *mo = op.first;
+    const ObjectState *os = op.second;
+    unsigned offset = offsets[i];
+
+    for (unsigned j = 0; j < mo->size; j++) {
+      segmentOS->write(offset + j, os->read8(j));
+    }
+
+    /* update constraint */
+    const MemoryObject *addrMO = os->getSymbolicObject();
+    state.addAddressConstraint(addrMO->saName, segmentMO->address + offset, addrMO->symbolicAddress);
+  }
+
+  for (ObjectPair &op : ops) {
+    state.addressSpace.unbindObject(op.first);
+  }
 }
 
 void Executor::prepareForEarlyExit() {

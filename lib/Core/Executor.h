@@ -551,6 +551,8 @@ public:
   ObjectPair createAddressObject(ExecutionState &state, uint64_t address);
 
   void rebaseObject(ExecutionState &state, ObjectPair &op);
+
+  void rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
 };
   
 } // End klee namespace
