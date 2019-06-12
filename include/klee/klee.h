@@ -163,7 +163,7 @@ extern "C" {
 
   void klee_rebase_object(void *);
 
-  void klee_rebase_objects(void *, void *);
+  void klee_rebase_objects(int, ...);
 #ifdef __cplusplus
 }
 #endif

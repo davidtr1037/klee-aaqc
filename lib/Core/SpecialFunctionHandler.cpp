@@ -903,7 +903,8 @@ void SpecialFunctionHandler::handleMultipleRebase(ExecutionState &state,
                                                   KInstruction *target,
                                                   std::vector<ref<Expr> > &arguments) {
   std::vector<ObjectPair> ops;
-  for (ref<Expr> address : arguments) {
+  for (unsigned int i = 1; i < arguments.size(); i++) {
+    ref<Expr> address = arguments[i];
     bool success;
     ObjectPair op;
     if (!state.addressSpace.resolveOne(state, executor.solver, address, op, success)) {
