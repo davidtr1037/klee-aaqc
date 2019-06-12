@@ -4156,7 +4156,7 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     total_size += RoundUpToAlignment(op.first->size, 16);
   }
 
-  MemoryObject *segmentMO = memory->allocate(total_size, true, false, nullptr, 8);
+  MemoryObject *segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
   ObjectState *segmentOS = bindObjectInState(state, segmentMO, true);
 
   for (unsigned i = 0; i < ops.size(); i++) {
