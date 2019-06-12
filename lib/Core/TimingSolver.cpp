@@ -140,8 +140,16 @@ TimingSolver::getInitialValues(const ExecutionState& state,
 
   TimerStatIncrementer timer(stats::solverTime);
 
-  bool success = solver->getInitialValues(Query(state.constraints,
-                                                ConstantExpr::alloc(0, Expr::Bool)), 
+  ConstraintManager cm;
+  std::vector<ref<Expr>> conditions;
+  for (ref<Expr> e : state.constraints) {
+    cm.addConstraint(e);
+    conditions.push_back(e);
+  }
+  ref<Expr> extra = state.build(conditions);
+  cm.addConstraint(extra);
+
+  bool success = solver->getInitialValues(Query(cm, ConstantExpr::alloc(0, Expr::Bool)),
                                           objects, result);
   
   state.queryCost += timer.check();
