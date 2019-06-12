@@ -3394,7 +3394,7 @@ void Executor::executeAlloc(ExecutionState &state,
                          allocSite, allocationAlignment);
 
     ObjectPair op = createAddressObject(state, mo->address);
-    const MemoryObject *addrMo = op.first;
+    const MemoryObject *addrMO = op.first;
 
     if (!mo) {
       bindLocal(target, state, 
@@ -3407,7 +3407,7 @@ void Executor::executeAlloc(ExecutionState &state,
         os->initializeToRandom();
       }
       //bindLocal(target, state, mo->getBaseExpr());
-      bindLocal(target, state, addrMo->symbolicAddress);
+      bindLocal(target, state, addrMO->symbolicAddress);
 
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
