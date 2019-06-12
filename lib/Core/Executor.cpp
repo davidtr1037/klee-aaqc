@@ -3401,6 +3401,7 @@ void Executor::executeAlloc(ExecutionState &state,
                 ConstantExpr::alloc(0, Context::get().getPointerWidth()));
     } else {
       ObjectState *os = bindObjectInState(state, mo, isLocal);
+      os->setSymbolicObject(addrMO);
       if (zeroMemory) {
         os->initializeToZero();
       } else {
