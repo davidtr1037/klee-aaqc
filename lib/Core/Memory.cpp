@@ -97,6 +97,7 @@ ObjectState::ObjectState(const MemoryObject *mo)
   : copyOnWriteOwner(0),
     refCount(0),
     object(mo),
+    symbolicObject(nullptr),
     concreteStore(new uint8_t[mo->size]),
     concreteMask(0),
     flushMask(0),
@@ -119,6 +120,7 @@ ObjectState::ObjectState(const MemoryObject *mo, const Array *array)
   : copyOnWriteOwner(0),
     refCount(0),
     object(mo),
+    symbolicObject(nullptr),
     concreteStore(new uint8_t[mo->size]),
     concreteMask(0),
     flushMask(0),
@@ -135,6 +137,7 @@ ObjectState::ObjectState(const ObjectState &os)
   : copyOnWriteOwner(0),
     refCount(0),
     object(os.object),
+    symbolicObject(os.symbolicObject),
     concreteStore(new uint8_t[os.size]),
     concreteMask(os.concreteMask ? new BitArray(*os.concreteMask, os.size) : 0),
     flushMask(os.flushMask ? new BitArray(*os.flushMask, os.size) : 0),
@@ -145,6 +148,10 @@ ObjectState::ObjectState(const ObjectState &os)
   assert(!os.readOnly && "no need to copy read only object?");
   if (object)
     object->refCount++;
+
+  if (symbolicObject) {
+    symbolicObject->refCount++;
+  }
 
   if (os.knownSymbolics) {
     knownSymbolics = new ref<Expr>[size];
@@ -168,6 +175,12 @@ ObjectState::~ObjectState() {
     if (object->refCount == 0)
     {
       delete object;
+    }
+    if (symbolicObject) {
+      symbolicObject->refCount--;
+      if (symbolicObject->refCount == 0) {
+        delete symbolicObject;
+      }
     }
   }
 }

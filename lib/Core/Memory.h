@@ -42,7 +42,10 @@ private:
 public:
   unsigned id;
   uint64_t address;
+  /* TODO: think of a better solution */
   ref<Expr> symbolicAddress;
+  /* TODO: use id? */
+  std::string saName;
 
   /// size in bytes
   unsigned size;
@@ -161,6 +164,8 @@ private:
 
   const MemoryObject *object;
 
+  const MemoryObject *symbolicObject;
+
   uint8_t *concreteStore;
 
   // XXX cleanup name of flushMask (its backwards or something)
@@ -193,6 +198,15 @@ public:
   ~ObjectState();
 
   const MemoryObject *getObject() const { return object; }
+
+  const MemoryObject *getSymbolicObject() const {
+    return symbolicObject;
+  }
+
+  void setSymbolicObject(const MemoryObject *mo) {
+    symbolicObject = mo;
+    mo->refCount++;
+  }
 
   void setReadOnly(bool ro) { readOnly = ro; }
 
