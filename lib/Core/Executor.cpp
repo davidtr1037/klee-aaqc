@@ -4119,6 +4119,9 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
                                          mo->allocSite,
                                          8);
 
+  /* can't rebase fixed objects */
+  assert(!os->getSymbolicObjects().empty());
+
   /* update address constraints */
   for (auto innerObject: os->getSymbolicObjects()) {
     state.addAddressConstraint(innerObject.mo->saName,
@@ -4153,6 +4156,9 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     for (unsigned j = 0; j < mo->size; j++) {
       segmentOS->write(offset + j, os->read8(j));
     }
+
+    /* can't rebase fixed objects */
+    assert(!os->getSymbolicObjects().empty());
 
     /* update constraints */
     for (auto innerObject: os->getSymbolicObjects()) {
