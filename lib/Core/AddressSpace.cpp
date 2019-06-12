@@ -349,52 +349,52 @@ ref<Expr> AddressSpace::unfold(ExecutionState &state,
   ref<Expr> unfolded = unfolder.visit(address);
   return unfolded;
 
-  AddressExprFinder finder;
-  finder.visit(address);
-  if (!finder.isPureAddressExpr) {
-    /* contains a solver array which doesn't correspond to an address */
-    return address;
-  }
+  //AddressExprFinder finder;
+  //finder.visit(address);
+  //if (!finder.isPureAddressExpr) {
+  //  /* contains a solver array which doesn't correspond to an address */
+  //  return address;
+  //}
 
-  /* this is a temporary optimization */
-  unsigned hash = address->hash();
-  uint64_t a = state.getAddress(hash);
-  if (a) {
-    return ConstantExpr::create(a, Context::get().getPointerWidth());
-  }
+  ///* this is a temporary optimization */
+  //unsigned hash = address->hash();
+  //uint64_t a = state.getAddress(hash);
+  //if (a) {
+  //  return ConstantExpr::create(a, Context::get().getPointerWidth());
+  //}
 
-  AddExpr *add = dyn_cast<AddExpr>(address);
-  if (add) {
-    ConstantExpr *lce = dyn_cast<ConstantExpr>(add->left);
-    if (lce) {
-      unsigned hash = add->right->hash();
-      uint64_t a = state.getAddress(hash);
-      if (a) {
-        return ConstantExpr::create(a + lce->getZExtValue(), Context::get().getPointerWidth());
-      }
-    }
-  }
+  //AddExpr *add = dyn_cast<AddExpr>(address);
+  //if (add) {
+  //  ConstantExpr *lce = dyn_cast<ConstantExpr>(add->left);
+  //  if (lce) {
+  //    unsigned hash = add->right->hash();
+  //    uint64_t a = state.getAddress(hash);
+  //    if (a) {
+  //      return ConstantExpr::create(a + lce->getZExtValue(), Context::get().getPointerWidth());
+  //    }
+  //  }
+  //}
 
-  /* collect dependencies */
-  AddressArrayCollector collector;
-  collector.visit(address);
+  ///* collect dependencies */
+  //AddressArrayCollector collector;
+  //collector.visit(address);
 
-  ConstraintManager cm;
-  for (std::string name : collector.arrays) {
-    ref<Expr> eq = state.getAddressConstraint(name);
-    if (eq.isNull()) {
-      assert(0);
-    }
-    cm.addConstraint(eq);
-  }
+  //ConstraintManager cm;
+  //for (std::string name : collector.arrays) {
+  //  ref<Expr> eq = state.getAddressConstraint(name);
+  //  if (eq.isNull()) {
+  //    assert(0);
+  //  }
+  //  cm.addConstraint(eq);
+  //}
 
-  ref<ConstantExpr> value;
-  bool success = solver->solver->getValue(Query(cm, address), value);
-  if (!success) {
-    return address;
-  }
+  //ref<ConstantExpr> value;
+  //bool success = solver->solver->getValue(Query(cm, address), value);
+  //if (!success) {
+  //  return address;
+  //}
 
-  return value;
+  //return value;
 }
 
 /***/
