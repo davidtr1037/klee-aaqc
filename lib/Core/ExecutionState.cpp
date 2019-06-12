@@ -447,6 +447,27 @@ ref<Expr> ExecutionState::build(ref<Expr> e) const {
   return all;
 }
 
+ref<Expr> ExecutionState::build(std::vector<ref<Expr>> &es) const {
+  std::set<std::string> all_arrays;
+
+  for (ref<Expr> e : es) {
+    /* collect dependencies */
+    AddressArrayCollector collector;
+    collector.visit(e);
+    for (std::string s : collector.arrays) {
+      all_arrays.insert(s);
+    }
+  }
+
+  ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
+  for (std::string name : all_arrays) {
+    ref<Expr> eq = getAddressConstraint(name);
+    all = AndExpr::create(all, eq);
+  }
+
+  return all;
+}
+
 void ExecutionState::dumpAddressConstraints() const {
   for (auto &i : addressConstraints) {
     const AddressRecord &ar = i.second;

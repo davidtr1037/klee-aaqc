@@ -202,6 +202,8 @@ public:
 
   ref<Expr> build(ref<Expr> e) const;
 
+  ref<Expr> build(std::vector<ref<Expr>> &es) const;
+
   void dumpAddressConstraints() const;
 };
 }
