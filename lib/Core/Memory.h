@@ -154,6 +154,18 @@ public:
   }
 };
 
+/* TODO: update refCount? */
+struct InnerMemoryObject {
+  const MemoryObject *mo;
+  unsigned int offset;
+
+  InnerMemoryObject(const MemoryObject *mo, unsigned int offset) :
+    mo(mo), offset(offset)
+  {
+
+  }
+};
+
 class ObjectState {
 private:
   friend class AddressSpace;
@@ -164,7 +176,7 @@ private:
 
   const MemoryObject *object;
 
-  const MemoryObject *symbolicObject;
+  std::vector<InnerMemoryObject> symbolicObjects;
 
   uint8_t *concreteStore;
 
@@ -199,12 +211,12 @@ public:
 
   const MemoryObject *getObject() const { return object; }
 
-  const MemoryObject *getSymbolicObject() const {
-    return symbolicObject;
+  const std::vector<InnerMemoryObject> &getSymbolicObjects() const {
+    return symbolicObjects;
   }
 
-  void setSymbolicObject(const MemoryObject *mo) {
-    symbolicObject = mo;
+  void addSymbolicObject(const MemoryObject *mo, unsigned int offset) {
+    symbolicObjects.push_back(InnerMemoryObject(mo, offset));
     mo->refCount++;
   }
 

@@ -97,7 +97,6 @@ ObjectState::ObjectState(const MemoryObject *mo)
   : copyOnWriteOwner(0),
     refCount(0),
     object(mo),
-    symbolicObject(nullptr),
     concreteStore(new uint8_t[mo->size]),
     concreteMask(0),
     flushMask(0),
@@ -120,7 +119,6 @@ ObjectState::ObjectState(const MemoryObject *mo, const Array *array)
   : copyOnWriteOwner(0),
     refCount(0),
     object(mo),
-    symbolicObject(nullptr),
     concreteStore(new uint8_t[mo->size]),
     concreteMask(0),
     flushMask(0),
@@ -137,7 +135,7 @@ ObjectState::ObjectState(const ObjectState &os)
   : copyOnWriteOwner(0),
     refCount(0),
     object(os.object),
-    symbolicObject(os.symbolicObject),
+    symbolicObjects(os.symbolicObjects),
     concreteStore(new uint8_t[os.size]),
     concreteMask(os.concreteMask ? new BitArray(*os.concreteMask, os.size) : 0),
     flushMask(os.flushMask ? new BitArray(*os.flushMask, os.size) : 0),
@@ -149,8 +147,8 @@ ObjectState::ObjectState(const ObjectState &os)
   if (object)
     object->refCount++;
 
-  if (symbolicObject) {
-    symbolicObject->refCount++;
+  for (auto i : symbolicObjects) {
+    i.mo->refCount++;
   }
 
   if (os.knownSymbolics) {
@@ -176,10 +174,10 @@ ObjectState::~ObjectState() {
     {
       delete object;
     }
-    if (symbolicObject) {
-      symbolicObject->refCount--;
-      if (symbolicObject->refCount == 0) {
-        delete symbolicObject;
+    for (auto i : symbolicObjects) {
+      i.mo->refCount--;
+      if (i.mo->refCount == 0) {
+        delete i.mo;
       }
     }
   }

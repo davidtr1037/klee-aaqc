@@ -3401,7 +3401,7 @@ void Executor::executeAlloc(ExecutionState &state,
                 ConstantExpr::alloc(0, Context::get().getPointerWidth()));
     } else {
       ObjectState *os = bindObjectInState(state, mo, isLocal);
-      os->setSymbolicObject(addrMO);
+      os->addSymbolicObject(addrMO, 0);
       if (zeroMemory) {
         os->initializeToZero();
       } else {
@@ -4119,9 +4119,12 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
                                          mo->allocSite,
                                          8);
 
-  /* update address constraint */
-  const MemoryObject *addrMO = os->getSymbolicObject();
-  state.addAddressConstraint(addrMO->saName, newMO->address, addrMO->symbolicAddress);
+  /* update address constraints */
+  for (auto innerObject: os->getSymbolicObjects()) {
+    state.addAddressConstraint(innerObject.mo->saName,
+                               newMO->address + innerObject.offset,
+                               innerObject.mo->symbolicAddress);
+  }
 
   /* update address space */
   /* TODO: avoid copy? */
@@ -4151,9 +4154,13 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
       segmentOS->write(offset + j, os->read8(j));
     }
 
-    /* update constraint */
-    const MemoryObject *addrMO = os->getSymbolicObject();
-    state.addAddressConstraint(addrMO->saName, segmentMO->address + offset, addrMO->symbolicAddress);
+    /* update constraints */
+    for (auto innerObject: os->getSymbolicObjects()) {
+      state.addAddressConstraint(innerObject.mo->saName,
+                                 segmentMO->address + offset + innerObject.offset,
+                                 innerObject.mo->symbolicAddress);
+      segmentOS->addSymbolicObject(innerObject.mo, offset + innerObject.offset);
+    }
   }
 
   for (ObjectPair &op : ops) {
