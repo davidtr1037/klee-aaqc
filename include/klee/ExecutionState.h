@@ -201,6 +201,8 @@ public:
   }
 
   ref<Expr> build(ref<Expr> e) const;
+
+  void dumpAddressConstraints() const;
 };
 }
 

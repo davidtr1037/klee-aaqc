@@ -446,3 +446,10 @@ ref<Expr> ExecutionState::build(ref<Expr> e) const {
 
   return all;
 }
+
+void ExecutionState::dumpAddressConstraints() const {
+  for (auto &i : addressConstraints) {
+    const AddressRecord &ar = i.second;
+    ar.constraint->dump();
+  }
+}
