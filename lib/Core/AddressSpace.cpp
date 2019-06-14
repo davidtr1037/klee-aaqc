@@ -333,7 +333,7 @@ bool AddressSpace::copyInConcrete(const MemoryObject *mo, const ObjectState *os,
   return true;
 }
 
-ref<Expr> AddressSpace::unfold(ExecutionState &state,
+ref<Expr> AddressSpace::unfold(const ExecutionState &state,
                                TimingSolver *solver,
                                ref<Expr> address) const {
   if (isa<ConstantExpr>(address)) {

@@ -196,7 +196,7 @@ public:
 
   uint64_t getAddress(unsigned int hash) const;
 
-  std::map<unsigned, AddressRecord> &getCache() {
+  const std::map<unsigned, AddressRecord> &getCache() const {
     return cache;
   }
 
