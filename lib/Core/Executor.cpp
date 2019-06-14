@@ -399,6 +399,7 @@ cl::opt<bool> DebugCheckForImpliedValues(
     cl::desc("Debug the implied value optimization"),
     cl::cat(DebugCat));
 
+cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3651,7 +3652,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                                0, coreSolverTimeout);
   solver->setTimeout(time::Span());
 
-  if (!rl.empty()) {
+  if (UseRebase && !rl.empty()) {
     klee_message("rebasing %lu objects", rl.size());
     rebaseObjects(state, rl);
     executeMemoryOperation(state, isWrite, address, value, target, true);
