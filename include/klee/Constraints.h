@@ -45,6 +45,10 @@ public:
 
   void addConstraint(ref<Expr> e);
   
+  void addConstraintNoOptimize(ref<Expr> e) {
+    constraints.push_back(e);
+  }
+
   bool empty() const {
     return constraints.empty();
   }

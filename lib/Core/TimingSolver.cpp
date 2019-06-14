@@ -38,7 +38,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
   ConstraintManager cm;
   for (ref<Expr> e : state.constraints) {
-    cm.addConstraint(e);
+    cm.addConstraintNoOptimize(e);
   }
   ref<Expr> extra = state.build(expr);
   cm.addConstraint(extra);
@@ -67,7 +67,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 
   ConstraintManager cm;
   for (ref<Expr> e : state.constraints) {
-    cm.addConstraint(e);
+    cm.addConstraintNoOptimize(e);
   }
   ref<Expr> extra = state.build(expr);
   cm.addConstraint(extra);
@@ -119,7 +119,7 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
 
   ConstraintManager cm;
   for (ref<Expr> e : state.constraints) {
-    cm.addConstraint(e);
+    cm.addConstraintNoOptimize(e);
   }
   ref<Expr> extra = state.build(expr);
   cm.addConstraint(extra);
@@ -146,7 +146,7 @@ TimingSolver::getInitialValues(const ExecutionState& state,
   ConstraintManager cm;
   std::vector<ref<Expr>> conditions;
   for (ref<Expr> e : state.constraints) {
-    cm.addConstraint(e);
+    cm.addConstraintNoOptimize(e);
     conditions.push_back(e);
   }
   ref<Expr> extra = state.build(conditions);
