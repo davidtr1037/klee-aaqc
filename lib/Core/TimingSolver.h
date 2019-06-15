@@ -66,6 +66,10 @@ namespace klee {
 
     std::pair< ref<Expr>, ref<Expr> >
     getRange(const ExecutionState&, ref<Expr> query);
+
+    void fillConstraints(const ExecutionState &state,
+                         ConstraintManager &cm,
+                         ref<Expr> q);
   };
 
 }

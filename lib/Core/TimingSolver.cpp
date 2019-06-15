@@ -37,12 +37,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   ConstraintManager cm;
-  for (ref<Expr> e : state.constraints) {
-    cm.addConstraintNoOptimize(e);
-  }
-  ref<Expr> extra = state.build(expr);
-  cm.addConstraint(extra);
-
+  fillConstraints(state, cm, expr);
   bool success = solver->evaluate(Query(cm, expr), result);
   //bool success = solver->evaluate(Query(state.constraints, expr), result);
 
@@ -66,12 +61,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   ConstraintManager cm;
-  for (ref<Expr> e : state.constraints) {
-    cm.addConstraintNoOptimize(e);
-  }
-  ref<Expr> extra = state.build(expr);
-  cm.addConstraint(extra);
-
+  fillConstraints(state, cm, expr);
   bool success = solver->mustBeTrue(Query(cm, expr), result);
   //bool success = solver->mustBeTrue(Query(state.constraints, expr), result);
 
@@ -118,12 +108,7 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   ConstraintManager cm;
-  for (ref<Expr> e : state.constraints) {
-    cm.addConstraintNoOptimize(e);
-  }
-  ref<Expr> extra = state.build(expr);
-  cm.addConstraint(extra);
-
+  fillConstraints(state, cm, expr);
   bool success = solver->getValue(Query(cm, expr), result);
   //bool success = solver->getValue(Query(state.constraints, expr), result);
 
@@ -144,14 +129,7 @@ TimingSolver::getInitialValues(const ExecutionState& state,
   TimerStatIncrementer timer(stats::solverTime);
 
   ConstraintManager cm;
-  std::vector<ref<Expr>> conditions;
-  for (ref<Expr> e : state.constraints) {
-    cm.addConstraintNoOptimize(e);
-    conditions.push_back(e);
-  }
-  ref<Expr> extra = state.build(conditions);
-  cm.addConstraint(extra);
-
+  fillConstraints(state, cm, nullptr);
   bool success = solver->getInitialValues(Query(cm, ConstantExpr::alloc(0, Expr::Bool)),
                                           objects, result);
   
@@ -163,4 +141,24 @@ TimingSolver::getInitialValues(const ExecutionState& state,
 std::pair< ref<Expr>, ref<Expr> >
 TimingSolver::getRange(const ExecutionState& state, ref<Expr> expr) {
   return solver->getRange(Query(state.constraints, expr));
+}
+
+void TimingSolver::fillConstraints(const ExecutionState &state,
+                                   ConstraintManager &cm,
+                                   ref<Expr> q) {
+  std::vector<ref<Expr>> conditions;
+  for (ref<Expr> e : state.constraints) {
+    cm.addConstraintNoOptimize(e);
+    if (q.isNull()) {
+      conditions.push_back(e);
+    }
+  }
+
+  ref<Expr> extra = nullptr;
+  if (q.isNull()) {
+    extra = state.build(conditions);
+  } else {
+    extra = state.build(q);
+  }
+  cm.addConstraint(extra);
 }
