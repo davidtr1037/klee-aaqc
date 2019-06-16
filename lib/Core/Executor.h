@@ -73,6 +73,7 @@ namespace klee {
   class TimingSolver;
   class TreeStreamWriter;
   class MergeHandler;
+  class SymbolicAddressInfo;
   template<class T> class ref;
 
 
@@ -549,7 +550,9 @@ public:
   /// Returns the errno location in memory of the state
   int *getErrnoLocation(const ExecutionState &state) const;
 
-  ObjectPair createAddressObject(ExecutionState &state, uint64_t address);
+  ObjectPair createAddressObject(ExecutionState &state,
+                                 uint64_t address,
+                                 SymbolicAddressInfo &info);
 
   void rebaseObject(ExecutionState &state, ObjectPair &op);
 

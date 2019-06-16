@@ -42,10 +42,8 @@ private:
 public:
   unsigned id;
   uint64_t address;
-  /* TODO: think of a better solution */
+  /* TODO: ... */
   ref<Expr> symbolicAddress;
-  /* TODO: use id? */
-  std::string saName;
 
   /// size in bytes
   unsigned size;
@@ -154,13 +152,17 @@ public:
   }
 };
 
-/* TODO: update refCount? */
-struct InnerMemoryObject {
-  const MemoryObject *mo;
-  unsigned int offset;
+struct SymbolicAddressInfo {
+  std::string sa;
+  ref<Expr> address;
+};
 
-  InnerMemoryObject(const MemoryObject *mo, unsigned int offset) :
-    mo(mo), offset(offset)
+struct SubObject {
+  unsigned int offset;
+  SymbolicAddressInfo info;
+
+  SubObject(unsigned offset, SymbolicAddressInfo &info) :
+    offset(offset), info(info)
   {
 
   }
@@ -176,7 +178,7 @@ private:
 
   const MemoryObject *object;
 
-  std::vector<InnerMemoryObject> symbolicObjects;
+  std::vector<SubObject> subObjects;
 
   uint8_t *concreteStore;
 
@@ -211,13 +213,12 @@ public:
 
   const MemoryObject *getObject() const { return object; }
 
-  const std::vector<InnerMemoryObject> &getSymbolicObjects() const {
-    return symbolicObjects;
+  const std::vector<SubObject> &getSubObjects() const {
+    return subObjects;
   }
 
-  void addSymbolicObject(const MemoryObject *mo, unsigned int offset) {
-    symbolicObjects.push_back(InnerMemoryObject(mo, offset));
-    mo->refCount++;
+  void addSubObject(unsigned int offset, SymbolicAddressInfo &info) {
+    subObjects.push_back(SubObject(offset, info));
   }
 
   void setReadOnly(bool ro) { readOnly = ro; }

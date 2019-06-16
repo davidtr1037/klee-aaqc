@@ -3394,22 +3394,23 @@ void Executor::executeAlloc(ExecutionState &state,
         memory->allocate(CE->getZExtValue(), isLocal, /*isGlobal=*/false,
                          allocSite, allocationAlignment);
 
-    ObjectPair op = createAddressObject(state, mo->address);
-    const MemoryObject *addrMO = op.first;
+    SymbolicAddressInfo info;
+    createAddressObject(state, mo->address, info);
 
     if (!mo) {
       bindLocal(target, state, 
                 ConstantExpr::alloc(0, Context::get().getPointerWidth()));
     } else {
       ObjectState *os = bindObjectInState(state, mo, isLocal);
-      os->addSymbolicObject(addrMO, 0);
+      os->addSubObject(0, info);
       if (zeroMemory) {
         os->initializeToZero();
       } else {
         os->initializeToRandom();
       }
       //bindLocal(target, state, mo->getBaseExpr());
-      bindLocal(target, state, addrMO->symbolicAddress);
+      mo->symbolicAddress = info.address;
+      bindLocal(target, state, info.address);
 
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
@@ -4098,7 +4099,9 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
   return alignment;
 }
 
-ObjectPair Executor::createAddressObject(ExecutionState &state, uint64_t address) {
+ObjectPair Executor::createAddressObject(ExecutionState &state,
+                                         uint64_t address,
+                                         SymbolicAddressInfo &info) {
   static unsigned id = 0;
 
   std::string uniqueName = "addr_" + llvm::utostr(id++);
@@ -4115,9 +4118,10 @@ ObjectPair Executor::createAddressObject(ExecutionState &state, uint64_t address
 
   ObjectState *os = bindObjectInState(state, mo, false, array);
   ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
-  mo->symbolicAddress = alpha;
-  mo->saName = uniqueName;
   state.addAddressConstraint(uniqueName, address, alpha);
+
+  info.address = alpha;
+  info.sa = uniqueName;
 
   return ObjectPair(mo, os);
 }
@@ -4133,13 +4137,13 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
                                          8);
 
   /* can't rebase fixed objects */
-  assert(!os->getSymbolicObjects().empty());
+  assert(!os->getSubObjects().empty());
 
   /* update address constraints */
-  for (auto innerObject: os->getSymbolicObjects()) {
-    state.addAddressConstraint(innerObject.mo->saName,
-                               newMO->address + innerObject.offset,
-                               innerObject.mo->symbolicAddress);
+  for (auto subObject: os->getSubObjects()) {
+    state.addAddressConstraint(subObject.info.sa,
+                               newMO->address + subObject.offset,
+                               subObject.info.address);
   }
 
   /* update address space */
@@ -4171,14 +4175,14 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     }
 
     /* can't rebase fixed objects */
-    assert(!os->getSymbolicObjects().empty());
+    assert(!os->getSubObjects().empty());
 
     /* update constraints */
-    for (auto innerObject: os->getSymbolicObjects()) {
-      state.addAddressConstraint(innerObject.mo->saName,
-                                 segmentMO->address + offset + innerObject.offset,
-                                 innerObject.mo->symbolicAddress);
-      segmentOS->addSymbolicObject(innerObject.mo, offset + innerObject.offset);
+    for (auto subObject: os->getSubObjects()) {
+      state.addAddressConstraint(subObject.info.sa,
+                                 segmentMO->address + offset + subObject.offset,
+                                 subObject.info.address);
+      segmentOS->addSubObject(offset + subObject.offset, subObject.info);
     }
   }
 
