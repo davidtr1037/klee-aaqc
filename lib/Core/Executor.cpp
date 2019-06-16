@@ -399,6 +399,8 @@ cl::opt<bool> DebugCheckForImpliedValues(
     cl::desc("Debug the implied value optimization"),
     cl::cat(DebugCat));
 
+cl::opt<bool> UseSymAddr("use-sym-addr", cl::init(false), cl::desc("..."));
+
 cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 } // namespace
 
@@ -3408,9 +3410,12 @@ void Executor::executeAlloc(ExecutionState &state,
       } else {
         os->initializeToRandom();
       }
-      //bindLocal(target, state, mo->getBaseExpr());
-      mo->symbolicAddress = info.address;
-      bindLocal(target, state, info.address);
+      if (UseSymAddr) {
+        mo->symbolicAddress = info.address;
+        bindLocal(target, state, info.address);
+      } else {
+        bindLocal(target, state, mo->getBaseExpr());
+      }
 
       if (reallocFrom) {
         unsigned count = std::min(reallocFrom->size, os->size);
