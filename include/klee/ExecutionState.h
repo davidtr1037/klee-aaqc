@@ -196,6 +196,10 @@ public:
 
   uint64_t getAddress(unsigned int hash) const;
 
+  const std::map<std::string, AddressRecord> &getAddressConstraints() const {
+    return addressConstraints;
+  }
+
   const std::map<unsigned, AddressRecord> &getCache() const {
     return cache;
   }
