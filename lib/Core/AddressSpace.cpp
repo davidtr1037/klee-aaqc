@@ -114,6 +114,9 @@ bool AddressSpace::resolveOne(ExecutionState &state,
     while (oi!=begin) {
       --oi;
       const MemoryObject *mo = oi->first;
+      if (mo->isAddressMO) {
+        continue;
+      }
         
       bool mayBeTrue;
       if (!solver->mayBeTrue(state, 
@@ -137,6 +140,9 @@ bool AddressSpace::resolveOne(ExecutionState &state,
     // search forwards
     for (oi=start; oi!=end; ++oi) {
       const MemoryObject *mo = oi->first;
+      if (mo->isAddressMO) {
+        continue;
+      }
 
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, 
@@ -243,6 +249,10 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
     while (oi != begin) {
       --oi;
       const MemoryObject *mo = oi->first;
+      if (mo->isAddressMO) {
+        continue;
+      }
+
       if (timeout && timeout < timer.check())
         return true;
 
@@ -262,6 +272,10 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
     // search forwards
     for (oi = start; oi != end; ++oi) {
       const MemoryObject *mo = oi->first;
+      if (mo->isAddressMO) {
+        continue;
+      }
+
       if (timeout && timeout < timer.check())
         return true;
 

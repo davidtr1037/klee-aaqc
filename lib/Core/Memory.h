@@ -44,6 +44,8 @@ public:
   uint64_t address;
   /* TODO: ... */
   ref<Expr> symbolicAddress;
+  /* TODO: ... */
+  bool isAddressMO;
 
   /// size in bytes
   unsigned size;
@@ -80,6 +82,7 @@ public:
       id(counter++), 
       address(_address),
       symbolicAddress(nullptr),
+      isAddressMO(false),
       size(0),
       isFixed(true),
       parent(NULL),
@@ -94,6 +97,7 @@ public:
       id(counter++),
       address(_address),
       symbolicAddress(nullptr),
+      isAddressMO(false),
       size(_size),
       name("unnamed"),
       isLocal(_isLocal),

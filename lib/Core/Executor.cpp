@@ -4121,6 +4121,9 @@ ObjectPair Executor::createAddressObject(ExecutionState &state,
     assert(false);
   }
 
+  /* will be useful when resolving... */
+  mo->isAddressMO = true;
+
   ObjectState *os = bindObjectInState(state, mo, false, array);
   ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
   state.addAddressConstraint(uniqueName, address, alpha);
