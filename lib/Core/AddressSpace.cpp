@@ -79,7 +79,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
                               ref<Expr> address,
                               ObjectPair &result,
                               bool &success) const {
-  address = unfold(state, solver, address);
+  address = unfold(state, address, solver);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(address)) {
     success = resolveOne(CE, result);
     return true;
@@ -208,7 +208,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
 bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
                            ref<Expr> p, ResolutionList &rl,
                            unsigned maxResolutions, time::Span timeout) const {
-  p = unfold(state, solver, p);
+  p = unfold(state, p, solver);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(p)) {
     ObjectPair res;
     if (resolveOne(CE, res))
@@ -348,8 +348,8 @@ bool AddressSpace::copyInConcrete(const MemoryObject *mo, const ObjectState *os,
 }
 
 ref<Expr> AddressSpace::unfold(const ExecutionState &state,
-                               TimingSolver *solver,
-                               ref<Expr> address) const {
+                               ref<Expr> address,
+                               TimingSolver *solver) const {
   if (isa<ConstantExpr>(address)) {
     /* actually should not happen... (unless fixed) */
     return address;

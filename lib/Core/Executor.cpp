@@ -3583,7 +3583,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       value = state.constraints.simplifyExpr(value);
   }
 
-  address = state.addressSpace.unfold(state, solver, address);
+  address = state.addressSpace.unfold(state, address, solver);
   address = optimizer.optimizeExpr(address, true);
 
   // fast path: single in-bounds resolution
@@ -3605,10 +3605,10 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     
     ref<Expr> offset = mo->getOffsetExpr(address);
     /* TODO: ... */
-    offset = state.addressSpace.unfold(state, solver, offset);
+    offset = state.addressSpace.unfold(state, offset, solver);
     ref<Expr> check = mo->getBoundsCheckOffset(offset, bytes);
     /* TODO: ... */
-    check = state.addressSpace.unfold(state, solver, check);
+    check = state.addressSpace.unfold(state, check, solver);
     check = optimizer.optimizeExpr(check, true);
 
     bool inBounds;
@@ -3684,11 +3684,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                 ReadOnly);
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-          ref<Expr> offset = state.addressSpace.unfold(state, solver, mo->getOffsetExpr(address));
+          ref<Expr> offset = state.addressSpace.unfold(state, mo->getOffsetExpr(address), solver);
           wos->write(offset, value);
         }
       } else {
-        ref<Expr> offset = state.addressSpace.unfold(state, solver, mo->getOffsetExpr(address));
+        ref<Expr> offset = state.addressSpace.unfold(state, mo->getOffsetExpr(address), solver);
         ref<Expr> result = os->read(offset, type);
         bindLocal(target, *bound, result);
       }
