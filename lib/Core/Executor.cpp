@@ -3586,6 +3586,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       value = state.constraints.simplifyExpr(value);
   }
 
+  /* TODO: move before the simplification? */
   address = state.addressSpace.unfold(state, address, solver);
   address = optimizer.optimizeExpr(address, true);
 
@@ -3610,7 +3611,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     /* TODO: ... */
     offset = state.addressSpace.unfold(state, offset, solver);
     ref<Expr> check = mo->getBoundsCheckOffset(offset, bytes);
-    /* TODO: ... */
+    /* TODO: remove unfolds? */
     check = state.addressSpace.unfold(state, check, solver);
     check = optimizer.optimizeExpr(check, true);
 
