@@ -161,6 +161,9 @@ public:
   // The numbers of times this state has run through Executor::stepInstruction
   std::uint64_t steppedInstructions;
 
+  /* TODO: add docs */
+  ConstraintManager rewrittenConstraints;
+
 private:
   ExecutionState() : ptreeNode(0) {}
 
@@ -181,7 +184,7 @@ public:
   void popFrame();
 
   void addSymbolic(const MemoryObject *mo, const Array *array);
-  void addConstraint(ref<Expr> e) { constraints.addConstraint(e); }
+  void addConstraint(ref<Expr> e);
 
   bool merge(const ExecutionState &b);
   void dumpStack(llvm::raw_ostream &out) const;
@@ -209,6 +212,8 @@ public:
   ref<Expr> build(std::vector<ref<Expr>> &es) const;
 
   void dumpAddressConstraints() const;
+
+  void computeRewrittenConstraints();
 };
 }
 

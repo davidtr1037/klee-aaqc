@@ -81,6 +81,7 @@ ExecutionState::ExecutionState(KFunction *kf) :
   pushFrame(0, kf);
 }
 
+/* TODO: add rewritten constraints? */
 ExecutionState::ExecutionState(const std::vector<ref<Expr> > &assumptions)
     : constraints(assumptions), ptreeNode(0) {}
 
@@ -129,7 +130,8 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     symbolics(state.symbolics),
     arrayNames(state.arrayNames),
     openMergeStack(state.openMergeStack),
-    steppedInstructions(state.steppedInstructions)
+    steppedInstructions(state.steppedInstructions),
+    rewrittenConstraints(state.rewrittenConstraints)
 {
   for (unsigned int i=0; i<symbolics.size(); i++)
     symbolics[i].first->refCount++;
@@ -166,6 +168,12 @@ void ExecutionState::popFrame() {
 void ExecutionState::addSymbolic(const MemoryObject *mo, const Array *array) { 
   mo->refCount++;
   symbolics.push_back(std::make_pair(mo, array));
+}
+
+void ExecutionState::addConstraint(ref<Expr> e) {
+  constraints.addConstraint(e);
+  ref<Expr> rewritten = addressSpace.unfold(*this, e);
+  rewrittenConstraints.addConstraint(rewritten);
 }
 ///
 
@@ -472,5 +480,13 @@ void ExecutionState::dumpAddressConstraints() const {
   for (auto &i : addressConstraints) {
     const AddressRecord &ar = i.second;
     ar.constraint->dump();
+  }
+}
+
+void ExecutionState::computeRewrittenConstraints() {
+  rewrittenConstraints.clear();
+  for (ref<Expr> e : constraints) {
+    ref<Expr> rewritten = addressSpace.unfold(*this, e);
+    rewrittenConstraints.addConstraint(rewritten);
   }
 }
