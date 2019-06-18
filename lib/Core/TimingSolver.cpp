@@ -147,10 +147,11 @@ void TimingSolver::fillConstraints(const ExecutionState &state,
                                    ConstraintManager &cm,
                                    ref<Expr> q) {
   std::vector<ref<Expr>> conditions;
-  for (ref<Expr> e : state.constraints) {
+  for (ref<Expr> e : state.rewrittenConstraints) {
     cm.addConstraintNoOptimize(e);
     conditions.push_back(e);
   }
+  return;
 
   ref<Expr> extra = nullptr;
   if (!q.isNull()) {

@@ -3572,6 +3572,9 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                       ref<Expr> value /* undef if read */,
                                       KInstruction *target /* undef if write */,
                                       bool retry) {
+  /* save the address expression, before the substitution */
+  ref<Expr> originalAddress = address;
+
   Expr::Width type = (isWrite ? value->getWidth() : 
                      getWidthForLLVMType(target->inst->getType()));
   unsigned bytes = Expr::getMinBytesForWidth(type);
@@ -3661,7 +3664,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   if (UseRebase && !rl.empty()) {
     klee_message("%p: rebasing %lu objects", &state, rl.size());
     rebaseObjects(state, rl);
-    executeMemoryOperation(state, isWrite, address, value, target, true);
+    executeMemoryOperation(state, isWrite, originalAddress, value, target, true);
     return;
   }
   
@@ -4159,6 +4162,9 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
   ObjectState *clonedOS = new ObjectState(*op.second);
   state.addressSpace.bindObject(newMO, clonedOS);
   state.addressSpace.unbindObject(mo);
+
+  /* TODO: add docs */
+  state.computeRewrittenConstraints();
 }
 
 void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
@@ -4201,6 +4207,9 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   for (ObjectPair &op : ops) {
     state.addressSpace.unbindObject(op.first);
   }
+
+  /* TODO: add docs */
+  state.computeRewrittenConstraints();
 }
 
 void Executor::prepareForEarlyExit() {
