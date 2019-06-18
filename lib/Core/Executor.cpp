@@ -3659,7 +3659,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   solver->setTimeout(time::Span());
 
   if (UseRebase && !rl.empty()) {
-    klee_message("rebasing %lu objects", rl.size());
+    klee_message("%p: rebasing %lu objects", &state, rl.size());
     rebaseObjects(state, rl);
     executeMemoryOperation(state, isWrite, address, value, target, true);
     return;
@@ -4170,7 +4170,8 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   }
 
   MemoryObject *segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
-  ObjectState *segmentOS = bindObjectInState(state, segmentMO, true);
+  ObjectState *segmentOS = bindObjectInState(state, segmentMO, false);
+  klee_message("%p: creating new segment: %lu", &state, segmentMO->address);
 
   for (unsigned i = 0; i < ops.size(); i++) {
     ObjectPair &op = ops[i];
@@ -4191,6 +4192,9 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
                                  segmentMO->address + offset + subObject.offset,
                                  subObject.info.address);
       segmentOS->addSubObject(offset + subObject.offset, subObject.info);
+      klee_message("rebasing memory object: %lu -> %lu",
+                   mo->address + subObject.offset,
+                   segmentMO->address + offset + subObject.offset);
     }
   }
 
