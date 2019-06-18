@@ -151,13 +151,12 @@ void TimingSolver::fillConstraints(const ExecutionState &state,
     cm.addConstraintNoOptimize(e);
     conditions.push_back(e);
   }
-  return;
 
-  ref<Expr> extra = nullptr;
-  if (!q.isNull()) {
-    conditions.push_back(q);
-  }
+  //ref<Expr> extra = nullptr;
+  //if (!q.isNull()) {
+  //  conditions.push_back(q);
+  //}
 
-  extra = state.build(conditions);
-  cm.addConstraint(extra);
+  //extra = state.build(conditions);
+  //cm.addConstraint(extra);
 }
