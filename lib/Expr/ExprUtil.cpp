@@ -155,6 +155,37 @@ ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
   return Action::doChildren();
 }
 
+ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
+  UpdateList updates(e.updates.root, nullptr);
+  //UpdateList updates(e.updates);
+
+  for (const UpdateNode *un = e.updates.head; un; un = un->next) {
+    ref<ReadExpr> re = dyn_cast<ReadExpr>(un->value);
+    if (re.isNull()) {
+      continue;
+    }
+
+    std::string name = re->updates.root->getName();
+    if (name.find("addr_") != 0) {
+      continue;
+    }
+
+    ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
+    assert(!index.isNull());
+    uint64_t a = arrayLookup[name];
+    uint64_t i = index->getZExtValue();
+    uint64_t v = (a >> (i * 8)) & 0xff;
+
+    updates.extend(un->index, ConstantExpr::create(v, Expr::Int8));
+  }
+
+  if (updates.getSize() != 0) {
+    return Action::changeTo(ReadExpr::create(updates, e.index));
+  }
+
+  return Action::doChildren();
+}
+
 }
 
 template<typename InputIterator>

@@ -76,16 +76,20 @@ namespace klee {
 
     ExprVisitor::Action visitConcat(const ConcatExpr &e);
 
+    ExprVisitor::Action visitRead(const ReadExpr &e);
+
   public:
     typedef std::map<uint64_t, uint64_t> HashLookup;
+    typedef std::map<std::string, uint64_t> ArrayLookup;
 
-    AddressUnfolder(HashLookup &lookup) :
-      lookup(lookup)
+    AddressUnfolder(HashLookup &lookup, ArrayLookup &arrayLookup) :
+      lookup(lookup), arrayLookup(arrayLookup)
     {
 
     }
 
     HashLookup lookup;
+    ArrayLookup arrayLookup;
   };
 }
 

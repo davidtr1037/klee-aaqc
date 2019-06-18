@@ -359,7 +359,13 @@ ref<Expr> AddressSpace::unfold(const ExecutionState &state,
   for (auto i : state.getCache()) {
     lookup[i.first] = i.second.address;
   }
-  AddressUnfolder unfolder(lookup);
+
+  std::map<std::string, uint64_t> arrayLookup;
+  for (auto i : state.getAddressConstraints()) {
+    arrayLookup[i.first] = i.second.address;
+  }
+
+  AddressUnfolder unfolder(lookup, arrayLookup);
   ref<Expr> unfolded = unfolder.visit(address);
   return unfolded;
 
