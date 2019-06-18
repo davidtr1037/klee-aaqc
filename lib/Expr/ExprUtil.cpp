@@ -148,7 +148,7 @@ ExprVisitor::Action AddressArrayCollector::visitRead(const ReadExpr &e) {
 ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
   auto i = lookup.find(e.hash());
   if (i != lookup.end()) {
-    ref<ConstantExpr> ce = ConstantExpr::create(i->second, 64);
+    ref<ConstantExpr> ce = ConstantExpr::create(i->second, Expr::Int64);
     return Action::changeTo(ce);
   }
 
