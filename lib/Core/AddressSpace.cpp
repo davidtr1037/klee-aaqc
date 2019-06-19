@@ -355,14 +355,14 @@ ref<Expr> AddressSpace::unfold(const ExecutionState &state,
     return address;
   }
 
-  std::map<uint64_t, uint64_t> lookup;
+  std::map<uint64_t, ref<Expr>> lookup;
   for (auto i : state.getCache()) {
     lookup[i.first] = i.second.address;
   }
 
   std::map<std::string, uint64_t> arrayLookup;
   for (auto i : state.getAddressConstraints()) {
-    arrayLookup[i.first] = i.second.address;
+    arrayLookup[i.first] = i.second.address->getZExtValue();
   }
 
   AddressUnfolder unfolder(lookup, arrayLookup);

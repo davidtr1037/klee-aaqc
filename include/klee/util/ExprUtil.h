@@ -79,7 +79,8 @@ namespace klee {
     ExprVisitor::Action visitRead(const ReadExpr &e);
 
   public:
-    typedef std::map<uint64_t, uint64_t> HashLookup;
+    /* TODO: should be std::map<ref<Expr>, ref<Expr>>? */
+    typedef std::map<uint64_t, ref<Expr>> HashLookup;
     typedef std::map<std::string, uint64_t> ArrayLookup;
 
     AddressUnfolder(HashLookup &lookup, ArrayLookup &arrayLookup) :

@@ -64,7 +64,7 @@ struct StackFrame {
 };
 
 struct AddressRecord {
-    uint64_t address;
+    ref<ConstantExpr> address;
     ref<Expr> constraint;
 };
 

@@ -407,7 +407,7 @@ void ExecutionState::addAddressConstraint(std::string name, uint64_t address, re
   ref<Expr> eq = EqExpr::create(c, alpha);
 
   AddressRecord record;
-  record.address = address;
+  record.address = c;
   record.constraint = eq;
 
   addressConstraints[name] = record;
@@ -429,7 +429,7 @@ uint64_t ExecutionState::getAddress(std::string name) const {
     assert(0);
   }
 
-  return i->second.address;
+  return i->second.address->getZExtValue();
 }
 
 uint64_t ExecutionState::getAddress(unsigned int hash) const {
@@ -438,7 +438,7 @@ uint64_t ExecutionState::getAddress(unsigned int hash) const {
     return 0;
   }
 
-  return i->second.address;
+  return i->second.address->getZExtValue();
 }
 
 ref<Expr> ExecutionState::build(ref<Expr> e) const {
