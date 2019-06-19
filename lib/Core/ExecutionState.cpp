@@ -527,6 +527,10 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
     return Action::changeTo(ar.bytes[index->getZExtValue()]);
   }
 
+  if (e.updates.getSize() == 0) {
+    return Action::doChildren();
+  }
+
   UpdateList updates(e.updates.root, nullptr);
   //UpdateList updates(e.updates);
 
