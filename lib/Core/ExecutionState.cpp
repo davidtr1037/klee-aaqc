@@ -516,6 +516,17 @@ ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
 }
 
 ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
+  if (e.updates.root->getName().find("addr_") == 0) {
+    ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e.index);
+    if (index.isNull()) {
+      /* should not happen... */
+      assert(false);
+    }
+
+    const AddressRecord &ar = state.getAddressConstraint(e.updates.root->getName());
+    return Action::changeTo(ar.bytes[index->getZExtValue()]);
+  }
+
   UpdateList updates(e.updates.root, nullptr);
   //UpdateList updates(e.updates);
 
