@@ -533,11 +533,8 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
     assert(!index.isNull());
     const AddressRecord &ar = state.getAddressConstraint(name);
-    uint64_t a = ar.address->getZExtValue();
     uint64_t i = index->getZExtValue();
-    uint64_t v = (a >> (i * 8)) & 0xff;
-
-    updates.extend(un->index, ConstantExpr::create(v, Expr::Int8));
+    updates.extend(un->index, ar.bytes[i]);
   }
 
   if (updates.getSize() != 0) {
