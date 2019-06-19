@@ -531,6 +531,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
     return Action::doChildren();
   }
 
+  /* TODO: we should keep the existing updates... */
   UpdateList updates(e.updates.root, nullptr);
   //UpdateList updates(e.updates);
 
@@ -553,6 +554,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   }
 
   if (updates.getSize() != 0) {
+    /* TODO: do some caching? */
     return Action::changeTo(ReadExpr::create(updates, e.index));
   }
 
