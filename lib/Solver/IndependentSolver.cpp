@@ -124,6 +124,20 @@ public:
           !re->updates.head)
         continue;
 
+      /* TODO: check correctness... */
+      if (re->updates.root->isConstantArray() && re->updates.head) {
+        bool isOK = true;
+        for (const UpdateNode *un = re->updates.head; un != nullptr; un = un->next) {
+          if (!isa<ConstantExpr>(un->index) || !isa<ConstantExpr>(un->value)) {
+            isOK = false;
+            break;
+          }
+        }
+        if (isOK) {
+          continue;
+        }
+      }
+
       if (!wholeObjects.count(array)) {
         if (ConstantExpr *CE = dyn_cast<ConstantExpr>(re->index)) {
           // if index constant, then add to set of constraints operating
