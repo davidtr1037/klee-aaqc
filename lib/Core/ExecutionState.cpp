@@ -408,18 +408,23 @@ void ExecutionState::addAddressConstraint(std::string name, uint64_t address, re
 
   AddressRecord record;
   record.address = c;
+  for (unsigned i = 0; i < 8; i++) {
+    uint64_t value = (address >> (i * 8)) & 0xff;
+    ref<ConstantExpr> e = ConstantExpr::create(value, Expr::Int8);
+    record.bytes.push_back(e);
+  }
   record.constraint = eq;
 
   addressConstraints[name] = record;
   cache[alpha->hash()] = record;
 }
 
-ref<Expr> ExecutionState::getAddressConstraint(std::string name) const {
+const AddressRecord &ExecutionState::getAddressConstraint(std::string name) const {
   auto i = addressConstraints.find(name);
   if (i == addressConstraints.end()) {
-    return nullptr;
+    assert(false);
   } else {
-    return i->second.constraint;
+    return i->second;
   }
 }
 
@@ -448,7 +453,8 @@ ref<Expr> ExecutionState::build(ref<Expr> e) const {
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (std::string name : collector.arrays) {
-    ref<Expr> eq = getAddressConstraint(name);
+    const AddressRecord &ar = getAddressConstraint(name);
+    ref<Expr> eq = ar.constraint;
     all = AndExpr::create(all, eq);
   }
 
@@ -469,7 +475,8 @@ ref<Expr> ExecutionState::build(std::vector<ref<Expr>> &es) const {
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (std::string name : all_arrays) {
-    ref<Expr> eq = getAddressConstraint(name);
+    const AddressRecord &ar = getAddressConstraint(name);
+    ref<Expr> eq = ar.constraint;
     all = AndExpr::create(all, eq);
   }
 
@@ -489,4 +496,53 @@ void ExecutionState::computeRewrittenConstraints() {
     ref<Expr> rewritten = addressSpace.unfold(*this, e);
     rewrittenConstraints.addConstraint(rewritten);
   }
+}
+
+void ExecutionState::rewriteUL(const UpdateList &ul, UpdateList &result) const {
+  for (const UpdateNode *un = ul.head; un != nullptr; un = un->next) {
+    ref<Expr> index = addressSpace.unfold(*this, un->index);
+    ref<Expr> value = addressSpace.unfold(*this, un->value);
+    result.extend(index, value);
+  }
+}
+
+ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
+  auto i = state.getCache().find(e.hash());
+  if (i != state.getCache().end()) {
+    return Action::changeTo(i->second.address);
+  }
+
+  return Action::doChildren();
+}
+
+ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
+  UpdateList updates(e.updates.root, nullptr);
+  //UpdateList updates(e.updates);
+
+  for (const UpdateNode *un = e.updates.head; un; un = un->next) {
+    ref<ReadExpr> re = dyn_cast<ReadExpr>(un->value);
+    if (re.isNull()) {
+      continue;
+    }
+
+    std::string name = re->updates.root->getName();
+    if (name.find("addr_") != 0) {
+      continue;
+    }
+
+    ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
+    assert(!index.isNull());
+    const AddressRecord &ar = state.getAddressConstraint(name);
+    uint64_t a = ar.address->getZExtValue();
+    uint64_t i = index->getZExtValue();
+    uint64_t v = (a >> (i * 8)) & 0xff;
+
+    updates.extend(un->index, ConstantExpr::create(v, Expr::Int8));
+  }
+
+  if (updates.getSize() != 0) {
+    return Action::changeTo(ReadExpr::create(updates, e.index));
+  }
+
+  return Action::doChildren();
 }

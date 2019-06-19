@@ -70,28 +70,6 @@ namespace klee {
 
     std::set<std::string> arrays;
   };
-
-  class AddressUnfolder : public ExprVisitor {
-  protected:
-
-    ExprVisitor::Action visitConcat(const ConcatExpr &e);
-
-    ExprVisitor::Action visitRead(const ReadExpr &e);
-
-  public:
-    /* TODO: should be std::map<ref<Expr>, ref<Expr>>? */
-    typedef std::map<uint64_t, ref<Expr>> HashLookup;
-    typedef std::map<std::string, uint64_t> ArrayLookup;
-
-    AddressUnfolder(HashLookup &lookup, ArrayLookup &arrayLookup) :
-      lookup(lookup), arrayLookup(arrayLookup)
-    {
-
-    }
-
-    HashLookup lookup;
-    ArrayLookup arrayLookup;
-  };
 }
 
 #endif

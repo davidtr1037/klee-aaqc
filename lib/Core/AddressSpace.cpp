@@ -348,7 +348,7 @@ bool AddressSpace::copyInConcrete(const MemoryObject *mo, const ObjectState *os,
 }
 
 ref<Expr> AddressSpace::unfold(const ExecutionState &state,
-                               ref<Expr> address,
+                               const ref<Expr> address,
                                TimingSolver *solver) const {
   if (isa<ConstantExpr>(address)) {
     /* actually should not happen... (unless fixed) */
@@ -365,7 +365,7 @@ ref<Expr> AddressSpace::unfold(const ExecutionState &state,
     arrayLookup[i.first] = i.second.address->getZExtValue();
   }
 
-  AddressUnfolder unfolder(lookup, arrayLookup);
+  AddressUnfolder unfolder(state);
   ref<Expr> unfolded = unfolder.visit(address);
   return unfolded;
 

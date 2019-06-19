@@ -15,6 +15,7 @@
 #include "klee/Internal/ADT/TreeStream.h"
 #include "klee/Internal/System/Time.h"
 #include "klee/MergeHandler.h"
+#include "klee/util/ExprVisitor.h"
 
 // FIXME: We do not want to be exposing these? :(
 #include "../../lib/Core/AddressSpace.h"
@@ -65,6 +66,7 @@ struct StackFrame {
 
 struct AddressRecord {
     ref<ConstantExpr> address;
+    std::vector<ref<ConstantExpr>> bytes;
     ref<Expr> constraint;
 };
 
@@ -72,6 +74,7 @@ struct AddressRecord {
 class ExecutionState {
 public:
   typedef std::vector<StackFrame> stack_ty;
+  typedef std::map<std::string, AddressRecord> AddressConstraints;
 
 private:
   // unsupported, use copy constructor
@@ -79,7 +82,8 @@ private:
 
   std::map<std::string, std::string> fnAliases;
 
-  std::map<std::string, AddressRecord> addressConstraints;
+  AddressConstraints addressConstraints;
+  /* TODO: change the key to ref<Expr>? */
   std::map<unsigned, AddressRecord> cache;
 
 public:
@@ -193,13 +197,15 @@ public:
                             uint64_t address,
                             ref<Expr> e);
 
-  ref<Expr> getAddressConstraint(std::string name) const;
+  const AddressRecord &getAddressConstraint(std::string name) const;
 
+  /* TODO: remove? */
   uint64_t getAddress(std::string name) const;
 
+  /* TODO: remove? */
   uint64_t getAddress(unsigned int hash) const;
 
-  const std::map<std::string, AddressRecord> &getAddressConstraints() const {
+  const AddressConstraints &getAddressConstraints() const {
     return addressConstraints;
   }
 
@@ -214,6 +220,24 @@ public:
   void dumpAddressConstraints() const;
 
   void computeRewrittenConstraints();
+
+  void rewriteUL(const UpdateList &ul, UpdateList &result) const;
+};
+
+class AddressUnfolder : public ExprVisitor {
+protected:
+
+  ExprVisitor::Action visitConcat(const ConcatExpr &e);
+
+  ExprVisitor::Action visitRead(const ReadExpr &e);
+
+public:
+
+  AddressUnfolder(const ExecutionState &state) : state(state) {
+
+  }
+
+  const ExecutionState &state;
 };
 }
 

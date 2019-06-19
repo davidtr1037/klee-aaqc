@@ -147,7 +147,7 @@ namespace klee {
                         uint64_t src_address);
 
     ref<Expr> unfold(const ExecutionState &state,
-                     ref<Expr> address,
+                     const ref<Expr> address,
                      TimingSolver *solver = nullptr) const;
   };
 } // End klee namespace
