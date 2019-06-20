@@ -401,6 +401,8 @@ cl::opt<bool> DebugCheckForImpliedValues(
 
 cl::opt<bool> UseSymAddr("use-sym-addr", cl::init(false), cl::desc("..."));
 
+cl::opt<bool> UseLocalSymAddr("use-local-sym-addr", cl::init(false), cl::desc("..."));
+
 cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 } // namespace
 
@@ -3396,22 +3398,22 @@ void Executor::executeAlloc(ExecutionState &state,
         memory->allocate(CE->getZExtValue(), isLocal, /*isGlobal=*/false,
                          allocSite, allocationAlignment);
 
-    SymbolicAddressInfo info;
-    createAddressObject(state, mo->address, info);
-
     if (!mo) {
       bindLocal(target, state, 
                 ConstantExpr::alloc(0, Context::get().getPointerWidth()));
     } else {
       ObjectState *os = bindObjectInState(state, mo, isLocal);
-      os->addSubObject(0, info);
       if (zeroMemory) {
         os->initializeToZero();
       } else {
         os->initializeToRandom();
       }
-      if (UseSymAddr) {
+
+      if (UseSymAddr && (UseLocalSymAddr || !isLocal)) {
+        SymbolicAddressInfo info;
+        createAddressObject(state, mo->address, info);
         mo->symbolicAddress = info.address;
+        os->addSubObject(0, info);
         bindLocal(target, state, info.address);
       } else {
         bindLocal(target, state, mo->getBaseExpr());
