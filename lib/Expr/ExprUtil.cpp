@@ -122,7 +122,7 @@ ExprVisitor::Action ConstantArrayFinder::visitRead(const ReadExpr &re) {
 
 ExprVisitor::Action AddressExprFinder::visitRead(const ReadExpr &e) {
   std::string name = e.updates.root->getName();
-  if (name.find("addr_") != 0) {
+  if (!e.updates.root->isAddressArray) {
     isPureAddressExpr = false;
     return Action::skipChildren();
   } else {
@@ -132,7 +132,7 @@ ExprVisitor::Action AddressExprFinder::visitRead(const ReadExpr &e) {
 
 ExprVisitor::Action AddressArrayCollector::visitRead(const ReadExpr &e) {
   std::string name = e.updates.root->getName();
-  if (name.find("addr_") == 0) {
+  if (e.updates.root->isAddressArray) {
     arrays.insert(name);
   }
 

@@ -497,6 +497,9 @@ public:
   /// the array size.
   const std::vector<ref<ConstantExpr> > constantValues;
 
+  /* TODO: add docs */
+  bool isAddressArray;
+
 private:
   unsigned hashValue;
 

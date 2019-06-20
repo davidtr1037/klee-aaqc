@@ -516,7 +516,7 @@ ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
 }
 
 ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
-  if (e.updates.root->getName().find("addr_") == 0) {
+  if (e.updates.root->isAddressArray) {
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e.index);
     if (index.isNull()) {
       /* should not happen... */
@@ -541,13 +541,13 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
       continue;
     }
 
-    std::string name = re->updates.root->getName();
-    if (name.find("addr_") != 0) {
+    if (!re->updates.root->isAddressArray) {
       continue;
     }
 
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
     assert(!index.isNull());
+    std::string name = re->updates.root->getName();
     const AddressRecord &ar = state.getAddressConstraint(name);
     uint64_t i = index->getZExtValue();
     updates.extend(un->index, ar.bytes[i]);
