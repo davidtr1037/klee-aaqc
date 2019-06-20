@@ -408,14 +408,13 @@ void ExecutionState::addAddressConstraint(uint64_t id,
   ref<ConstantExpr> c = ConstantExpr::create(address, Context::get().getPointerWidth());
   ref<Expr> eq = EqExpr::create(c, alpha);
 
-  ref<AddressRecord> record = new AddressRecord();
-  record->address = c;
+  std::vector<ref<ConstantExpr>> bytes;
   for (unsigned i = 0; i < 8; i++) {
     uint64_t value = (address >> (i * 8)) & 0xff;
     ref<ConstantExpr> e = ConstantExpr::create(value, Expr::Int8);
-    record->bytes.push_back(e);
+    bytes.push_back(e);
   }
-  record->constraint = eq;
+  ref<AddressRecord> record = new AddressRecord(c, bytes, eq);
 
   addressConstraints[id] = record;
   cache[alpha->hash()] = record;

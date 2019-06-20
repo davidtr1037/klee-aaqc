@@ -65,12 +65,18 @@ struct StackFrame {
 };
 
 struct AddressRecord {
-    ref<ConstantExpr> address;
-    std::vector<ref<ConstantExpr>> bytes;
-    ref<Expr> constraint;
+    const ref<ConstantExpr> address;
+    const std::vector<ref<ConstantExpr>> bytes;
+    const ref<Expr> constraint;
     mutable unsigned refCount;
 
-    AddressRecord() : refCount(0) {
+    AddressRecord(const ref<ConstantExpr> address,
+                  const std::vector<ref<ConstantExpr>> bytes,
+                  const ref<Expr> constraint) :
+      address(address),
+      bytes(bytes),
+      constraint(constraint),
+      refCount(0) {
 
     }
 };
