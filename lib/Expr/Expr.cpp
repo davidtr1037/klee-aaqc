@@ -515,6 +515,10 @@ Array::Array(const std::string &_name, uint64_t _size,
     assert((*it)->getWidth() == getRange() &&
            "Invalid initial constant value!");
 #endif // NDEBUG
+  /* allocate a unique identifier for the array */
+  static uint64_t n = 0;
+  id = n++;
+  /* if starts with "addr_", then it is a symbolic address array */
   isAddressArray = (name.find("addr_") == 0);
 }
 

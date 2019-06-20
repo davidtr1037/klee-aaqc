@@ -498,6 +498,8 @@ public:
   const std::vector<ref<ConstantExpr> > constantValues;
 
   /* TODO: add docs */
+  uint64_t id;
+  /* TODO: add docs */
   bool isAddressArray;
 
 private:
