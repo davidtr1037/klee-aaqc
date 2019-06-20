@@ -68,6 +68,11 @@ struct AddressRecord {
     ref<ConstantExpr> address;
     std::vector<ref<ConstantExpr>> bytes;
     ref<Expr> constraint;
+    mutable unsigned refCount;
+
+    AddressRecord() : refCount(0) {
+
+    }
 };
 
 /// @brief ExecutionState representing a path under exploration
@@ -75,7 +80,9 @@ class ExecutionState {
 public:
   typedef std::vector<StackFrame> stack_ty;
   /* the key is an array identifier */
-  typedef std::map<uint64_t, AddressRecord> AddressConstraints;
+  typedef std::map<uint64_t, ref<AddressRecord>> AddressConstraints;
+  /* TODO: change the key to ref<Expr>? */
+  typedef std::map<unsigned, ref<AddressRecord>> Cache;
 
 private:
   // unsupported, use copy constructor
@@ -84,8 +91,7 @@ private:
   std::map<std::string, std::string> fnAliases;
 
   AddressConstraints addressConstraints;
-  /* TODO: change the key to ref<Expr>? */
-  std::map<unsigned, AddressRecord> cache;
+  Cache cache;
 
 public:
   // Execution - Control Flow specific
@@ -198,13 +204,13 @@ public:
                             uint64_t address,
                             ref<Expr> e);
 
-  const AddressRecord &getAddressConstraint(uint64_t id) const;
+  ref<AddressRecord> getAddressConstraint(uint64_t id) const;
 
   const AddressConstraints &getAddressConstraints() const {
     return addressConstraints;
   }
 
-  const std::map<unsigned, AddressRecord> &getCache() const {
+  const Cache &getCache() const {
     return cache;
   }
 

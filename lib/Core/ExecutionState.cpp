@@ -408,20 +408,20 @@ void ExecutionState::addAddressConstraint(uint64_t id,
   ref<ConstantExpr> c = ConstantExpr::create(address, Context::get().getPointerWidth());
   ref<Expr> eq = EqExpr::create(c, alpha);
 
-  AddressRecord record;
-  record.address = c;
+  ref<AddressRecord> record = new AddressRecord();
+  record->address = c;
   for (unsigned i = 0; i < 8; i++) {
     uint64_t value = (address >> (i * 8)) & 0xff;
     ref<ConstantExpr> e = ConstantExpr::create(value, Expr::Int8);
-    record.bytes.push_back(e);
+    record->bytes.push_back(e);
   }
-  record.constraint = eq;
+  record->constraint = eq;
 
   addressConstraints[id] = record;
   cache[alpha->hash()] = record;
 }
 
-const AddressRecord &ExecutionState::getAddressConstraint(uint64_t id) const {
+ref<AddressRecord> ExecutionState::getAddressConstraint(uint64_t id) const {
   auto i = addressConstraints.find(id);
   if (i == addressConstraints.end()) {
     assert(false);
@@ -437,8 +437,8 @@ ref<Expr> ExecutionState::build(ref<Expr> e) const {
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (uint64_t id : collector.ids) {
-    const AddressRecord &ar = getAddressConstraint(id);
-    ref<Expr> eq = ar.constraint;
+    ref<AddressRecord> ar = getAddressConstraint(id);
+    ref<Expr> eq = ar->constraint;
     all = AndExpr::create(all, eq);
   }
 
@@ -459,8 +459,8 @@ ref<Expr> ExecutionState::build(std::vector<ref<Expr>> &es) const {
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
   for (uint64_t id : all_arrays) {
-    const AddressRecord &ar = getAddressConstraint(id);
-    ref<Expr> eq = ar.constraint;
+    ref<AddressRecord> ar = getAddressConstraint(id);
+    ref<Expr> eq = ar->constraint;
     all = AndExpr::create(all, eq);
   }
 
@@ -469,8 +469,8 @@ ref<Expr> ExecutionState::build(std::vector<ref<Expr>> &es) const {
 
 void ExecutionState::dumpAddressConstraints() const {
   for (auto &i : addressConstraints) {
-    const AddressRecord &ar = i.second;
-    ar.constraint->dump();
+    ref<AddressRecord> ar = i.second;
+    ar->constraint->dump();
   }
 }
 
@@ -493,7 +493,7 @@ void ExecutionState::rewriteUL(const UpdateList &ul, UpdateList &result) const {
 ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
   auto i = state.getCache().find(e.hash());
   if (i != state.getCache().end()) {
-    return Action::changeTo(i->second.address);
+    return Action::changeTo(i->second->address);
   }
 
   return Action::doChildren();
@@ -507,8 +507,8 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
       assert(false);
     }
 
-    const AddressRecord &ar = state.getAddressConstraint(e.updates.root->id);
-    return Action::changeTo(ar.bytes[index->getZExtValue()]);
+    ref<AddressRecord> ar = state.getAddressConstraint(e.updates.root->id);
+    return Action::changeTo(ar->bytes[index->getZExtValue()]);
   }
 
   if (e.updates.getSize() == 0) {
@@ -531,9 +531,9 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
 
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
     assert(!index.isNull());
-    const AddressRecord &ar = state.getAddressConstraint(re->updates.root->id);
+    ref<AddressRecord> ar = state.getAddressConstraint(re->updates.root->id);
     uint64_t i = index->getZExtValue();
-    updates.extend(un->index, ar.bytes[i]);
+    updates.extend(un->index, ar->bytes[i]);
   }
 
   if (updates.getSize() != 0) {
