@@ -4116,6 +4116,7 @@ ObjectPair Executor::createAddressObject(ExecutionState &state,
   std::string uniqueName = "addr_" + llvm::utostr(id++);
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
+  /* TODO: check alignment... */
   MemoryObject *mo = memory->allocate(Context::get().getPointerWidth() / 8,
                                       true,
                                       false,
