@@ -401,8 +401,6 @@ cl::opt<bool> DebugCheckForImpliedValues(
 
 cl::opt<bool> UseSymAddr("use-sym-addr", cl::init(false), cl::desc("..."));
 
-cl::opt<bool> UseLocalSymAddr("use-local-sym-addr", cl::init(false), cl::desc("..."));
-
 cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 } // namespace
 

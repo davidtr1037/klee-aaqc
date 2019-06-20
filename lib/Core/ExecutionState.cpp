@@ -40,6 +40,8 @@ cl::opt<bool> DebugLogStateMerge(
     cl::cat(MergeCat));
 }
 
+cl::opt<bool> klee::UseLocalSymAddr("use-local-sym-addr", cl::init(false), cl::desc("..."));
+
 /***/
 
 StackFrame::StackFrame(KInstIterator _caller, KFunction *_kf)
@@ -159,9 +161,16 @@ void ExecutionState::pushFrame(KInstIterator caller, KFunction *kf) {
 
 void ExecutionState::popFrame() {
   StackFrame &sf = stack.back();
-  for (std::vector<const MemoryObject*>::iterator it = sf.allocas.begin(), 
-         ie = sf.allocas.end(); it != ie; ++it)
-    addressSpace.unbindObject(*it);
+  for (const MemoryObject* mo : sf.allocas) {
+    if (UseLocalSymAddr) {
+      /* TODO: avoid lookup... */
+      const ObjectState *os = addressSpace.findObject(mo);
+      for (const SubObject &o : os->getSubObjects()) {
+        removeAddressConstraint(o.info.arrayID);
+      }
+    }
+    addressSpace.unbindObject(mo);
+  }
   stack.pop_back();
 }
 
@@ -427,6 +436,14 @@ ref<AddressRecord> ExecutionState::getAddressConstraint(uint64_t id) const {
   } else {
     return i->second;
   }
+}
+
+void ExecutionState::removeAddressConstraint(uint64_t id) {
+  auto i = addressConstraints.find(id);
+  if (i == addressConstraints.end()) {
+    assert(false);
+  }
+  addressConstraints.erase(i);
 }
 
 ref<Expr> ExecutionState::build(ref<Expr> e) const {

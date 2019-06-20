@@ -21,6 +21,8 @@
 #include "../../lib/Core/AddressSpace.h"
 #include "klee/Internal/Module/KInstIterator.h"
 
+#include "llvm/Support/CommandLine.h"
+
 #include <map>
 #include <set>
 #include <vector>
@@ -34,6 +36,8 @@ struct KInstruction;
 class MemoryObject;
 class PTreeNode;
 struct InstructionInfo;
+
+extern llvm::cl::opt<bool> UseLocalSymAddr;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
@@ -211,6 +215,8 @@ public:
                             ref<Expr> e);
 
   ref<AddressRecord> getAddressConstraint(uint64_t id) const;
+
+  void removeAddressConstraint(uint64_t id);
 
   const AddressConstraints &getAddressConstraints() const {
     return addressConstraints;
