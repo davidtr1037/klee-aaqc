@@ -402,7 +402,9 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
   }
 }
 
-void ExecutionState::addAddressConstraint(std::string name, uint64_t address, ref<Expr> alpha) {
+void ExecutionState::addAddressConstraint(uint64_t id,
+                                          uint64_t address,
+                                          ref<Expr> alpha) {
   ref<ConstantExpr> c = ConstantExpr::create(address, Context::get().getPointerWidth());
   ref<Expr> eq = EqExpr::create(c, alpha);
 
@@ -415,35 +417,17 @@ void ExecutionState::addAddressConstraint(std::string name, uint64_t address, re
   }
   record.constraint = eq;
 
-  addressConstraints[name] = record;
+  addressConstraints[id] = record;
   cache[alpha->hash()] = record;
 }
 
-const AddressRecord &ExecutionState::getAddressConstraint(std::string name) const {
-  auto i = addressConstraints.find(name);
+const AddressRecord &ExecutionState::getAddressConstraint(uint64_t id) const {
+  auto i = addressConstraints.find(id);
   if (i == addressConstraints.end()) {
     assert(false);
   } else {
     return i->second;
   }
-}
-
-uint64_t ExecutionState::getAddress(std::string name) const {
-  auto i = addressConstraints.find(name);
-  if (i == addressConstraints.end()) {
-    assert(0);
-  }
-
-  return i->second.address->getZExtValue();
-}
-
-uint64_t ExecutionState::getAddress(unsigned int hash) const {
-  auto i = cache.find(hash);
-  if (i == cache.end()) {
-    return 0;
-  }
-
-  return i->second.address->getZExtValue();
 }
 
 ref<Expr> ExecutionState::build(ref<Expr> e) const {
@@ -452,8 +436,8 @@ ref<Expr> ExecutionState::build(ref<Expr> e) const {
   collector.visit(e);
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
-  for (std::string name : collector.arrays) {
-    const AddressRecord &ar = getAddressConstraint(name);
+  for (uint64_t id : collector.ids) {
+    const AddressRecord &ar = getAddressConstraint(id);
     ref<Expr> eq = ar.constraint;
     all = AndExpr::create(all, eq);
   }
@@ -462,20 +446,20 @@ ref<Expr> ExecutionState::build(ref<Expr> e) const {
 }
 
 ref<Expr> ExecutionState::build(std::vector<ref<Expr>> &es) const {
-  std::set<std::string> all_arrays;
+  std::set<uint64_t> all_arrays;
 
   for (ref<Expr> e : es) {
     /* collect dependencies */
     AddressArrayCollector collector;
     collector.visit(e);
-    for (std::string s : collector.arrays) {
-      all_arrays.insert(s);
+    for (uint64_t id : collector.ids) {
+      all_arrays.insert(id);
     }
   }
 
   ref<Expr> all = ConstantExpr::create(1, Expr::Bool);
-  for (std::string name : all_arrays) {
-    const AddressRecord &ar = getAddressConstraint(name);
+  for (uint64_t id : all_arrays) {
+    const AddressRecord &ar = getAddressConstraint(id);
     ref<Expr> eq = ar.constraint;
     all = AndExpr::create(all, eq);
   }
@@ -523,7 +507,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
       assert(false);
     }
 
-    const AddressRecord &ar = state.getAddressConstraint(e.updates.root->getName());
+    const AddressRecord &ar = state.getAddressConstraint(e.updates.root->id);
     return Action::changeTo(ar.bytes[index->getZExtValue()]);
   }
 
@@ -547,8 +531,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
 
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
     assert(!index.isNull());
-    std::string name = re->updates.root->getName();
-    const AddressRecord &ar = state.getAddressConstraint(name);
+    const AddressRecord &ar = state.getAddressConstraint(re->updates.root->id);
     uint64_t i = index->getZExtValue();
     updates.extend(un->index, ar.bytes[i]);
   }

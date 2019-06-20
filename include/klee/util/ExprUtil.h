@@ -69,6 +69,7 @@ namespace klee {
   public:
 
     std::set<std::string> arrays;
+    std::set<uint64_t> ids;
   };
 }
 

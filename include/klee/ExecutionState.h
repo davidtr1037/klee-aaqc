@@ -74,7 +74,8 @@ struct AddressRecord {
 class ExecutionState {
 public:
   typedef std::vector<StackFrame> stack_ty;
-  typedef std::map<std::string, AddressRecord> AddressConstraints;
+  /* the key is an array identifier */
+  typedef std::map<uint64_t, AddressRecord> AddressConstraints;
 
 private:
   // unsupported, use copy constructor
@@ -193,17 +194,11 @@ public:
   bool merge(const ExecutionState &b);
   void dumpStack(llvm::raw_ostream &out) const;
 
-  void addAddressConstraint(std::string name,
+  void addAddressConstraint(uint64_t id,
                             uint64_t address,
                             ref<Expr> e);
 
-  const AddressRecord &getAddressConstraint(std::string name) const;
-
-  /* TODO: remove? */
-  uint64_t getAddress(std::string name) const;
-
-  /* TODO: remove? */
-  uint64_t getAddress(unsigned int hash) const;
+  const AddressRecord &getAddressConstraint(uint64_t id) const;
 
   const AddressConstraints &getAddressConstraints() const {
     return addressConstraints;

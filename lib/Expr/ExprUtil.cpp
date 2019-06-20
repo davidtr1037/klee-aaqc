@@ -131,9 +131,9 @@ ExprVisitor::Action AddressExprFinder::visitRead(const ReadExpr &e) {
 }
 
 ExprVisitor::Action AddressArrayCollector::visitRead(const ReadExpr &e) {
-  std::string name = e.updates.root->getName();
   if (e.updates.root->isAddressArray) {
-    arrays.insert(name);
+    arrays.insert(e.updates.root->getName());
+    ids.insert(e.updates.root->id);
   }
 
   const UpdateNode *h = e.updates.head;

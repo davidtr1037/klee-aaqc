@@ -157,7 +157,7 @@ public:
 };
 
 struct SymbolicAddressInfo {
-  std::string sa;
+  uint64_t arrayID;
   ref<Expr> address;
 };
 

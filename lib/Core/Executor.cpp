@@ -4131,10 +4131,10 @@ ObjectPair Executor::createAddressObject(ExecutionState &state,
 
   ObjectState *os = bindObjectInState(state, mo, false, array);
   ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
-  state.addAddressConstraint(uniqueName, address, alpha);
+  state.addAddressConstraint(array->id, address, alpha);
 
   info.address = alpha;
-  info.sa = uniqueName;
+  info.arrayID = array->id;
 
   return ObjectPair(mo, os);
 }
@@ -4154,7 +4154,7 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
 
   /* update address constraints */
   for (auto subObject: os->getSubObjects()) {
-    state.addAddressConstraint(subObject.info.sa,
+    state.addAddressConstraint(subObject.info.arrayID,
                                newMO->address + subObject.offset,
                                subObject.info.address);
   }
@@ -4196,7 +4196,7 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
     /* update constraints */
     for (auto subObject: os->getSubObjects()) {
-      state.addAddressConstraint(subObject.info.sa,
+      state.addAddressConstraint(subObject.info.arrayID,
                                  segmentMO->address + offset + subObject.offset,
                                  subObject.info.address);
       segmentOS->addSubObject(offset + subObject.offset, subObject.info);
