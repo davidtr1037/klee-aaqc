@@ -512,7 +512,12 @@ void ExecutionState::rewriteUL(const UpdateList &ul, UpdateList &result) const {
   }
 }
 
+/* TODO: check flag? */
 ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
+  if (!e.flag) {
+    return Action::skipChildren();
+  }
+
   auto i = state.getCache().find(e.hash());
   if (i != state.getCache().end()) {
     return Action::changeTo(i->second->address);
@@ -521,7 +526,12 @@ ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
   return Action::doChildren();
 }
 
+/* TODO: check flag? */
 ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
+  if (!e.flag) {
+    return Action::skipChildren();
+  }
+
   if (e.updates.root->isAddressArray) {
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e.index);
     if (index.isNull()) {
@@ -539,26 +549,23 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
 
   /* TODO: we should keep the existing updates... */
   UpdateList updates(e.updates.root, nullptr);
-  //UpdateList updates(e.updates);
 
+  bool changed = false;
   for (const UpdateNode *un = e.updates.head; un; un = un->next) {
-    ref<ReadExpr> re = dyn_cast<ReadExpr>(un->value);
-    if (re.isNull()) {
-      continue;
+    ref<Expr> index = un->index;
+    if (un->index->flag) {
+      index = visit(un->index);
+      changed = true;
     }
-
-    if (!re->updates.root->isAddressArray) {
-      continue;
+    ref<Expr> value = un->value;
+    if (un->value->flag) {
+      value = visit(un->value);
+      changed = true;
     }
-
-    ref<ConstantExpr> index = dyn_cast<ConstantExpr>(re->index);
-    assert(!index.isNull());
-    ref<AddressRecord> ar = state.getAddressConstraint(re->updates.root->id);
-    uint64_t i = index->getZExtValue();
-    updates.extend(un->index, ar->bytes[i]);
+    updates.extend(index, value);
   }
 
-  if (updates.getSize() != 0) {
+  if (changed) {
     /* TODO: do some caching? */
     return Action::changeTo(ReadExpr::create(updates, e.index));
   }
