@@ -36,9 +36,10 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  ConstraintManager cm;
-  fillConstraints(state, cm, expr);
-  bool success = solver->evaluate(Query(cm, expr), result);
+  //ConstraintManager cm;
+  //fillConstraints(state, cm, expr);
+  //bool success = solver->evaluate(Query(cm, expr), result);
+  bool success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
   //bool success = solver->evaluate(Query(state.constraints, expr), result);
 
   state.queryCost += timer.check();
@@ -60,9 +61,10 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  ConstraintManager cm;
-  fillConstraints(state, cm, expr);
-  bool success = solver->mustBeTrue(Query(cm, expr), result);
+  //ConstraintManager cm;
+  //fillConstraints(state, cm, expr);
+  //bool success = solver->mustBeTrue(Query(cm, expr), result);
+  bool success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
   //bool success = solver->mustBeTrue(Query(state.constraints, expr), result);
 
   state.queryCost += timer.check();
@@ -107,9 +109,10 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  ConstraintManager cm;
-  fillConstraints(state, cm, expr);
-  bool success = solver->getValue(Query(cm, expr), result);
+  //ConstraintManager cm;
+  //fillConstraints(state, cm, expr);
+  //bool success = solver->getValue(Query(cm, expr), result);
+  bool success = solver->getValue(Query(state.rewrittenConstraints, expr), result);
   //bool success = solver->getValue(Query(state.constraints, expr), result);
 
   state.queryCost += timer.check();
@@ -128,9 +131,12 @@ TimingSolver::getInitialValues(const ExecutionState& state,
 
   TimerStatIncrementer timer(stats::solverTime);
 
-  ConstraintManager cm;
-  fillConstraints(state, cm, nullptr);
-  bool success = solver->getInitialValues(Query(cm, ConstantExpr::alloc(0, Expr::Bool)),
+  //ConstraintManager cm;
+  //fillConstraints(state, cm, nullptr);
+  //bool success = solver->getInitialValues(Query(cm, ConstantExpr::alloc(0, Expr::Bool)),
+  //                                        objects, result);
+  bool success = solver->getInitialValues(Query(state.rewrittenConstraints,
+                                                ConstantExpr::alloc(0, Expr::Bool)),
                                           objects, result);
   
   state.queryCost += timer.check();
