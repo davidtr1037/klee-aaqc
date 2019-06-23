@@ -31,9 +31,14 @@ public:
   // create from constraints with no optimization
   explicit
   ConstraintManager(const std::vector< ref<Expr> > &_constraints) :
-    constraints(_constraints) {}
+    constraints(_constraints) {
 
-  ConstraintManager(const ConstraintManager &cs) : constraints(cs.constraints) {}
+  }
+
+  ConstraintManager(const ConstraintManager &cs) :
+    constraints(cs.constraints) {
+
+  }
 
   typedef std::vector< ref<Expr> >::const_iterator constraint_iterator;
 
@@ -73,6 +78,15 @@ public:
     constraints.clear();
   }
   
+  bool mayHaveAddressConstraints() const {
+    for (ref<Expr> e : constraints) {
+      if (e->flag) {
+        return true;
+      }
+    }
+    return false;
+  }
+
 private:
   std::vector< ref<Expr> > constraints;
 

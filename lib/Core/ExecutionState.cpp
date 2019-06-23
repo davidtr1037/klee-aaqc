@@ -181,8 +181,14 @@ void ExecutionState::addSymbolic(const MemoryObject *mo, const Array *array) {
 
 void ExecutionState::addConstraint(ref<Expr> e) {
   constraints.addConstraint(e);
-  ref<Expr> rewritten = addressSpace.unfold(*this, e);
-  rewrittenConstraints.addConstraint(rewritten);
+  if (!constraints.mayHaveAddressConstraints() && !e->flag) {
+    /* both PC and expression are free of address constraints... */
+    /* TODO: something better than copy? */
+    rewrittenConstraints = constraints;
+  } else {
+    ref<Expr> rewritten = addressSpace.unfold(*this, e);
+    rewrittenConstraints.addConstraint(rewritten);
+  }
 }
 ///
 
