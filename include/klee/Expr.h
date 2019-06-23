@@ -618,7 +618,11 @@ private:
       if (updates.root->isAddressArray) {
         flag = true;
       } else {
-        flag = updates.getSize() != 0;
+        for (const UpdateNode *un = updates.head; un; un = un->next) {
+          if (un->index->flag || un->value->flag) {
+            flag = true;
+          }
+        }
       }
     }
   }
