@@ -174,6 +174,9 @@ public:
     CmpKindLast=Sge
   };
 
+  /* TODO: may contain an address expression */
+  bool flag;
+
   unsigned refCount;
 
 protected:  
@@ -204,7 +207,7 @@ protected:
   virtual int compareContents(const Expr &b) const = 0;
 
 public:
-  Expr() : refCount(0) { Expr::count++; }
+  Expr() : refCount(0) { Expr::count++; flag = false; }
   virtual ~Expr() { Expr::count--; } 
 
   virtual Kind getKind() const = 0;
@@ -380,7 +383,9 @@ public:
   }
  
 protected:
-  BinaryExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {}
+  BinaryExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
+    flag = left->flag || right->flag;
+  }
 
 public:
   static bool classof(const Expr *E) {
@@ -431,7 +436,9 @@ public:
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const { return create(kids[0]); }
 
 private:
-  NotOptimizedExpr(const ref<Expr> &_src) : src(_src) {}
+  NotOptimizedExpr(const ref<Expr> &_src) : src(_src) {
+    flag = src->flag;
+  }
 
 protected:
   virtual int compareContents(const Expr &b) const {
@@ -603,7 +610,18 @@ public:
 
 private:
   ReadExpr(const UpdateList &_updates, const ref<Expr> &_index) : 
-    updates(_updates), index(_index) { assert(updates.root); }
+    updates(_updates), index(_index) {
+    assert(updates.root);
+    if (index->flag) {
+      flag = true;
+    } else {
+      if (updates.root->isAddressArray) {
+        flag = true;
+      } else {
+        flag = updates.getSize() != 0;
+      }
+    }
+  }
 
 public:
   static bool classof(const Expr *E) {
@@ -658,7 +676,9 @@ public:
 
 private:
   SelectExpr(const ref<Expr> &c, const ref<Expr> &t, const ref<Expr> &f) 
-    : cond(c), trueExpr(t), falseExpr(f) {}
+    : cond(c), trueExpr(t), falseExpr(f) {
+    flag = cond->flag || trueExpr->flag || falseExpr->flag;
+  }
 
 public:
   static bool classof(const Expr *E) {
@@ -717,10 +737,11 @@ public:
 			   const ref<Expr> &kid7, const ref<Expr> &kid8);
   
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const { return create(kids[0], kids[1]); }
-  
+
 private:
   ConcatExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     width = l->getWidth() + r->getWidth();
+    flag = left->flag || right->flag;
   }
 
 public:
@@ -784,7 +805,9 @@ public:
 
 private:
   ExtractExpr(const ref<Expr> &e, unsigned b, Width w) 
-    : expr(e),offset(b),width(w) {}
+    : expr(e),offset(b),width(w) {
+    flag = expr->flag;
+  }
 
 public:
   static bool classof(const Expr *E) {
@@ -832,7 +855,9 @@ public:
   static bool classof(const NotExpr *) { return true; }
 
 private:
-  NotExpr(const ref<Expr> &e) : expr(e) {}
+  NotExpr(const ref<Expr> &e) : expr(e) {
+    flag = expr->flag;
+  }
 
 protected:
   virtual int compareContents(const Expr &b) const {
@@ -851,7 +876,9 @@ public:
   Width width;
 
 public:
-  CastExpr(const ref<Expr> &e, Width w) : src(e), width(w) {}
+  CastExpr(const ref<Expr> &e, Width w) : src(e), width(w) {
+    flag = src->flag;
+  }
 
   Width getWidth() const { return width; }
 

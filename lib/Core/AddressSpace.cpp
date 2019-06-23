@@ -350,8 +350,8 @@ bool AddressSpace::copyInConcrete(const MemoryObject *mo, const ObjectState *os,
 ref<Expr> AddressSpace::unfold(const ExecutionState &state,
                                const ref<Expr> address,
                                TimingSolver *solver) const {
-  if (isa<ConstantExpr>(address)) {
-    /* actually should not happen... (unless fixed) */
+  if (!address->flag) {
+    /* may not contain address expressions */
     return address;
   }
 
