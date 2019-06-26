@@ -109,6 +109,7 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     fnAliases(state.fnAliases),
     addressConstraints(state.addressConstraints),
     cache(state.cache),
+    ulCache(state.ulCache),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -504,11 +505,49 @@ void ExecutionState::computeRewrittenConstraints() {
   }
 }
 
-void ExecutionState::rewriteUL(const UpdateList &ul, UpdateList &result) const {
-  for (const UpdateNode *un = ul.head; un != nullptr; un = un->next) {
-    ref<Expr> index = addressSpace.unfold(*this, un->index);
-    ref<Expr> value = addressSpace.unfold(*this, un->value);
-    result.extend(index, value);
+UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
+                                     bool &changed) const {
+  UpdateList updates(ul.root, nullptr);
+  changed = false;
+
+  for (const UpdateNode *un = ul.head; un; un = un->next) {
+    ref<Expr> index = un->index;
+    if (un->index->flag) {
+      index = addressSpace.unfold(*this, un->index);
+      changed = true;
+    }
+    ref<Expr> value = un->value;
+    if (un->value->flag) {
+      value = addressSpace.unfold(*this, un->value);
+      changed = true;
+    }
+    updates.extend(index, value);
+  }
+
+  return updates;
+}
+
+UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
+                                          bool &changed) const {
+  changed = false;
+  for (auto i : ulCache) {
+    if (ul.head == i.first.head) {
+      changed = true;
+      return i.second;
+    }
+  }
+
+  UpdateList updates = rewriteUL(ul, changed);
+  ExecutionState *writable = const_cast<ExecutionState *>(this);
+  writable->ulCache.push_back(std::make_pair(ul, updates));
+  return updates;
+}
+
+void ExecutionState::recomputeULCache() {
+  for (unsigned i = 0; i < ulCache.size(); i++) {
+    const UpdateList ul = ulCache[i].first;
+    bool changed = false;
+    ulCache[i].second = rewriteUL(ul, changed);
   }
 }
 
@@ -547,23 +586,8 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
     return Action::doChildren();
   }
 
-  /* TODO: we should keep the existing updates... */
-  UpdateList updates(e.updates.root, nullptr);
-
   bool changed = false;
-  for (const UpdateNode *un = e.updates.head; un; un = un->next) {
-    ref<Expr> index = un->index;
-    if (un->index->flag) {
-      index = visit(un->index);
-      changed = true;
-    }
-    ref<Expr> value = un->value;
-    if (un->value->flag) {
-      value = visit(un->value);
-      changed = true;
-    }
-    updates.extend(index, value);
-  }
+  UpdateList updates = state.getRewrittenUL(e.updates, changed);
 
   if (changed) {
     /* TODO: do some caching? */

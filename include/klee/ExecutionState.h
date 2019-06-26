@@ -93,6 +93,8 @@ public:
   typedef std::map<uint64_t, ref<AddressRecord>> AddressConstraints;
   /* TODO: change the key to ref<Expr>? */
   typedef std::map<unsigned, ref<AddressRecord>> Cache;
+  /* TODO: change the key to ref<Expr>? */
+  typedef std::vector<std::pair<const UpdateList, UpdateList>> ULCache;
 
 private:
   // unsupported, use copy constructor
@@ -101,7 +103,10 @@ private:
   std::map<std::string, std::string> fnAliases;
 
   AddressConstraints addressConstraints;
+
   Cache cache;
+
+  ULCache ulCache;
 
 public:
   // Execution - Control Flow specific
@@ -234,7 +239,12 @@ public:
 
   void computeRewrittenConstraints();
 
-  void rewriteUL(const UpdateList &ul, UpdateList &result) const;
+  UpdateList rewriteUL(const UpdateList &ul, bool &changed) const;
+
+  UpdateList getRewrittenUL(const UpdateList &ul, bool &changed) const;
+
+  /* TODO: create one re-compute API */
+  void recomputeULCache();
 };
 
 class AddressUnfolder : public ExprVisitor {

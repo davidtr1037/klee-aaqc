@@ -4167,6 +4167,7 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
 
   /* TODO: add docs */
   state.computeRewrittenConstraints();
+  state.recomputeULCache();
 }
 
 void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
@@ -4212,6 +4213,7 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
   /* TODO: add docs */
   state.computeRewrittenConstraints();
+  state.recomputeULCache();
 }
 
 void Executor::prepareForEarlyExit() {
