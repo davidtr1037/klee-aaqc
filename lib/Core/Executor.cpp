@@ -455,6 +455,7 @@ Executor::Executor(LLVMContext &ctx, const InterpreterOptions &opts,
 
   this->solver = new TimingSolver(solver, EqualitySubstitution);
   memory = new MemoryManager(&arrayCache);
+  addressMemory = new MemoryManager(&arrayCache);
 
   initializeSearchOptions();
 
@@ -549,6 +550,7 @@ Executor::setModule(std::vector<std::unique_ptr<llvm::Module>> &modules,
 
 Executor::~Executor() {
   delete memory;
+  delete addressMemory;
   delete externalDispatcher;
   delete processTree;
   delete specialFunctionHandler;
@@ -3892,6 +3894,9 @@ void Executor::runFunctionAsMain(Function *f,
   delete memory;
   memory = new MemoryManager(NULL);
 
+  //delete addressMemory;
+  //addressMemory = new MemoryManager(NULL);
+
   globalObjects.clear();
   globalAddresses.clear();
 
@@ -4117,11 +4122,11 @@ ObjectPair Executor::createAddressObject(ExecutionState &state,
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
   /* TODO: check alignment... */
-  MemoryObject *mo = memory->allocate(Context::get().getPointerWidth() / 8,
-                                      true,
-                                      false,
-                                      nullptr,
-                                      8);
+  MemoryObject *mo = addressMemory->allocate(Context::get().getPointerWidth() / 8,
+                                             true,
+                                             false,
+                                             nullptr,
+                                             8);
   if (!mo) {
     assert(false);
   }

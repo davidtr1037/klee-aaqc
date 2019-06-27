@@ -62,9 +62,11 @@ namespace klee {
     ///
     /// \invariant forall o in objects, o->copyOnWriteOwner <= cowKey
     MemoryMap objects;
+    MemoryMap addressObjects;
 
     AddressSpace() : cowKey(1) {}
-    AddressSpace(const AddressSpace &b) : cowKey(++b.cowKey), objects(b.objects) { }
+    AddressSpace(const AddressSpace &b) :
+      cowKey(++b.cowKey), objects(b.objects), addressObjects(b.addressObjects) { }
     ~AddressSpace() {}
 
     /// Resolve address to an ObjectPair in result.

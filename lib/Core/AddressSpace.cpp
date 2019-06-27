@@ -26,22 +26,35 @@ using namespace llvm;
 void AddressSpace::bindObject(const MemoryObject *mo, ObjectState *os) {
   assert(os->copyOnWriteOwner==0 && "object already has owner");
   os->copyOnWriteOwner = cowKey;
-  objects = objects.replace(std::make_pair(mo, os));
+  if (mo->isAddressMO) {
+    addressObjects = objects.replace(std::make_pair(mo, os));
+  } else {
+    objects = objects.replace(std::make_pair(mo, os));
+  }
 }
 
 void AddressSpace::unbindObject(const MemoryObject *mo) {
-  objects = objects.remove(mo);
+  if (mo->isAddressMO) {
+    addressObjects = objects.remove(mo);
+  } else {
+    objects = objects.remove(mo);
+  }
 }
 
 const ObjectState *AddressSpace::findObject(const MemoryObject *mo) const {
-  const MemoryMap::value_type *res = objects.lookup(mo);
-  
-  return res ? res->second : 0;
+  if (mo->isAddressMO) {
+    const MemoryMap::value_type *res = addressObjects.lookup(mo);
+    return res ? res->second : 0;
+  } else {
+    const MemoryMap::value_type *res = objects.lookup(mo);
+    return res ? res->second : 0;
+  }
 }
 
 ObjectState *AddressSpace::getWriteable(const MemoryObject *mo,
                                         const ObjectState *os) {
   assert(!os->readOnly);
+  assert(!mo->isAddressMO);
 
   if (cowKey==os->copyOnWriteOwner) {
     return const_cast<ObjectState*>(os);

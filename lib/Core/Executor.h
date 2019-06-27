@@ -131,6 +131,7 @@ private:
   ExternalDispatcher *externalDispatcher;
   TimingSolver *solver;
   MemoryManager *memory;
+  MemoryManager *addressMemory;
   std::set<ExecutionState*> states;
   StatsTracker *statsTracker;
   TreeStreamWriter *pathWriter, *symPathWriter;
