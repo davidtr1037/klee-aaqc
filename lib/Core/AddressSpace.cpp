@@ -370,6 +370,7 @@ ref<Expr> AddressSpace::unfold(const ExecutionState &state,
 
   AddressUnfolder unfolder(state);
   ref<Expr> unfolded = unfolder.visit(address);
+  assert(!unfolded->flag);
   return unfolded;
 
   //AddressExprFinder finder;
