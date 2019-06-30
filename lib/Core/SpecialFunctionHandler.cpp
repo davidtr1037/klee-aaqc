@@ -750,6 +750,7 @@ void SpecialFunctionHandler::handleCheckMemoryAccess(ExecutionState &state,
       ref<Expr> chk = 
         op.first->getBoundsCheckPointer(address, 
                                         cast<ConstantExpr>(size)->getZExtValue());
+      chk = state.addressSpace.unfold(state, chk);
       if (!chk->isTrue()) {
         executor.terminateStateOnError(state,
                                        "check_memory_access: memory error",
