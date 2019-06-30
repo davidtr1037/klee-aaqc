@@ -3423,7 +3423,7 @@ void Executor::executeAlloc(ExecutionState &state,
         unsigned count = std::min(reallocFrom->size, os->size);
         for (unsigned i=0; i<count; i++)
           os->write(i, reallocFrom->read8(i));
-        state.addressSpace.unbindObject(reallocFrom->getObject());
+        state.unbindObject(reallocFrom->getObject());
       }
     }
   } else {
@@ -3530,7 +3530,7 @@ void Executor::executeFree(ExecutionState &state,
         terminateStateOnError(*it->second, "free of global", Free, NULL,
                               getAddressInfo(*it->second, address));
       } else {
-        it->second->addressSpace.unbindObject(mo);
+        it->second->unbindObject(mo);
         if (target)
           bindLocal(target, *it->second, Expr::createPointer(0));
       }
@@ -4168,7 +4168,7 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
   /* TODO: avoid copy? */
   ObjectState *clonedOS = new ObjectState(*op.second);
   state.addressSpace.bindObject(newMO, clonedOS);
-  state.addressSpace.unbindObject(mo);
+  state.unbindObject(mo);
 
   /* TODO: add docs */
   state.computeRewrittenConstraints();
@@ -4213,7 +4213,7 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   }
 
   for (ObjectPair &op : ops) {
-    state.addressSpace.unbindObject(op.first);
+    state.unbindObject(op.first);
   }
 
   /* TODO: add docs */

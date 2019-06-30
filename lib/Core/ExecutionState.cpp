@@ -173,7 +173,7 @@ void ExecutionState::popFrame() {
         removeAddressConstraint(o.info.arrayID);
       }
     }
-    addressSpace.unbindObject(mo);
+    unbindObject(mo);
   }
   stack.pop_back();
 }
@@ -419,6 +419,10 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
     out << "\n";
     target = sf.caller;
   }
+}
+
+void ExecutionState::unbindObject(const MemoryObject *mo) {
+  addressSpace.unbindObject(mo);
 }
 
 void ExecutionState::addAddressConstraint(uint64_t id,

@@ -216,6 +216,8 @@ public:
   bool merge(const ExecutionState &b);
   void dumpStack(llvm::raw_ostream &out) const;
 
+  void unbindObject(const MemoryObject *mo);
+
   void addAddressConstraint(uint64_t id,
                             uint64_t address,
                             ref<Expr> e);
