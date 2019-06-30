@@ -423,6 +423,12 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
 
 void ExecutionState::unbindObject(const MemoryObject *mo) {
   addressSpace.unbindObject(mo);
+  for (auto i = rewrittenObjects.begin(); i != rewrittenObjects.end(); i++) {
+    if (i->first == mo) {
+      rewrittenObjects.erase(i);
+      break;
+    }
+  }
 }
 
 void ExecutionState::addAddressConstraint(uint64_t id,
