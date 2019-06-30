@@ -609,6 +609,7 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
   return os->rewrittenUpdates;
 }
 
+/* TODO: we don't need to rewrite everything... */
 void ExecutionState::updateRewrittenObjects() {
   for (ObjectPair op : rewrittenObjects) {
     ObjectState *os = addressSpace.getWriteable(op.first, op.second);
