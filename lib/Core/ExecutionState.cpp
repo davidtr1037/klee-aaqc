@@ -30,6 +30,7 @@
 #include <map>
 #include <set>
 #include <sstream>
+#include <list>
 #include <stdarg.h>
 
 using namespace llvm;
@@ -595,8 +596,25 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
     }
   } else {
     if (os->pulledUpdates < ul.getSize()) {
-      /* TODO: update the rewritten updates... */
-      assert(0);
+      /* collect the missing nodes */
+      std::list<const UpdateNode *> nodes;
+      unsigned int j = 0;
+      for (const UpdateNode *n = ul.head; n; n = n->next) {
+        if (j >= (ul.getSize() - os->pulledUpdates)) {
+          break;
+        }
+        nodes.push_front(n);
+        j++;
+      }
+
+      /* add the missing updates */
+      for (const UpdateNode *n : nodes) {
+        ref<Expr> index = addressSpace.unfold(*this, n->index);
+        ref<Expr> value = addressSpace.unfold(*this, n->value);
+        changed |= (n->index->flag || n->value->flag);
+        os->rewrittenUpdates.extend(index, value);
+      }
+      os->pulledUpdates = ul.getSize();
     }
     changed = true;
   }
