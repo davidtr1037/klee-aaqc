@@ -175,6 +175,8 @@ struct SubObject {
 class ObjectState {
 private:
   friend class AddressSpace;
+  /* TODO: remove... */
+  friend class ExecutionState;
   unsigned copyOnWriteOwner; // exclusively for AddressSpace
 
   friend class ObjectHolder;
@@ -196,6 +198,10 @@ private:
 
   // mutable because we may need flush during read of const
   mutable UpdateList updates;
+
+  mutable UpdateList rewrittenUpdates;
+
+  mutable size_t pulledUpdates;
 
 public:
   unsigned size;

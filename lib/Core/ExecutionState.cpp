@@ -8,6 +8,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Memory.h"
+#include "MemoryManager.h"
 
 #include "klee/ExecutionState.h"
 
@@ -18,6 +19,7 @@
 #include "klee/Internal/Module/KModule.h"
 #include "klee/OptionCategories.h"
 #include "klee/util/ExprUtil.h"
+#include "klee/util/ArrayCache.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/Support/CommandLine.h"
@@ -68,7 +70,8 @@ StackFrame::~StackFrame() {
 
 /***/
 
-ExecutionState::ExecutionState(KFunction *kf) :
+ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
+    memory(memory),
     pc(kf->instructions),
     prevPC(pc),
 
@@ -109,7 +112,7 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     fnAliases(state.fnAliases),
     addressConstraints(state.addressConstraints),
     cache(state.cache),
-    ulCache(state.ulCache),
+    memory(state.memory),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -507,21 +510,48 @@ void ExecutionState::computeRewrittenConstraints() {
 
 UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
                                      bool &changed) const {
-  UpdateList updates(ul.root, nullptr);
-  changed = false;
+  std::vector<ref<ConstantExpr>> constants(ul.root->size);
 
+  for (unsigned i = 0; i < ul.root->size; i++) {
+    constants[i] = ul.root->constantValues[i];
+  }
+
+  std::vector<std::pair<ref<Expr>, ref<Expr>>> writes;
   for (const UpdateNode *un = ul.head; un; un = un->next) {
-    ref<Expr> index = un->index;
-    if (un->index->flag) {
-      index = addressSpace.unfold(*this, un->index);
-      changed = true;
+    ref<Expr> index = addressSpace.unfold(*this, un->index);
+    ref<Expr> value = addressSpace.unfold(*this, un->value);
+    changed |= (un->index->flag | un->value->flag);
+    ref<ConstantExpr> i = dyn_cast<ConstantExpr>(index);
+    ref<ConstantExpr> v = dyn_cast<ConstantExpr>(value);
+    if (!i.isNull()) {
+      if (!v.isNull()) {
+        constants[i->getZExtValue()] = v;
+      } else {
+        for (unsigned int j = 0; j < writes.size(); j++) {
+          ref<ConstantExpr> x = dyn_cast<ConstantExpr>(writes[j].first);
+          if (i->getZExtValue() == x->getZExtValue()) {
+            writes.erase(writes.begin() + j);
+            break;
+          }
+        }
+        writes.push_back(std::make_pair(index, value));
+      }
+    } else {
+      writes.push_back(std::make_pair(index, value));
     }
-    ref<Expr> value = un->value;
-    if (un->value->flag) {
-      value = addressSpace.unfold(*this, un->value);
-      changed = true;
-    }
-    updates.extend(index, value);
+  }
+
+  static unsigned rwid = 0;
+  std::string name = "rewritten_arr" + llvm::utostr(++rwid);
+  ArrayCache *arrayCache = memory->getArrayCache();
+  const Array *array = arrayCache->CreateArray(name,
+                                               ul.root->size,
+                                               &constants[0],
+                                               &constants[0] + constants.size());
+  UpdateList updates = UpdateList(array, 0);
+
+  for (auto i : writes) {
+    updates.extend(i.first, i.second);
   }
 
   return updates;
@@ -529,26 +559,54 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
 
 UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
                                           bool &changed) const {
-  changed = false;
-  for (auto i : ulCache) {
-    if (ul.head == i.first.head) {
-      changed = true;
-      return i.second;
+  assert(ul.root && ul.head);
+
+  /* TODO: add cache? */
+  ObjectState *os = nullptr;
+  const MemoryObject *mo = nullptr;
+  for (auto i : addressSpace.objects) {
+    mo = i.first;
+    os = i.second;
+    if (os->updates.root == ul.root && os->updates.head == ul.head) {
+      break;
     }
   }
 
-  UpdateList updates = rewriteUL(ul, changed);
-  ExecutionState *writable = const_cast<ExecutionState *>(this);
-  writable->ulCache.push_back(std::make_pair(ul, updates));
-  return updates;
+  if (!os || !mo) {
+    /* the object must be there... */
+    assert(false);
+  }
+
+  if (!os->rewrittenUpdates.root) {
+    UpdateList updates = rewriteUL(ul, changed);
+    if (changed) {
+      os->rewrittenUpdates = updates;
+      os->pulledUpdates = ul.getSize();
+    }
+  } else {
+    if (os->pulledUpdates < ul.getSize()) {
+      /* TODO: update the rewritten updates... */
+      assert(0);
+    }
+    changed = true;
+  }
+
+  if (changed) {
+    ExecutionState *writable = const_cast<ExecutionState *>(this);
+    writable->rewrittenObjects.insert(ObjectPair(mo, os));
+  }
+
+  return os->rewrittenUpdates;
 }
 
-void ExecutionState::recomputeULCache() {
-  for (unsigned i = 0; i < ulCache.size(); i++) {
-    const UpdateList ul = ulCache[i].first;
-    bool changed = false;
-    ulCache[i].second = rewriteUL(ul, changed);
+void ExecutionState::updateRewrittenObjects() {
+  for (ObjectPair op : rewrittenObjects) {
+    ObjectState *os = addressSpace.getWriteable(op.first, op.second);
+    os->rewrittenUpdates = UpdateList(0, 0);
+    os->pulledUpdates = 0;
   }
+
+  rewrittenObjects.clear();
 }
 
 /* TODO: check flag? */

@@ -3841,7 +3841,7 @@ void Executor::runFunctionAsMain(Function *f,
     }
   }
 
-  ExecutionState *state = new ExecutionState(kmodule->functionMap[f]);
+  ExecutionState *state = new ExecutionState(kmodule->functionMap[f], memory);
   
   if (pathWriter) 
     state->pathOS = pathWriter->open();
@@ -4172,7 +4172,7 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
 
   /* TODO: add docs */
   state.computeRewrittenConstraints();
-  state.recomputeULCache();
+  state.updateRewrittenObjects();
 }
 
 void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
@@ -4218,7 +4218,7 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
   /* TODO: add docs */
   state.computeRewrittenConstraints();
-  state.recomputeULCache();
+  state.updateRewrittenObjects();
 }
 
 void Executor::prepareForEarlyExit() {

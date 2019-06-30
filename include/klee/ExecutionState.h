@@ -19,6 +19,7 @@
 
 // FIXME: We do not want to be exposing these? :(
 #include "../../lib/Core/AddressSpace.h"
+#include "../../lib/Core/MemoryManager.h"
 #include "klee/Internal/Module/KInstIterator.h"
 
 #include "llvm/Support/CommandLine.h"
@@ -93,8 +94,6 @@ public:
   typedef std::map<uint64_t, ref<AddressRecord>> AddressConstraints;
   /* TODO: change the key to ref<Expr>? */
   typedef std::map<unsigned, ref<AddressRecord>> Cache;
-  /* TODO: change the key to ref<Expr>? */
-  typedef std::vector<std::pair<const UpdateList, UpdateList>> ULCache;
 
 private:
   // unsupported, use copy constructor
@@ -106,7 +105,9 @@ private:
 
   Cache cache;
 
-  ULCache ulCache;
+  MemoryManager *memory;
+
+  std::set<ObjectPair> rewrittenObjects;
 
 public:
   // Execution - Control Flow specific
@@ -194,7 +195,7 @@ private:
   ExecutionState() : ptreeNode(0) {}
 
 public:
-  ExecutionState(KFunction *kf);
+  ExecutionState(KFunction *kf, MemoryManager *memory);
 
   // XXX total hack, just used to make a state so solver can
   // use on structure
@@ -243,8 +244,7 @@ public:
 
   UpdateList getRewrittenUL(const UpdateList &ul, bool &changed) const;
 
-  /* TODO: create one re-compute API */
-  void recomputeULCache();
+  void updateRewrittenObjects();
 };
 
 class AddressUnfolder : public ExprVisitor {
