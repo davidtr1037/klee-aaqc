@@ -573,20 +573,22 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
   assert(ul.root && ul.head);
 
   /* TODO: add cache? */
+  bool found = false;
   ObjectState *os = nullptr;
   const MemoryObject *mo = nullptr;
   for (auto i : addressSpace.objects) {
     mo = i.first;
     os = i.second;
-    if (os->updates.root == ul.root && os->updates.head == ul.head) {
+    if (os->updates.root == ul.root) {
+      found = true;
       break;
     }
   }
 
-  if (!os || !mo) {
-    /* the object must be there... */
-    assert(false);
-  }
+  /* the object must be there... */
+  assert(found);
+  /* the object must hold the latest updates */
+  assert(os->updates.getSize() >= ul.getSize());
 
   if (!os->rewrittenUpdates.root) {
     UpdateList updates = rewriteUL(ul, changed);
@@ -624,7 +626,22 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
     writable->rewrittenObjects.insert(ObjectPair(mo, os));
   }
 
-  return os->rewrittenUpdates;
+  /* the number of updates which were set as initial values */
+  size_t constants = os->pulledUpdates - os->rewrittenUpdates.getSize();
+  if (ul.getSize() < constants) {
+    /* TODO: override with updates? */
+    assert(0);
+  }
+
+  const UpdateNode *head = nullptr;
+  for (const UpdateNode *n = os->rewrittenUpdates.head; n; n = n->next) {
+    if (n->getSize() == (ul.getSize() - constants)) {
+        head = n;
+        break;
+    }
+  }
+
+  return UpdateList(os->rewrittenUpdates.root, head);
 }
 
 /* TODO: we don't need to rewrite everything... */
