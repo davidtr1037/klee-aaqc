@@ -674,6 +674,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   if (!e.flag) {
     return Action::skipChildren();
   }
+  assert(!e.index->flag);
 
   if (e.updates.root->isAddressArray) {
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e.index);
