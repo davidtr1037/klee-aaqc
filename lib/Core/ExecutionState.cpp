@@ -623,7 +623,7 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
 
   if (changed) {
     ExecutionState *writable = const_cast<ExecutionState *>(this);
-    writable->rewrittenObjects.insert(ObjectPair(mo, os));
+    writable->rewrittenObjects.insert(std::make_pair(mo, ObjectHolder(os)));
   }
 
   /* the number of updates which were set as initial values */
@@ -646,7 +646,7 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
 
 /* TODO: we don't need to rewrite everything... */
 void ExecutionState::updateRewrittenObjects() {
-  for (ObjectPair op : rewrittenObjects) {
+  for (RewrittenObjectPair op : rewrittenObjects) {
     ObjectState *os = addressSpace.getWriteable(op.first, op.second);
     os->rewrittenUpdates = UpdateList(0, 0);
     os->pulledUpdates = 0;

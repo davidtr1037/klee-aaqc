@@ -95,6 +95,8 @@ public:
   /* TODO: change the key to ref<Expr>? */
   typedef std::map<unsigned, ref<AddressRecord>> Cache;
 
+  typedef std::pair<const MemoryObject *, ObjectHolder> RewrittenObjectPair;
+
 private:
   // unsupported, use copy constructor
   ExecutionState &operator=(const ExecutionState &);
@@ -107,7 +109,7 @@ private:
 
   MemoryManager *memory;
 
-  std::set<ObjectPair> rewrittenObjects;
+  std::set<RewrittenObjectPair> rewrittenObjects;
 
 public:
   // Execution - Control Flow specific
