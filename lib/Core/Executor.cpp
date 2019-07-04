@@ -3669,10 +3669,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   solver->setTimeout(time::Span());
 
   if (UseRebase && !rl.empty()) {
-    klee_message("%p: rebasing %lu objects", &state, rl.size());
-    rebaseObjects(state, rl);
-    executeMemoryOperation(state, isWrite, originalAddress, value, target, true);
-    return;
+    if (rebaseObjects(state, rl)) {
+      executeMemoryOperation(state, isWrite, originalAddress, value, target, true);
+      return;
+    }
+    klee_message("%p: rebase failed...", &state);
   }
   
   // XXX there is some query wasteage here. who cares?
@@ -4179,7 +4180,16 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
   state.updateRewrittenObjects();
 }
 
-void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
+bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
+  for (ObjectPair &op : ops) {
+    const ObjectState *os = op.second;
+    if (os->getSubObjects().size() > 1) {
+      return false;
+    }
+  }
+
+  klee_message("%p: rebasing %lu objects", &state, ops.size());
+
   unsigned int total_size = 0;
   std::vector<unsigned> offsets;
   for (ObjectPair &op : ops) {
@@ -4217,12 +4227,18 @@ void Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   }
 
   for (ObjectPair &op : ops) {
+    errs() << "REBASE\n";
+    if (op.second->updates.root) {
+      errs() << "ARRAY " << op.second->updates.root->getName() << "\n";
+    }
     state.unbindObject(op.first);
   }
 
   /* TODO: add docs */
   state.computeRewrittenConstraints();
   state.updateRewrittenObjects();
+
+  return true;
 }
 
 void Executor::prepareForEarlyExit() {

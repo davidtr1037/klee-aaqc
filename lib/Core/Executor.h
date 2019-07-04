@@ -557,7 +557,7 @@ public:
 
   void rebaseObject(ExecutionState &state, ObjectPair &op);
 
-  void rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
+  bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
 };
   
 } // End klee namespace
