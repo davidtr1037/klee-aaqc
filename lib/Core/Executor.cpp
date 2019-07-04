@@ -4227,10 +4227,6 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   }
 
   for (ObjectPair &op : ops) {
-    errs() << "REBASE\n";
-    if (op.second->updates.root) {
-      errs() << "ARRAY " << op.second->updates.root->getName() << "\n";
-    }
     state.unbindObject(op.first);
   }
 
