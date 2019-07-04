@@ -3523,6 +3523,10 @@ void Executor::executeFree(ExecutionState &state,
     for (Executor::ExactResolutionList::iterator it = rl.begin(), 
            ie = rl.end(); it != ie; ++it) {
       const MemoryObject *mo = it->first.first;
+      const ObjectState *os = it->first.second;
+      if (os->getSubObjects().size() > 1) {
+        assert(0);
+      }
       if (mo->isLocal) {
         terminateStateOnError(*it->second, "free of alloca", Free, NULL,
                               getAddressInfo(*it->second, address));
