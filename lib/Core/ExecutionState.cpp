@@ -424,12 +424,6 @@ void ExecutionState::dumpStack(llvm::raw_ostream &out) const {
 }
 
 void ExecutionState::unbindObject(const MemoryObject *mo) {
-  for (auto i = rewrittenObjects.begin(); i != rewrittenObjects.end(); i++) {
-    if (i->first == mo) {
-      rewrittenObjects.erase(i);
-      break;
-    }
-  }
   addressSpace.unbindObject(mo);
 }
 
@@ -569,22 +563,36 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
   return updates;
 }
 
+bool ExecutionState::findObjectPair(const UpdateList &ul,
+                                    const MemoryObject *&mo,
+                                    ObjectState *&os) const {
+  for (auto i : addressSpace.objects) {
+    mo = i.first;
+    os = i.second;
+    if (os->updates.root == ul.root) {
+      return true;
+    }
+  }
+
+  for (RewrittenObjectPair op : rewrittenObjects) {
+    mo = op.first;
+    os = op.second;
+    if (os->updates.root == ul.root) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
                                           bool &changed) const {
   assert(ul.root && ul.head);
 
   /* TODO: add cache? */
-  bool found = false;
   ObjectState *os = nullptr;
   const MemoryObject *mo = nullptr;
-  for (auto i : addressSpace.objects) {
-    mo = i.first;
-    os = i.second;
-    if (os->updates.root == ul.root) {
-      found = true;
-      break;
-    }
-  }
+  bool found = findObjectPair(ul, mo, os);
 
   /* the object must be there... */
   assert(found);
@@ -675,7 +683,6 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   if (!e.flag) {
     return Action::skipChildren();
   }
-  assert(!e.index->flag);
 
   if (e.updates.root->isAddressArray) {
     ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e.index);
@@ -688,16 +695,24 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
     return Action::changeTo(ar->bytes[index->getZExtValue()]);
   }
 
-  if (e.updates.getSize() == 0) {
-    return Action::doChildren();
+  bool changed = false;
+
+  /* rewrite index (if needed...) */
+  ref<Expr> index = e.index;
+  if (e.index->flag) {
+    index = visit(index);
+    changed = true;
   }
 
-  bool changed = false;
-  UpdateList updates = state.getRewrittenUL(e.updates, changed);
+  UpdateList updates = e.updates;
+  if (e.updates.getSize() > 0) {
+    /* rewrite update list */
+    updates = state.getRewrittenUL(e.updates, changed);
+  }
 
   if (changed) {
     /* TODO: do some caching? */
-    return Action::changeTo(ReadExpr::create(updates, e.index));
+    return Action::changeTo(ReadExpr::create(updates, index));
   }
 
   return Action::doChildren();
