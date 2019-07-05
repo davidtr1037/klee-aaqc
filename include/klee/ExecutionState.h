@@ -246,7 +246,7 @@ public:
 
   UpdateList rewriteUL(const UpdateList &ul, bool &changed) const;
 
-  bool findObjectPair(const UpdateList &ul, const MemoryObject *&mo, ObjectState *&os) const;
+  bool findRewrittenObject(const UpdateList &ul, const MemoryObject *&mo, ObjectState *&os) const;
 
   UpdateList getRewrittenUL(const UpdateList &ul, bool &changed) const;
 

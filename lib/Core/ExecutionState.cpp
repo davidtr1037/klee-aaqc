@@ -563,9 +563,9 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
   return updates;
 }
 
-bool ExecutionState::findObjectPair(const UpdateList &ul,
-                                    const MemoryObject *&mo,
-                                    ObjectState *&os) const {
+bool ExecutionState::findRewrittenObject(const UpdateList &ul,
+                                         const MemoryObject *&mo,
+                                         ObjectState *&os) const {
   for (auto i : addressSpace.objects) {
     mo = i.first;
     os = i.second;
@@ -592,7 +592,7 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
   /* TODO: add cache? */
   ObjectState *os = nullptr;
   const MemoryObject *mo = nullptr;
-  bool found = findObjectPair(ul, mo, os);
+  bool found = findRewrittenObject(ul, mo, os);
 
   /* the object must be there... */
   assert(found);
