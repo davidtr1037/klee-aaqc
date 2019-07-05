@@ -3613,10 +3613,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       address = toConstant(state, address, "max-sym-array-size");
     }
     
-    ref<Expr> offset = mo->getOffsetExpr(address);
-    /* TODO: ... */
-    offset = state.addressSpace.unfold(state, offset, solver);
-    ref<Expr> check = mo->getBoundsCheckOffset(offset, bytes);
+    //ref<Expr> offset = mo->getOffsetExpr(address);
+    ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
     /* TODO: remove unfolds? */
     check = state.addressSpace.unfold(state, check, solver);
     check = optimizer.optimizeExpr(check, true);
@@ -3632,6 +3630,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
 
     if (inBounds) {
+      ref<Expr> offset = mo->getOffsetExpr(originalAddress);
+      ref<Expr> rewrittenOffset = state.addressSpace.unfold(state, offset);
+      if (isa<ConstantExpr>(rewrittenOffset)) {
+        offset = rewrittenOffset;
+      }
+
       const ObjectState *os = op.second;
       if (isWrite) {
         if (os->readOnly) {
