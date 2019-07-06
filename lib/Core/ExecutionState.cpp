@@ -655,13 +655,16 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
 
 /* TODO: we don't need to rewrite everything... */
 void ExecutionState::updateRewrittenObjects() {
+  std::set<RewrittenObjectPair> objects;
+
   for (RewrittenObjectPair op : rewrittenObjects) {
     ObjectState *os = addressSpace.getWriteable(op.first, op.second);
     os->rewrittenUpdates = UpdateList(0, 0);
     os->pulledUpdates = 0;
+    objects.insert(std::make_pair(op.first, ObjectHolder(os)));
   }
 
-  rewrittenObjects.clear();
+  rewrittenObjects = objects;
 }
 
 /* TODO: check flag? */
