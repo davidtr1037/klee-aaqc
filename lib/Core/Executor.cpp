@@ -3532,7 +3532,7 @@ void Executor::executeFree(ExecutionState &state,
       } else {
         const ObjectState *os = it->first.second;
         if (os->getSubObjects().size() > 1) {
-          klee_message("ignoring free (%lu sub objects)", os->getSubObjects().size());
+          /* TODO: fix later... */
           continue;
         }
         it->second->unbindObject(mo);
@@ -4212,7 +4212,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     }
   }
 
-  klee_message("%p: rebasing %lu objects", &state, ops.size());
+  klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
 
   unsigned int total_size = 0;
   std::vector<unsigned> offsets;
