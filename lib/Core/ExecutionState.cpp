@@ -114,7 +114,6 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     addressConstraints(state.addressConstraints),
     cache(state.cache),
     memory(state.memory),
-    rewrittenObjects(state.rewrittenObjects),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -563,6 +562,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
   return updates;
 }
 
+/* TODO: move to AddressSpace? */
 bool ExecutionState::findRewrittenObject(const UpdateList &ul,
                                          const MemoryObject *&mo,
                                          ObjectState *&os) const {
@@ -574,9 +574,9 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
     }
   }
 
-  for (RewrittenObjectPair op : rewrittenObjects) {
-    mo = op.first;
-    os = op.second;
+  for (auto i : addressSpace.rewrittenObjects) {
+    mo = i.first;
+    os = i.second;
     if (os->updates.root == ul.root) {
       return true;
     }
@@ -632,7 +632,7 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
 
   if (changed) {
     ExecutionState *writable = const_cast<ExecutionState *>(this);
-    writable->rewrittenObjects.insert(std::make_pair(mo, ObjectHolder(os)));
+    writable->addressSpace.addRewrittenObject(mo, os);
   }
 
   /* the number of updates which were set as initial values */
@@ -655,16 +655,16 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
 
 /* TODO: we don't need to rewrite everything... */
 void ExecutionState::updateRewrittenObjects() {
-  std::set<RewrittenObjectPair> objects;
-
-  for (RewrittenObjectPair op : rewrittenObjects) {
-    ObjectState *os = addressSpace.getWriteable(op.first, op.second);
-    os->rewrittenUpdates = UpdateList(0, 0);
-    os->pulledUpdates = 0;
-    objects.insert(std::make_pair(op.first, ObjectHolder(os)));
+  std::vector<ObjectPair> objects;
+  for (auto i : addressSpace.rewrittenObjects) {
+    objects.push_back(std::make_pair(i.first, i.second));
   }
 
-  rewrittenObjects = objects;
+  for (auto i : objects) {
+    ObjectState *os = addressSpace.getWriteable(i.first, i.second);
+    os->rewrittenUpdates = UpdateList(0, 0);
+    os->pulledUpdates = 0;
+  }
 }
 
 /* TODO: check flag? */

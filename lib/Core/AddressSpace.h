@@ -63,10 +63,15 @@ namespace klee {
     /// \invariant forall o in objects, o->copyOnWriteOwner <= cowKey
     MemoryMap objects;
     MemoryMap addressObjects;
+    /* TODO: add a flag to ObjectState instead? */
+    MemoryMap rewrittenObjects;
 
     AddressSpace() : cowKey(1) {}
     AddressSpace(const AddressSpace &b) :
-      cowKey(++b.cowKey), objects(b.objects), addressObjects(b.addressObjects) { }
+      cowKey(++b.cowKey),
+      objects(b.objects),
+      addressObjects(b.addressObjects),
+      rewrittenObjects(b.rewrittenObjects) { }
     ~AddressSpace() {}
 
     /// Resolve address to an ObjectPair in result.
@@ -151,6 +156,9 @@ namespace klee {
     ref<Expr> unfold(const ExecutionState &state,
                      const ref<Expr> address,
                      TimingSolver *solver = nullptr) const;
+
+    /* TODO: add docs */
+    void addRewrittenObject(const MemoryObject *mo, ObjectState *os);
   };
 } // End klee namespace
 
