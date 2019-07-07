@@ -62,7 +62,11 @@ ObjectState *AddressSpace::getWriteable(const MemoryObject *mo,
     ObjectState *n = new ObjectState(*os);
     n->copyOnWriteOwner = cowKey;
     objects = objects.replace(std::make_pair(mo, n));
-    rewrittenObjects = rewrittenObjects.replace(std::make_pair(mo, n));
+
+    const MemoryMap::value_type *res = rewrittenObjects.lookup(mo);
+    if (res) {
+      rewrittenObjects = rewrittenObjects.replace(std::make_pair(mo, n));
+    }
     return n;    
   }
 }
