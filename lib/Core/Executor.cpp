@@ -3523,10 +3523,6 @@ void Executor::executeFree(ExecutionState &state,
     for (Executor::ExactResolutionList::iterator it = rl.begin(), 
            ie = rl.end(); it != ie; ++it) {
       const MemoryObject *mo = it->first.first;
-      const ObjectState *os = it->first.second;
-      if (os->getSubObjects().size() > 1) {
-        assert(0);
-      }
       if (mo->isLocal) {
         terminateStateOnError(*it->second, "free of alloca", Free, NULL,
                               getAddressInfo(*it->second, address));
@@ -3534,6 +3530,11 @@ void Executor::executeFree(ExecutionState &state,
         terminateStateOnError(*it->second, "free of global", Free, NULL,
                               getAddressInfo(*it->second, address));
       } else {
+        const ObjectState *os = it->first.second;
+        if (os->getSubObjects().size() > 1) {
+          klee_message("ignoring free (%lu sub objects)", os->getSubObjects().size());
+          continue;
+        }
         it->second->unbindObject(mo);
         if (target)
           bindLocal(target, *it->second, Expr::createPointer(0));
@@ -3554,16 +3555,35 @@ void Executor::resolveExact(ExecutionState &state,
   ExecutionState *unbound = &state;
   for (ResolutionList::iterator it = rl.begin(), ie = rl.end(); 
        it != ie; ++it) {
-    ref<Expr> inBounds = EqExpr::create(p, it->first->getBaseExpr());
-    
-    StatePair branches = fork(*unbound, inBounds, true);
-    
-    if (branches.first)
-      results.push_back(std::make_pair(*it, branches.first));
+    const ObjectState *os = it->second;
 
-    unbound = branches.second;
-    if (!unbound) // Fork failure
+    std::vector<ref<Expr>> addresses;
+    if (os->getSubObjects().empty()) {
+      addresses.push_back(it->first->getBaseExpr());
+    } else {
+      for (SubObject subObject : os->getSubObjects()) {
+        ref<Expr> e = AddExpr::create(it->first->getBaseExpr(),
+                                      ConstantExpr::create(subObject.offset, Expr::Int64));
+        addresses.push_back(e);
+      }
+    }
+
+    for (ref<Expr> a : addresses) {
+      ref<Expr> inBounds = EqExpr::create(p, a);
+      StatePair branches = fork(*unbound, inBounds, true);
+      if (branches.first) {
+        results.push_back(std::make_pair(*it, branches.first));
+      }
+
+      unbound = branches.second;
+      if (!unbound) {
+        break;
+      }
+    }
+
+    if (!unbound) {
       break;
+    }
   }
 
   if (unbound) {
