@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <sys/syscall.h>
 #include <unistd.h>
+#include <fcntl.h>
 
 
 exe_file_system_t __exe_fs;
@@ -107,8 +108,9 @@ static unsigned __sym_uint32(const char *name) {
                          writes past the initial file size are discarded 
 			 (file offset is always incremented)
    max_failures: maximum number of system call failures */
+#define INPUT_PATH "/home/david/tau/maps/m4/m4.input"
 void klee_init_fds(unsigned n_files, unsigned file_length,
-                   unsigned stdin_length, int sym_stdout_flag,
+                   unsigned long long stdin_length, int sym_stdout_flag,
                    int save_all_writes_flag, unsigned max_failures) {
   unsigned k;
   char name[7] = "?-data";
@@ -120,7 +122,26 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
   __exe_fs.sym_files = malloc(sizeof(*__exe_fs.sym_files) * n_files);
   for (k=0; k < n_files; k++) {
     name[0] = 'A' + k;
-    __create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
+    if (k == 0) {
+      char buffer[500];
+      int filedesc = open(INPUT_PATH, O_RDONLY);
+      printf("file desc %d\n", filedesc);
+      file_length = read(filedesc, buffer, 500);
+      buffer[file_length + 1] = 0;
+      printf("Populating %s %d\n", name, file_length);
+      __create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
+      for (unsigned int i = 0; i < file_length; i++) {
+        if (buffer[i] == '?') {
+          printf("Skipping %d\n", i);
+          continue;
+        }
+        __exe_fs.sym_files[k].contents[i] = buffer[i];
+      }
+      stat64(INPUT_PATH, __exe_fs.sym_files[k].stat);
+    } else {
+      __create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
+    }
+    //__create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
   }
   
   /* setting symbolic stdin */
