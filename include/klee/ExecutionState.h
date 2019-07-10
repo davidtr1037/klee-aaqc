@@ -99,12 +99,17 @@ struct RebaseID {
     info(info), size(size) {
 
   }
+
+  bool operator==(const RebaseID &other) {
+    return info == other.info && size == other.size;
+  }
 };
 
 struct RebaseInfo {
   RebaseID rid;
   const MemoryObject *mo;
   ObjectHolder oh;
+  std::map<uint64_t, const Array *> arrays;
 
   RebaseInfo() : mo(nullptr) {
 
@@ -295,7 +300,9 @@ public:
 
   void computeRewrittenConstraints();
 
-  UpdateList rewriteUL(const UpdateList &ul, bool &changed) const;
+  UpdateList rewriteUL(const UpdateList &ul, const Array *array, bool &changed) const;
+
+  UpdateList initializeRewrittenUL(ObjectState *os, const UpdateList &ul) const;
 
   bool findRewrittenObject(const UpdateList &ul, const MemoryObject *&mo, ObjectState *&os) const;
 

@@ -517,6 +517,7 @@ void ExecutionState::computeRewrittenConstraints() {
 }
 
 UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
+                                     const Array *array,
                                      bool &changed) const {
   std::vector<ref<ConstantExpr>> constants(ul.root->size);
 
@@ -549,17 +550,57 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
     }
   }
 
-  static unsigned rwid = 0;
-  std::string name = "rewritten_arr" + llvm::utostr(++rwid);
-  ArrayCache *arrayCache = memory->getArrayCache();
-  const Array *array = arrayCache->CreateArray(name,
-                                               ul.root->size,
-                                               &constants[0],
-                                               &constants[0] + constants.size());
+  if (!array) {
+    static unsigned rwid = 0;
+    std::string name = "rewritten_arr" + llvm::utostr(++rwid);
+    ArrayCache *arrayCache = memory->getArrayCache();
+    array = arrayCache->CreateArray(name,
+                                    ul.root->size,
+                                    &constants[0],
+                                    &constants[0] + constants.size());
+  } else {
+    for (unsigned int i = 0; i < array->size; i++) {
+      ref<ConstantExpr> initialized = array->constantValues[i];
+      if (initialized->compareContents(*constants[i].get()) != 0) {
+        assert(0);
+      }
+    }
+  }
   UpdateList updates = UpdateList(array, 0);
 
   for (auto i : writes) {
     updates.extend(i.first, i.second);
+  }
+
+  return updates;
+}
+
+UpdateList ExecutionState::initializeRewrittenUL(ObjectState *os,
+                                                 const UpdateList &ul) const {
+  assert(history.size() < 2);
+
+  RebaseCache *rc = RebaseCache::getRebaseCache();
+  for (const RebaseID &rid : history) {
+    for (RebaseInfo &ri : rc->rebased) {
+      if (ri.rid == rid) {
+        auto i = ri.arrays.find(os->object->address);
+        if (i != ri.arrays.end()) {
+          bool changed;
+          return rewriteUL(ul, i->second, changed);
+        }
+      }
+    }
+  }
+
+  bool changed;
+  UpdateList updates = rewriteUL(ul, NULL, changed);
+  if (!history.empty()) {
+    const RebaseID &rid = history[0];
+    for (RebaseInfo &ri : rc->rebased) {
+      if (ri.rid == rid) {
+        ri.arrays.insert(std::make_pair(os->object->address, updates.root));
+      }
+    }
   }
 
   return updates;
@@ -603,11 +644,10 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
   assert(os->updates.getSize() >= ul.getSize());
 
   if (!os->rewrittenUpdates.root) {
-    UpdateList updates = rewriteUL(ul, changed);
-    if (changed) {
-      os->rewrittenUpdates = updates;
-      os->pulledUpdates = ul.getSize();
-    }
+    UpdateList updates = initializeRewrittenUL(os, ul);
+    os->rewrittenUpdates = updates;
+    os->pulledUpdates = ul.getSize();
+    changed = true;
   } else {
     if (os->pulledUpdates < ul.getSize()) {
       /* collect the missing nodes */
