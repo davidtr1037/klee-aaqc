@@ -116,6 +116,7 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     addressConstraints(state.addressConstraints),
     cache(state.cache),
     memory(state.memory),
+    history(state.history),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),

@@ -160,6 +160,8 @@ private:
 
   MemoryManager *memory;
 
+  std::vector<RebaseID> history;
+
 public:
   // Execution - Control Flow specific
 
@@ -300,6 +302,10 @@ public:
   UpdateList getRewrittenUL(const UpdateList &ul, bool &changed) const;
 
   void updateRewrittenObjects();
+
+  void addRebaseID(RebaseID &rid) {
+    history.push_back(rid);
+  }
 };
 
 class AddressUnfolder : public ExprVisitor {

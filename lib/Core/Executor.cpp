@@ -4222,6 +4222,10 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   RebaseInfo ri;
   if (wasRebased(state, state.prevPC->info, ri)) {
     klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
+
+    /* add existing rebase id */
+    state.addRebaseID(ri.rid);
+
     /* TODO: make sure that the address is not used */
     ObjectState *segmentOS = ri.oh;
     ObjectState *reusedOS = new ObjectState(*segmentOS);
@@ -4298,6 +4302,10 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
   /* TODO: count sub objects? */
   RebaseID rid(state.prevPC->info, ops.size());
+  /* TODO: add docs */
+  state.addRebaseID(rid);
+
+  /* TODO: add docs */
   RebaseInfo info(rid, segmentMO, ObjectHolder(segmentOS));
   RebaseCache::getRebaseCache()->rebased.push_back(info);
 
