@@ -20,6 +20,7 @@
 #include "klee/OptionCategories.h"
 #include "klee/util/ExprUtil.h"
 #include "klee/util/ArrayCache.h"
+#include "klee/Internal/Support/ErrorHandling.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/Support/CommandLine.h"
@@ -558,7 +559,13 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
                                     ul.root->size,
                                     &constants[0],
                                     &constants[0] + constants.size());
+    klee_message("new array: %s (from %s)",
+                 array->getName().data(),
+                 ul.root->getName().data());
   } else {
+    klee_message("reusing array: %s (from %s)",
+                 array->getName().data(),
+                 ul.root->getName().data());
     for (unsigned int i = 0; i < array->size; i++) {
       ref<ConstantExpr> initialized = array->constantValues[i];
       if (initialized->compareContents(*constants[i].get()) != 0) {
