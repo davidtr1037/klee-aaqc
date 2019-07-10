@@ -4296,7 +4296,9 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   state.computeRewrittenConstraints();
   state.updateRewrittenObjects();
 
-  RebaseInfo info(segmentMO, ObjectHolder(segmentOS), state.prevPC->info);
+  /* TODO: count sub objects? */
+  RebaseID rid(state.prevPC->info, ops.size());
+  RebaseInfo info(rid, segmentMO, ObjectHolder(segmentOS));
   RebaseCache::getRebaseCache()->rebased.push_back(info);
 
   return true;
@@ -4304,7 +4306,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
 bool Executor::wasRebased(ExecutionState &state, const InstructionInfo *info, RebaseInfo &result) {
   for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
-    if (ri.info->id == info->id) {
+    if (ri.rid.info->id == info->id) {
       result = ri;
       return true;
     }

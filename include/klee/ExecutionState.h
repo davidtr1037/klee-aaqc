@@ -86,21 +86,32 @@ struct AddressRecord {
     }
 };
 
-struct RebaseInfo {
-  const MemoryObject *mo;
-  ObjectHolder oh;
+struct RebaseID {
   const InstructionInfo *info;
-  std::set<ObjectHolder> objects;
+  size_t size;
 
-  RebaseInfo() : mo(nullptr), info(nullptr) {
+  RebaseID() :
+    info(nullptr), size(0) {
 
   }
 
-  RebaseInfo(const MemoryObject *mo, ObjectHolder oh, const InstructionInfo *info) :
-    mo(mo),
-    oh(oh),
-    info(info)
-  {
+  RebaseID(const InstructionInfo *info, size_t size) :
+    info(info), size(size) {
+
+  }
+};
+
+struct RebaseInfo {
+  RebaseID rid;
+  const MemoryObject *mo;
+  ObjectHolder oh;
+
+  RebaseInfo() : mo(nullptr) {
+
+  }
+
+  RebaseInfo(RebaseID &rid, const MemoryObject *mo, ObjectHolder oh) :
+    rid(rid), mo(mo), oh(oh) {
 
   }
 };
