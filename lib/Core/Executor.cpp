@@ -4212,14 +4212,52 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     }
   }
 
-  klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
-
   unsigned int total_size = 0;
   std::vector<unsigned> offsets;
   for (ObjectPair &op : ops) {
     offsets.push_back(total_size);
     total_size += RoundUpToAlignment(op.first->size, 16);
   }
+
+  RebaseInfo ri;
+  if (wasRebased(state, state.prevPC->info, ri)) {
+    klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
+    /* TODO: make sure that the address is not used */
+    ObjectState *segmentOS = ri.oh;
+    ObjectState *reusedOS = new ObjectState(*segmentOS);
+    state.addressSpace.bindObject(ri.mo, reusedOS);
+
+    for (unsigned i = 0; i < ops.size(); i++) {
+      ObjectPair &op = ops[i];
+      const MemoryObject *mo = op.first;
+      const ObjectState *os = op.second;
+      unsigned offset = offsets[i];
+
+      /* can't rebase fixed objects */
+      assert(!os->getSubObjects().empty());
+
+      /* update constraints */
+      for (auto subObject: os->getSubObjects()) {
+        state.addAddressConstraint(subObject.info.arrayID,
+                                   ri.mo->address + offset + subObject.offset,
+                                   subObject.info.address);
+        klee_message("rebasing memory object: %lu -> %lu",
+                     mo->address + subObject.offset,
+                     ri.mo->address + offset + subObject.offset);
+      }
+    }
+
+    for (ObjectPair &op : ops) {
+      state.unbindObject(op.first);
+    }
+
+    /* TODO: add docs */
+    state.computeRewrittenConstraints();
+    state.updateRewrittenObjects();
+    return true;
+  }
+
+  klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
 
   MemoryObject *segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
   ObjectState *segmentOS = bindObjectInState(state, segmentMO, false);
@@ -4258,7 +4296,20 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   state.computeRewrittenConstraints();
   state.updateRewrittenObjects();
 
+  RebaseInfo info(segmentMO, ObjectHolder(segmentOS), state.prevPC->info);
+  RebaseCache::getRebaseCache()->rebased.push_back(info);
+
   return true;
+}
+
+bool Executor::wasRebased(ExecutionState &state, const InstructionInfo *info, RebaseInfo &result) {
+  for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
+    if (ri.info->id == info->id) {
+      result = ri;
+      return true;
+    }
+  }
+  return false;
 }
 
 void Executor::prepareForEarlyExit() {

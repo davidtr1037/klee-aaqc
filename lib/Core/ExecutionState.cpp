@@ -69,6 +69,8 @@ StackFrame::~StackFrame() {
   delete[] locals; 
 }
 
+RebaseCache *RebaseCache::instance = nullptr;
+
 /***/
 
 ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :

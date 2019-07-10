@@ -86,6 +86,46 @@ struct AddressRecord {
     }
 };
 
+struct RebaseInfo {
+  const MemoryObject *mo;
+  ObjectHolder oh;
+  const InstructionInfo *info;
+  std::set<ObjectHolder> objects;
+
+  RebaseInfo() : mo(nullptr), info(nullptr) {
+
+  }
+
+  RebaseInfo(const MemoryObject *mo, ObjectHolder oh, const InstructionInfo *info) :
+    mo(mo),
+    oh(oh),
+    info(info)
+  {
+
+  }
+};
+
+class RebaseCache {
+
+public:
+
+  RebaseCache(): refCount(0) {
+
+  }
+
+  static RebaseCache *getRebaseCache() {
+    if (!instance) {
+      instance = new RebaseCache();
+    }
+    return instance;
+  }
+
+  unsigned int refCount;
+  std::vector<RebaseInfo> rebased;
+
+  static RebaseCache *instance;
+};
+
 /// @brief ExecutionState representing a path under exploration
 class ExecutionState {
 public:
@@ -94,6 +134,8 @@ public:
   typedef std::map<uint64_t, ref<AddressRecord>> AddressConstraints;
   /* TODO: change the key to ref<Expr>? */
   typedef std::map<unsigned, ref<AddressRecord>> Cache;
+  /* .. */
+  ref<RebaseCache> rebaseCache;
 
 private:
   // unsupported, use copy constructor
