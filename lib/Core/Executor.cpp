@@ -4174,34 +4174,8 @@ ObjectPair Executor::createAddressObject(ExecutionState &state,
 }
 
 void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
-  const MemoryObject *mo = op.first;
-  const ObjectState *os = op.second;
-
-  MemoryObject *newMO = memory->allocate(mo->size,
-                                         mo->isLocal,
-                                         mo->isGlobal,
-                                         mo->allocSite,
-                                         8);
-
-  /* can't rebase fixed objects */
-  assert(!os->getSubObjects().empty());
-
-  /* update address constraints */
-  for (auto subObject: os->getSubObjects()) {
-    state.addAddressConstraint(subObject.info.arrayID,
-                               newMO->address + subObject.offset,
-                               subObject.info.address);
-  }
-
-  /* update address space */
-  /* TODO: avoid copy? */
-  ObjectState *clonedOS = new ObjectState(*op.second);
-  state.addressSpace.bindObject(newMO, clonedOS);
-  state.unbindObject(mo);
-
-  /* TODO: add docs */
-  state.computeRewrittenConstraints();
-  state.updateRewrittenObjects();
+  std::vector<ObjectPair> ops = {op, };
+  rebaseObjects(state, ops);
 }
 
 bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
