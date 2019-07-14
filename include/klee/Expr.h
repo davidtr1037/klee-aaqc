@@ -584,6 +584,7 @@ public:
 public:
   UpdateList updates;
   ref<Expr> index;
+  bool ulflag;
 
 public:
   static ref<Expr> alloc(const UpdateList &updates, const ref<Expr> &index) {
@@ -612,17 +613,17 @@ private:
   ReadExpr(const UpdateList &_updates, const ref<Expr> &_index) : 
     updates(_updates), index(_index) {
     assert(updates.root);
+    ulflag = false;
     if (index->flag) {
       flag = true;
-    } else {
-      if (updates.root->isAddressArray) {
-        flag = true;
-      } else {
-        for (const UpdateNode *un = updates.head; un; un = un->next) {
-          if (un->index->flag || un->value->flag) {
-            flag = true;
-          }
-        }
+    }
+    if (updates.root->isAddressArray) {
+      flag = true;
+    }
+    for (const UpdateNode *un = updates.head; un; un = un->next) {
+      if (un->index->flag || un->value->flag) {
+        ulflag = flag = true;
+        break;
       }
     }
   }
