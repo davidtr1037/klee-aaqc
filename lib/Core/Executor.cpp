@@ -4217,6 +4217,10 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
       const ObjectState *os = op.second;
       unsigned offset = offsets[i];
 
+      for (unsigned j = 0; j < mo->size; j++) {
+        reusedOS->write(offset + j, os->read8(j));
+      }
+
       /* can't rebase fixed objects */
       assert(!os->getSubObjects().empty());
 
