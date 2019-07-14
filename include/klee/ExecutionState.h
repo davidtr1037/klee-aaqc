@@ -320,6 +320,10 @@ public:
   void addRebaseID(RebaseID &rid) {
     history.push_back(rid);
   }
+
+  const std::vector<RebaseID> &getHistory() const {
+    return history;
+  }
 };
 
 class AddressUnfolder : public ExprVisitor {
