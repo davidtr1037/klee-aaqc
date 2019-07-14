@@ -4201,6 +4201,12 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     state.addRebaseID(ri.rid);
 
     /* TODO: make sure that the address is not used */
+    ref<ConstantExpr> address = ConstantExpr::create(ri.mo->address, Expr::Int64);
+    ObjectPair op;
+    if (state.addressSpace.resolveOne(address, op)) {
+      assert(0);
+    }
+
     ObjectState *segmentOS = ri.oh;
     ObjectState *reusedOS = new ObjectState(*segmentOS);
     state.addressSpace.bindObject(ri.mo, reusedOS);
