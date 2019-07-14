@@ -86,22 +86,24 @@ struct AddressRecord {
     }
 };
 
+typedef std::vector<uint64_t> Arrays;
+
 struct RebaseID {
   const InstructionInfo *info;
-  size_t size;
+  Arrays arrays;
 
   RebaseID() :
-    info(nullptr), size(0) {
+    info(nullptr) {
 
   }
 
-  RebaseID(const InstructionInfo *info, size_t size) :
-    info(info), size(size) {
+  RebaseID(const InstructionInfo *info, Arrays &arrays) :
+    info(info), arrays(arrays) {
 
   }
 
   bool operator==(const RebaseID &other) {
-    return info == other.info && size == other.size;
+    return info == other.info && arrays == other.arrays;
   }
 };
 

@@ -4274,9 +4274,8 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   state.computeRewrittenConstraints();
   state.updateRewrittenObjects();
 
-  /* TODO: count sub objects? */
-  RebaseID rid(state.prevPC->info, ops.size());
   /* TODO: add docs */
+  RebaseID rid = buildRebaseID(state, ops);
   state.addRebaseID(rid);
 
   /* TODO: add docs */
@@ -4294,6 +4293,18 @@ bool Executor::wasRebased(ExecutionState &state, const InstructionInfo *info, Re
     }
   }
   return false;
+}
+
+RebaseID Executor::buildRebaseID(ExecutionState &state, std::vector<ObjectPair> &ops) {
+  Arrays arrays;
+  for (ObjectPair &op : ops) {
+    const ObjectState *os = op.second;
+    for (const SubObject &subObject : os->getSubObjects()) {
+      arrays.push_back(subObject.info.arrayID);
+    }
+  }
+
+  return RebaseID(state.prevPC->info, arrays);
 }
 
 void Executor::prepareForEarlyExit() {

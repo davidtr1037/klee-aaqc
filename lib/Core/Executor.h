@@ -560,6 +560,8 @@ public:
   bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
 
   bool wasRebased(ExecutionState &state, const InstructionInfo *info, RebaseInfo &result);
+
+  RebaseID buildRebaseID(ExecutionState &state, std::vector<ObjectPair> &ops);
 };
   
 } // End klee namespace
