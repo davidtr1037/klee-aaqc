@@ -46,6 +46,8 @@ cl::opt<bool> DebugLogStateMerge(
 
 cl::opt<bool> klee::UseLocalSymAddr("use-local-sym-addr", cl::init(false), cl::desc("..."));
 
+cl::opt<bool> klee::ReuseArrays("reuse-arrays", cl::init(true), cl::desc("..."));
+
 /***/
 
 StackFrame::StackFrame(KInstIterator _caller, KFunction *_kf)
@@ -584,33 +586,55 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
 
 UpdateList ExecutionState::initializeRewrittenUL(ObjectState *os,
                                                  const UpdateList &ul) const {
-  assert(history.size() < 2);
+  if (!ReuseArrays) {
+    bool changed;
+    return rewriteUL(ul, NULL, changed);
+  }
+
+  /* get dependent arrays */
+  std::set<const Array *> arrays;
+  os->getArrays(arrays);
+
+  /* generate array ID's */
+  Arrays ids;
+  for (const Array *array : arrays) {
+    ids.push_back(array->id);
+  }
 
   RebaseCache *rc = RebaseCache::getRebaseCache();
-  for (const RebaseID &rid : history) {
+  for (auto i = history.rbegin(); i != history.rend(); i++) {
+    const RebaseID &rid = *i;
     for (RebaseInfo &ri : rc->rebased) {
-      if (ri.rid == rid) {
-        auto i = ri.arrays.find(os->object->address);
-        if (i != ri.arrays.end()) {
-          bool changed;
-          return rewriteUL(ul, i->second, changed);
-        }
+      if (ri.rid != rid) {
+        continue;
       }
+
+      std::vector<uint64_t> intersection;
+      set_intersection(rid.arrays.begin(),
+                       rid.arrays.end(),
+                       ids.begin(),
+                       ids.end(),
+                       std::inserter(intersection, intersection.begin()));
+      if (intersection.empty()) {
+        continue;
+      }
+
+      UpdateList updates(nullptr, nullptr);
+      bool changed;
+
+      auto i = ri.arrays.find(os->object->address);
+      if (i == ri.arrays.end()) {
+        updates = rewriteUL(ul, nullptr, changed);
+        ri.arrays.insert(std::make_pair(os->object->address, updates.root));
+      } else {
+        updates = rewriteUL(ul, i->second, changed);
+      }
+      return updates;
     }
   }
 
   bool changed;
-  UpdateList updates = rewriteUL(ul, NULL, changed);
-  if (!history.empty()) {
-    const RebaseID &rid = history[0];
-    for (RebaseInfo &ri : rc->rebased) {
-      if (ri.rid == rid) {
-        ri.arrays.insert(std::make_pair(os->object->address, updates.root));
-      }
-    }
-  }
-
-  return updates;
+  return rewriteUL(ul, NULL, changed);
 }
 
 /* TODO: move to AddressSpace? */

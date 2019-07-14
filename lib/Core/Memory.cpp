@@ -18,6 +18,7 @@
 #include "klee/Solver.h"
 #include "klee/util/ArrayCache.h"
 #include "klee/util/BitArray.h"
+#include "klee/util/ExprUtil.h"
 
 #include "llvm/IR/Function.h"
 #include "llvm/IR/Instruction.h"
@@ -620,5 +621,16 @@ void ObjectState::print() const {
   llvm::errs() << "\tUpdates:\n";
   for (const UpdateNode *un=updates.head; un; un=un->next) {
     llvm::errs() << "\t\t[" << un->index << "] = " << un->value << "\n";
+  }
+}
+
+void ObjectState::getArrays(std::set<const Array *> &arrays) const {
+  std::vector<const Array *> local;
+
+  for (const UpdateNode *n = updates.head; n; n = n->next) {
+    local.clear();
+    findSymbolicObjects(n->index, local);
+    findSymbolicObjects(n->value, local);
+    arrays.insert(local.begin(), local.end());
   }
 }

@@ -39,6 +39,7 @@ class PTreeNode;
 struct InstructionInfo;
 
 extern llvm::cl::opt<bool> UseLocalSymAddr;
+extern llvm::cl::opt<bool> ReuseArrays;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
@@ -104,6 +105,10 @@ struct RebaseID {
 
   bool operator==(const RebaseID &other) {
     return info == other.info && arrays == other.arrays;
+  }
+
+  bool operator!=(const RebaseID &other) {
+    return !(this->operator==(other));
   }
 };
 

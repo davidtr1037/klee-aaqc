@@ -259,6 +259,8 @@ public:
   void flushToConcreteStore(TimingSolver *solver,
                             const ExecutionState &state) const;
 
+  void getArrays(std::set<const Array *> &arrays) const;
+
 private:
   const UpdateList &getUpdates() const;
 
