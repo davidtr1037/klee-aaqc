@@ -782,7 +782,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   }
 
   UpdateList updates = e.updates;
-  if (e.updates.getSize() > 0) {
+  if (e.ulflag) {
     /* rewrite update list */
     updates = state.getRewrittenUL(e.updates, changed);
   }
