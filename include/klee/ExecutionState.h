@@ -159,6 +159,8 @@ public:
   typedef std::map<uint64_t, ref<AddressRecord>> AddressConstraints;
   /* TODO: change the key to ref<Expr>? */
   typedef std::map<unsigned, ref<AddressRecord>> Cache;
+  /* TODO: add docs */
+  typedef std::vector<RebaseID> History;
   /* .. */
   ref<RebaseCache> rebaseCache;
 
@@ -174,7 +176,7 @@ private:
 
   MemoryManager *memory;
 
-  std::vector<RebaseID> history;
+  History history;
 
 public:
   // Execution - Control Flow specific
@@ -323,7 +325,7 @@ public:
     history.push_back(rid);
   }
 
-  const std::vector<RebaseID> &getHistory() const {
+  const History &getHistory() const {
     return history;
   }
 };
