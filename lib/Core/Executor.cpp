@@ -4209,6 +4209,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
     ObjectState *segmentOS = ri.oh;
     ObjectState *reusedOS = new ObjectState(*segmentOS);
+    reusedOS->rewrittenUpdates = UpdateList(0, 0);
     state.addressSpace.bindObject(ri.mo, reusedOS);
 
     for (unsigned i = 0; i < ops.size(); i++) {
@@ -4218,7 +4219,12 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
       unsigned offset = offsets[i];
 
       for (unsigned j = 0; j < mo->size; j++) {
-        reusedOS->write(offset + j, os->read8(j));
+        ref<Expr> old = reusedOS->read8(offset + j);
+        ref<Expr> n = os->read8(j);
+        /* TODO: hash check? */
+        if (old->hash() != n->hash()) {
+          reusedOS->write(offset + j, n);
+        }
       }
 
       /* can't rebase fixed objects */
