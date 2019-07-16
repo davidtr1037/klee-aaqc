@@ -4193,8 +4193,9 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     total_size += RoundUpToAlignment(op.first->size, 16);
   }
 
+  RebaseID rid = buildRebaseID(state, ops, total_size);
   RebaseInfo ri;
-  if (wasRebased(state, state.prevPC->info, ri)) {
+  if (wasRebased(state, rid, ri)) {
     klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
 
     /* add existing rebase id */
@@ -4291,7 +4292,6 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   state.updateRewrittenObjects();
 
   /* TODO: add docs */
-  RebaseID rid = buildRebaseID(state, ops);
   state.addRebaseID(rid);
 
   /* TODO: add docs */
@@ -4301,9 +4301,9 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   return true;
 }
 
-bool Executor::wasRebased(ExecutionState &state, const InstructionInfo *info, RebaseInfo &result) {
+bool Executor::wasRebased(ExecutionState &state, const RebaseID &rid, RebaseInfo &result) {
   for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
-    if (ri.rid.info->id == info->id) {
+    if (ri.rid == rid) {
       result = ri;
       return true;
     }
@@ -4311,7 +4311,9 @@ bool Executor::wasRebased(ExecutionState &state, const InstructionInfo *info, Re
   return false;
 }
 
-RebaseID Executor::buildRebaseID(ExecutionState &state, std::vector<ObjectPair> &ops) {
+RebaseID Executor::buildRebaseID(ExecutionState &state,
+                                 std::vector<ObjectPair> &ops,
+                                 size_t size) {
   Arrays arrays;
   for (ObjectPair &op : ops) {
     const ObjectState *os = op.second;
@@ -4320,7 +4322,7 @@ RebaseID Executor::buildRebaseID(ExecutionState &state, std::vector<ObjectPair> 
     }
   }
 
-  return RebaseID(state.prevPC->info, arrays);
+  return RebaseID(state.prevPC->info, arrays, size);
 }
 
 void Executor::prepareForEarlyExit() {

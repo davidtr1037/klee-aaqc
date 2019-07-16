@@ -559,9 +559,11 @@ public:
 
   bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
 
-  bool wasRebased(ExecutionState &state, const InstructionInfo *info, RebaseInfo &result);
+  bool wasRebased(ExecutionState &state, const RebaseID &rid, RebaseInfo &result);
 
-  RebaseID buildRebaseID(ExecutionState &state, std::vector<ObjectPair> &ops);
+  RebaseID buildRebaseID(ExecutionState &state,
+                         std::vector<ObjectPair> &ops,
+                         size_t size);
 };
   
 } // End klee namespace

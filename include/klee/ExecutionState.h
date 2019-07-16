@@ -92,19 +92,21 @@ typedef std::vector<uint64_t> Arrays;
 struct RebaseID {
   const InstructionInfo *info;
   Arrays arrays;
+  /* the size of the created segment */
+  size_t size;
 
   RebaseID() :
     info(nullptr) {
 
   }
 
-  RebaseID(const InstructionInfo *info, Arrays &arrays) :
-    info(info), arrays(arrays) {
+  RebaseID(const InstructionInfo *info, Arrays &arrays, size_t size) :
+    info(info), arrays(arrays), size(size) {
 
   }
 
   bool operator==(const RebaseID &other) {
-    return info == other.info && arrays == other.arrays;
+    return info == other.info && arrays == other.arrays && size == other.size;
   }
 
   bool operator!=(const RebaseID &other) {
