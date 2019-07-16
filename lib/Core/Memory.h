@@ -177,6 +177,7 @@ private:
   friend class AddressSpace;
   /* TODO: remove... */
   friend class ExecutionState;
+  friend class RebaseCache;
   unsigned copyOnWriteOwner; // exclusively for AddressSpace
 
   friend class ObjectHolder;

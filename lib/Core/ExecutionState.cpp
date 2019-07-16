@@ -74,6 +74,63 @@ StackFrame::~StackFrame() {
 
 RebaseCache *RebaseCache::instance = nullptr;
 
+UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const UpdateList &ul) {
+  bool changed;
+
+  /* get dependent arrays */
+  std::set<const Array *> arrays;
+  os->getArrays(arrays);
+
+  /* generate array ID's */
+  Arrays ids;
+  for (const Array *array : arrays) {
+    ids.push_back(array->id);
+  }
+
+  const ExecutionState::History &h = state.getHistory();
+  for (auto i = h.rbegin(); i != h.rend(); i++) {
+    const RebaseID &rid = *i;
+    for (RebaseInfo &ri : rebased) {
+      if (ri.rid != rid) {
+        continue;
+      }
+
+      std::vector<uint64_t> intersection;
+      set_intersection(rid.arrays.begin(),
+                       rid.arrays.end(),
+                       ids.begin(),
+                       ids.end(),
+                       std::inserter(intersection, intersection.begin()));
+      if (intersection.empty()) {
+        continue;
+      }
+
+      UpdateList updates(nullptr, nullptr);
+
+      auto i = ri.arrays.find(os->object->address);
+      if (i == ri.arrays.end()) {
+        updates = state.rewriteUL(ul, nullptr, changed);
+        ri.arrays.insert(std::make_pair(os->object->address, updates.root));
+      } else {
+        updates = state.rewriteUL(ul, i->second, changed);
+      }
+      return updates;
+    }
+  }
+
+  return state.rewriteUL(ul, nullptr, changed);
+
+  //bool changed;
+  //auto i = unrebased.find(os->object->address);
+  //if (i == unrebased.end()) {
+  //  UpdateList updates = state.rewriteUL(ul, NULL, changed);
+  //  unrebased.insert(std::make_pair(os->object->address, updates.root));
+  //  return updates;
+  //}
+
+  //return state.rewriteUL(ul, i->second, changed);
+}
+
 /***/
 
 ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
@@ -591,50 +648,8 @@ UpdateList ExecutionState::initializeRewrittenUL(ObjectState *os,
     return rewriteUL(ul, NULL, changed);
   }
 
-  /* get dependent arrays */
-  std::set<const Array *> arrays;
-  os->getArrays(arrays);
-
-  /* generate array ID's */
-  Arrays ids;
-  for (const Array *array : arrays) {
-    ids.push_back(array->id);
-  }
-
   RebaseCache *rc = RebaseCache::getRebaseCache();
-  for (auto i = history.rbegin(); i != history.rend(); i++) {
-    const RebaseID &rid = *i;
-    for (RebaseInfo &ri : rc->rebased) {
-      if (ri.rid != rid) {
-        continue;
-      }
-
-      std::vector<uint64_t> intersection;
-      set_intersection(rid.arrays.begin(),
-                       rid.arrays.end(),
-                       ids.begin(),
-                       ids.end(),
-                       std::inserter(intersection, intersection.begin()));
-      if (intersection.empty()) {
-        continue;
-      }
-
-      UpdateList updates(nullptr, nullptr);
-      bool changed;
-
-      auto i = ri.arrays.find(os->object->address);
-      if (i == ri.arrays.end()) {
-        updates = rewriteUL(ul, nullptr, changed);
-        ri.arrays.insert(std::make_pair(os->object->address, updates.root));
-      } else {
-        updates = rewriteUL(ul, i->second, changed);
-      }
-      return updates;
-    }
-  }
-
-  bool changed;
-  return rewriteUL(ul, NULL, changed);
+  return rc->find(*this, os, ul);
 }
 
 /* TODO: move to AddressSpace? */

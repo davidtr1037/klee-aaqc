@@ -145,8 +145,11 @@ public:
     return instance;
   }
 
+  UpdateList find(const ExecutionState &state, ObjectState *os, const UpdateList &ul);
+
   unsigned int refCount;
   std::vector<RebaseInfo> rebased;
+  std::map<uint64_t, const Array *> unrebased;
 
   static RebaseCache *instance;
 };
