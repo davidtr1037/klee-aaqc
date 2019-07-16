@@ -118,17 +118,14 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
     }
   }
 
-  return state.rewriteUL(ul, nullptr, changed);
-
-  //bool changed;
-  //auto i = unrebased.find(os->object->address);
-  //if (i == unrebased.end()) {
-  //  UpdateList updates = state.rewriteUL(ul, NULL, changed);
-  //  unrebased.insert(std::make_pair(os->object->address, updates.root));
-  //  return updates;
-  //}
-
-  //return state.rewriteUL(ul, i->second, changed);
+  auto i = unrebased.find(os->object->address);
+  if (i == unrebased.end()) {
+    UpdateList updates = state.rewriteUL(ul, NULL, changed);
+    unrebased.insert(std::make_pair(os->object->address, updates.root));
+    return updates;
+  } else {
+    return state.rewriteUL(ul, i->second, changed);
+  }
 }
 
 /***/
