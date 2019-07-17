@@ -4208,10 +4208,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
       assert(0);
     }
 
-    ObjectState *segmentOS = ri.oh;
-    ObjectState *reusedOS = new ObjectState(*segmentOS);
-    reusedOS->rewrittenUpdates = UpdateList(0, 0);
-    state.addressSpace.bindObject(ri.mo, reusedOS);
+    ObjectState *reusedOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
     assert(reusedOS->size == total_size);
 
     for (unsigned i = 0; i < ops.size(); i++) {

@@ -159,6 +159,8 @@ namespace klee {
 
     /* TODO: add docs */
     void addRewrittenObject(const MemoryObject *mo, ObjectState *os);
+
+    ObjectState *bindCopyWithArray(const MemoryObject *mo, ObjectState *os);
   };
 } // End klee namespace
 

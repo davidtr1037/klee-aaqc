@@ -431,6 +431,12 @@ void AddressSpace::addRewrittenObject(const MemoryObject *mo, ObjectState *os) {
   rewrittenObjects = rewrittenObjects.replace(std::make_pair(mo, os));
 }
 
+ObjectState *AddressSpace::bindCopyWithArray(const MemoryObject *mo, ObjectState *os) {
+  ObjectState *copy = new ObjectState(mo, os->updates.root);
+  bindObject(mo, copy);
+  return copy;
+}
+
 /***/
 
 bool MemoryObjectLT::operator()(const MemoryObject *a, const MemoryObject *b) const {
