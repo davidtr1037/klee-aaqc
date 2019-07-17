@@ -607,6 +607,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
     }
   }
 
+  bool reusing = (array != nullptr);
   if (!array) {
     static unsigned rwid = 0;
     std::string name = "rewritten_arr" + llvm::utostr(++rwid);
@@ -622,14 +623,18 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
     klee_message("reusing array: %s (from %s)",
                  array->getName().data(),
                  ul.root->getName().data());
+  }
+
+  UpdateList updates = UpdateList(array, 0);
+
+  if (reusing) {
     for (unsigned int i = 0; i < array->size; i++) {
       ref<ConstantExpr> initialized = array->constantValues[i];
       if (initialized->compareContents(*constants[i].get()) != 0) {
-        assert(0);
+        updates.extend(ConstantExpr::create(i, Expr::Int32), constants[i]);
       }
     }
   }
-  UpdateList updates = UpdateList(array, 0);
 
   for (auto i : writes) {
     updates.extend(i.first, i.second);
