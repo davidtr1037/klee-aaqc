@@ -4178,6 +4178,7 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
   rebaseObjects(state, ops);
 }
 
+/* TODO: remove code duplication */
 bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
   for (ObjectPair &op : ops) {
     const ObjectState *os = op.second;
