@@ -112,6 +112,8 @@ struct RebaseID {
   bool operator!=(const RebaseID &other) {
     return !(this->operator==(other));
   }
+
+  void dump() const;
 };
 
 struct RebaseInfo {

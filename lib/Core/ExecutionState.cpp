@@ -72,6 +72,17 @@ StackFrame::~StackFrame() {
   delete[] locals; 
 }
 
+void RebaseID::dump() const {
+  errs() << "RID: " << "\n";
+  errs() << "- Instruction: " << info->id << "\n";
+  errs() << "- Size: " << size << "\n";
+  errs() << "- Arrays: [ ";
+  for (uint64_t a : arrays) {
+    errs() << a << " ";
+  }
+  errs() << "]\n";
+}
+
 RebaseCache *RebaseCache::instance = nullptr;
 
 UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const UpdateList &ul) {
