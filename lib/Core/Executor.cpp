@@ -4200,11 +4200,13 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
 
   RebaseID rid = buildRebaseID(state, ops, total_size);
   RebaseInfo ri;
-  if (wasRebased(state, rid, ri)) {
-    klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
 
-    /* add existing rebase id */
-    state.addRebaseID(ri.rid);
+  ObjectState *segmentOS = nullptr;
+  const MemoryObject *segmentMO = nullptr;
+
+  bool seen = wasRebased(state, rid, ri);
+  if (seen) {
+    klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
 
     /* TODO: make sure that the address is not used */
     ref<ConstantExpr> address = ConstantExpr::create(ri.mo->address, Expr::Int64);
@@ -4213,53 +4215,15 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
       assert(0);
     }
 
-    ObjectState *reusedOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
-    assert(reusedOS->size == total_size);
-
-    for (unsigned i = 0; i < ops.size(); i++) {
-      ObjectPair &op = ops[i];
-      const MemoryObject *mo = op.first;
-      const ObjectState *os = op.second;
-      unsigned offset = offsets[i];
-
-      for (unsigned j = 0; j < mo->size; j++) {
-        ref<Expr> old = reusedOS->read8(offset + j);
-        ref<Expr> n = os->read8(j);
-        /* TODO: hash check? */
-        if (old->hash() != n->hash()) {
-          reusedOS->write(offset + j, n);
-        }
-      }
-
-      /* can't rebase fixed objects */
-      assert(!os->getSubObjects().empty());
-
-      /* update constraints */
-      for (auto subObject: os->getSubObjects()) {
-        state.addAddressConstraint(subObject.info.arrayID,
-                                   ri.mo->address + offset + subObject.offset,
-                                   subObject.info.address);
-        klee_message("rebasing memory object: %lu -> %lu",
-                     mo->address + subObject.offset,
-                     ri.mo->address + offset + subObject.offset);
-      }
-    }
-
-    for (ObjectPair &op : ops) {
-      state.unbindObject(op.first);
-    }
-
-    /* TODO: add docs */
-    state.computeRewrittenConstraints();
-    state.updateRewrittenObjects();
-    return true;
+    segmentMO = ri.mo;
+    segmentOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
+    assert(segmentOS->size == total_size);
+  } else {
+    klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
+    segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
+    segmentOS = bindObjectInState(state, segmentMO, false);
+    klee_message("%p: creating new segment: %lu", &state, segmentMO->address);
   }
-
-  klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
-
-  MemoryObject *segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
-  ObjectState *segmentOS = bindObjectInState(state, segmentMO, false);
-  klee_message("%p: creating new segment: %lu", &state, segmentMO->address);
 
   for (unsigned i = 0; i < ops.size(); i++) {
     ObjectPair &op = ops[i];
@@ -4268,7 +4232,12 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     unsigned offset = offsets[i];
 
     for (unsigned j = 0; j < mo->size; j++) {
-      segmentOS->write(offset + j, os->read8(j));
+      ref<Expr> old = segmentOS->read8(offset + j);
+      ref<Expr> n = os->read8(j);
+      /* TODO: hash check? */
+      if (!seen || old->hash() != n->hash()) {
+        segmentOS->write(offset + j, n);
+      }
     }
 
     /* can't rebase fixed objects */
@@ -4279,7 +4248,10 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
       state.addAddressConstraint(subObject.info.arrayID,
                                  segmentMO->address + offset + subObject.offset,
                                  subObject.info.address);
-      segmentOS->addSubObject(offset + subObject.offset, subObject.info);
+      if (!seen) {
+        /* TODO: clear sub objects and re-add? */
+        segmentOS->addSubObject(offset + subObject.offset, subObject.info);
+      }
       klee_message("rebasing memory object: %lu -> %lu",
                    mo->address + subObject.offset,
                    segmentMO->address + offset + subObject.offset);
@@ -4297,9 +4269,12 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   /* TODO: add docs */
   state.addRebaseID(rid);
 
-  /* TODO: add docs */
-  RebaseInfo info(rid, segmentMO, ObjectHolder(segmentOS));
-  RebaseCache::getRebaseCache()->rebased.push_back(info);
+  if (!seen) {
+    /* TODO: add docs */
+    assert(segmentMO);
+    RebaseInfo info(rid, segmentMO, ObjectHolder(segmentOS));
+    RebaseCache::getRebaseCache()->rebased.push_back(info);
+  }
 
   return true;
 }
