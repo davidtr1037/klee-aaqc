@@ -3931,6 +3931,9 @@ void Executor::runFunctionAsMain(Function *f,
 
   if (statsTracker)
     statsTracker->done();
+
+  double t = (double)(stats::resolveTime) / (double)(statsTracker->elapsed().toMicroseconds());
+  klee_message("Resolve time: %f%%", 100 * t);
 }
 
 unsigned Executor::getPathStreamID(const ExecutionState &state) {
