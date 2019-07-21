@@ -769,6 +769,10 @@ void ExecutionState::updateRewrittenObjects() {
   }
 }
 
+AllocationContext ExecutionState::getAC() const {
+  return AllocationContext(prevPC->info->id);
+}
+
 /* TODO: check flag? */
 ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
   if (!e.flag) {

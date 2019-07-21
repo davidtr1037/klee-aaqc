@@ -20,6 +20,7 @@
 // FIXME: We do not want to be exposing these? :(
 #include "../../lib/Core/AddressSpace.h"
 #include "../../lib/Core/MemoryManager.h"
+#include "../../lib/Core/AllocationContext.h"
 #include "klee/Internal/Module/KInstIterator.h"
 
 #include "llvm/Support/CommandLine.h"
@@ -333,6 +334,8 @@ public:
   const History &getHistory() const {
     return history;
   }
+
+  AllocationContext getAC() const;
 };
 
 class AddressUnfolder : public ExprVisitor {

@@ -12,6 +12,7 @@
 
 #include "Context.h"
 #include "TimingSolver.h"
+#include "AllocationContext.h"
 #include "klee/Expr.h"
 
 #include "llvm/ADT/StringExtras.h"
@@ -69,6 +70,9 @@ public:
   /// with allowing it to be added to during execution (although
   /// should sensibly be only at creation time).
   mutable std::vector< ref<Expr> > cexPreferences;
+
+  /* TODO: ... */
+  mutable AllocationContext ac;
 
   // DO NOT IMPLEMENT
   MemoryObject(const MemoryObject &b);

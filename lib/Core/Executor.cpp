@@ -3397,6 +3397,7 @@ void Executor::executeAlloc(ExecutionState &state,
     MemoryObject *mo =
         memory->allocate(CE->getZExtValue(), isLocal, /*isGlobal=*/false,
                          allocSite, allocationAlignment);
+    mo->ac = state.getAC();
 
     if (!mo) {
       bindLocal(target, state, 
