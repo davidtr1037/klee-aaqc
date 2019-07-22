@@ -92,17 +92,23 @@ typedef std::vector<uint64_t> Arrays;
 
 struct RebaseID {
   const InstructionInfo *info;
-  Arrays arrays;
   /* the size of the created segment */
   size_t size;
+  /* TODO: add docs */
+  Arrays arrays;
+  /* TODO: should be here? */
+  std::vector<AllocationContext> acs;
 
   RebaseID() :
     info(nullptr) {
 
   }
 
-  RebaseID(const InstructionInfo *info, Arrays &arrays, size_t size) :
-    info(info), arrays(arrays), size(size) {
+  RebaseID(const InstructionInfo *info,
+           size_t size,
+           Arrays &arrays,
+           std::vector<AllocationContext> acs) :
+    info(info), size(size), arrays(arrays), acs(acs) {
 
   }
 

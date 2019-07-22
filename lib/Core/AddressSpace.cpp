@@ -11,6 +11,7 @@
 #include "CoreStats.h"
 #include "Memory.h"
 #include "TimingSolver.h"
+#include "AllocationContext.h"
 
 #include "klee/Expr.h"
 #include "klee/TimerStatIncrementer.h"
@@ -312,6 +313,19 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
   }
 
   return false;
+}
+
+bool AddressSpace::resolve(ExecutionState &state,
+                           std::vector<AllocationContext> &acs,
+                           ResolutionList &rl) const {
+  for (auto i : objects) {
+    const MemoryObject *mo = i.first;
+    if (std::find(acs.begin(), acs.end(), mo->ac) != acs.end()) {
+      rl.push_back(ObjectPair(mo, i.second));
+    }
+  }
+
+  return true;
 }
 
 // These two are pretty big hack so we can sort of pass memory back

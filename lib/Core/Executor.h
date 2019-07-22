@@ -559,6 +559,8 @@ public:
 
   bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
 
+  void getContexts(ExecutionState &state, std::vector<AllocationContext> &acs);
+
   bool wasRebased(ExecutionState &state, const RebaseID &rid, RebaseInfo &result);
 
   RebaseID buildRebaseID(ExecutionState &state,

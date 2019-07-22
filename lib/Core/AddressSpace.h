@@ -11,6 +11,7 @@
 #define KLEE_ADDRESSSPACE_H
 
 #include "ObjectHolder.h"
+#include "AllocationContext.h"
 
 #include "klee/Expr.h"
 #include "klee/Internal/ADT/ImmutableMap.h"
@@ -107,6 +108,9 @@ namespace klee {
                  unsigned maxResolutions=0,
                  time::Span timeout=time::Span()) const;
 
+    bool resolve(ExecutionState &state,
+                 std::vector<AllocationContext> &acs,
+                 ResolutionList &rl) const;
     /***/
 
     /// Add a binding to the address space.

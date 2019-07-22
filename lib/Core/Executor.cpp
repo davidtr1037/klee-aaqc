@@ -402,6 +402,8 @@ cl::opt<bool> DebugCheckForImpliedValues(
 cl::opt<bool> UseSymAddr("use-sym-addr", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
+
+cl::opt<bool> UseStaticResolve("use-static-resolve", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3686,12 +3688,23 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     klee_error("Unexpected multiple resolution...");
   }
 
-  address = optimizer.optimizeExpr(address, true);
-  ResolutionList rl;  
-  solver->setTimeout(coreSolverTimeout);
-  bool incomplete = state.addressSpace.resolve(state, solver, address, rl,
-                                               0, coreSolverTimeout);
-  solver->setTimeout(time::Span());
+  ResolutionList rl;
+  bool incomplete = false;
+
+  std::vector<AllocationContext> acs;
+  if (UseStaticResolve) {
+    getContexts(state, acs);
+  }
+  if (acs.empty()) {
+    address = optimizer.optimizeExpr(address, true);
+    solver->setTimeout(coreSolverTimeout);
+    incomplete = state.addressSpace.resolve(state, solver, address, rl, 0, coreSolverTimeout);
+    solver->setTimeout(time::Span());
+    klee_message("multiple resolution (solver): %lu", rl.size());
+  } else {
+    state.addressSpace.resolve(state, acs, rl);
+    klee_message("multiple resolution (AC): %lu", rl.size());
+  }
 
   if (UseRebase && !rl.empty()) {
     if (rebaseObjects(state, rl)) {
@@ -4279,6 +4292,21 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   return true;
 }
 
+void Executor::getContexts(ExecutionState &state,
+                           std::vector<AllocationContext> &acs) {
+  std::vector<ObjectPair> ops;
+
+  for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
+    if (ri.rid.info->id == state.prevPC->info->id) {
+      for (AllocationContext &ac : ri.rid.acs) {
+        if (std::find(acs.begin(), acs.end(), ac) == acs.end()) {
+          acs.push_back(ac);
+        }
+      }
+    }
+  }
+}
+
 bool Executor::wasRebased(ExecutionState &state, const RebaseID &rid, RebaseInfo &result) {
   for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
     if (ri.rid == rid) {
@@ -4293,14 +4321,20 @@ RebaseID Executor::buildRebaseID(ExecutionState &state,
                                  std::vector<ObjectPair> &ops,
                                  size_t size) {
   Arrays arrays;
+  std::vector<AllocationContext> acs;
+
   for (ObjectPair &op : ops) {
+    const MemoryObject *mo = op.first;
     const ObjectState *os = op.second;
     for (const SubObject &subObject : os->getSubObjects()) {
       arrays.push_back(subObject.info.arrayID);
     }
+    if (std::find(acs.begin(), acs.end(), mo->ac) == acs.end()) {
+      acs.push_back(mo->ac);
+    }
   }
 
-  return RebaseID(state.prevPC->info, arrays, size);
+  return RebaseID(state.prevPC->info, size, arrays, acs);
 }
 
 void Executor::prepareForEarlyExit() {
