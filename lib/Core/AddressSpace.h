@@ -66,13 +66,16 @@ namespace klee {
     MemoryMap addressObjects;
     /* TODO: add a flag to ObjectState instead? */
     MemoryMap rewrittenObjects;
+    /* TODO: add docs */
+    MemoryMap deallocatedObjects;
 
     AddressSpace() : cowKey(1) {}
     AddressSpace(const AddressSpace &b) :
       cowKey(++b.cowKey),
       objects(b.objects),
       addressObjects(b.addressObjects),
-      rewrittenObjects(b.rewrittenObjects) { }
+      rewrittenObjects(b.rewrittenObjects),
+      deallocatedObjects(b.deallocatedObjects) { }
     ~AddressSpace() {}
 
     /// Resolve address to an ObjectPair in result.

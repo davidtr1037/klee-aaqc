@@ -685,6 +685,14 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
     }
   }
 
+  for (auto i : addressSpace.deallocatedObjects) {
+    mo = i.first;
+    os = i.second;
+    if (os->updates.root == ul.root) {
+      return true;
+    }
+  }
+
   return false;
 }
 

@@ -38,6 +38,11 @@ void AddressSpace::unbindObject(const MemoryObject *mo) {
   if (mo->isAddressMO) {
     addressObjects = objects.remove(mo);
   } else {
+    const ObjectState *os = findObject(mo);
+    if (os->updates.root) {
+      ObjectState *wos = getWriteable(mo, os);
+      deallocatedObjects = deallocatedObjects.replace(std::make_pair(mo, wos));
+    }
     objects = objects.remove(mo);
   }
 }
