@@ -606,7 +606,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
       } else {
         for (unsigned int j = 0; j < writes.size(); j++) {
           ref<ConstantExpr> x = dyn_cast<ConstantExpr>(writes[j].first);
-          if (i->getZExtValue() == x->getZExtValue()) {
+          if (!x.isNull() && i->getZExtValue() == x->getZExtValue()) {
             writes.erase(writes.begin() + j);
             break;
           }
