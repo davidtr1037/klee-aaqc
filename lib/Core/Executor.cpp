@@ -4208,7 +4208,11 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   std::vector<unsigned> offsets;
   for (ObjectPair &op : ops) {
     offsets.push_back(total_size);
+#if LLVM_VERSION_CODE >= LLVM_VERSION(3, 9)
+    total_size += llvm::alignTo(op.first->size, 16);
+#else
     total_size += RoundUpToAlignment(op.first->size, 16);
+#endif
   }
 
   RebaseID rid = buildRebaseID(state, ops, total_size);
