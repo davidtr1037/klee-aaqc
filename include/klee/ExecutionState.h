@@ -324,13 +324,13 @@ public:
 
   void computeRewrittenConstraints();
 
-  UpdateList rewriteUL(const UpdateList &ul, const Array *array, bool &changed) const;
+  UpdateList rewriteUL(const UpdateList &ul, const Array *array) const;
 
   UpdateList initializeRewrittenUL(ObjectState *os, const UpdateList &ul) const;
 
   bool findRewrittenObject(const UpdateList &ul, const MemoryObject *&mo, ObjectState *&os) const;
 
-  UpdateList getRewrittenUL(const UpdateList &ul, bool &changed) const;
+  UpdateList getRewrittenUL(const UpdateList &ul) const;
 
   void updateRewrittenObjects();
 

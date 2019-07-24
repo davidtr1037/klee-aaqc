@@ -88,8 +88,6 @@ void RebaseID::dump() const {
 RebaseCache *RebaseCache::instance = nullptr;
 
 UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const UpdateList &ul) {
-  bool changed;
-
   /* get dependent arrays */
   std::set<const Array *> arrays;
   os->getArrays(arrays);
@@ -122,10 +120,10 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
 
       auto i = ri.arrays.find(os->object->address);
       if (i == ri.arrays.end()) {
-        updates = state.rewriteUL(ul, nullptr, changed);
+        updates = state.rewriteUL(ul, nullptr);
         ri.arrays.insert(std::make_pair(os->object->address, updates.root));
       } else {
-        updates = state.rewriteUL(ul, i->second, changed);
+        updates = state.rewriteUL(ul, i->second);
       }
       return updates;
     }
@@ -133,11 +131,11 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
 
   auto i = unrebased.find(os->object->address);
   if (i == unrebased.end()) {
-    UpdateList updates = state.rewriteUL(ul, NULL, changed);
+    UpdateList updates = state.rewriteUL(ul, NULL);
     unrebased.insert(std::make_pair(os->object->address, updates.root));
     return updates;
   } else {
-    return state.rewriteUL(ul, i->second, changed);
+    return state.rewriteUL(ul, i->second);
   }
 }
 
@@ -586,9 +584,7 @@ void ExecutionState::computeRewrittenConstraints() {
   }
 }
 
-UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
-                                     const Array *array,
-                                     bool &changed) const {
+UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) const {
   std::vector<ref<ConstantExpr>> constants(ul.root->size);
 
   for (unsigned i = 0; i < ul.root->size; i++) {
@@ -599,7 +595,6 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
   for (const UpdateNode *un = ul.head; un; un = un->next) {
     ref<Expr> index = addressSpace.unfold(*this, un->index);
     ref<Expr> value = addressSpace.unfold(*this, un->value);
-    changed |= (un->index->flag | un->value->flag);
     ref<ConstantExpr> i = dyn_cast<ConstantExpr>(index);
     ref<ConstantExpr> v = dyn_cast<ConstantExpr>(value);
     if (!i.isNull()) {
@@ -659,8 +654,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul,
 UpdateList ExecutionState::initializeRewrittenUL(ObjectState *os,
                                                  const UpdateList &ul) const {
   if (!ReuseArrays) {
-    bool changed;
-    return rewriteUL(ul, NULL, changed);
+    return rewriteUL(ul, NULL);
   }
 
   RebaseCache *rc = RebaseCache::getRebaseCache();
@@ -698,8 +692,7 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
   return false;
 }
 
-UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
-                                          bool &changed) const {
+UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
   assert(ul.root && ul.head);
 
   /* TODO: add cache? */
@@ -716,7 +709,6 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
     UpdateList updates = initializeRewrittenUL(os, ul);
     os->rewrittenUpdates = updates;
     os->pulledUpdates = ul.getSize();
-    changed = true;
   } else {
     if (os->pulledUpdates < ul.getSize()) {
       /* collect the missing nodes */
@@ -734,18 +726,14 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul,
       for (const UpdateNode *n : nodes) {
         ref<Expr> index = addressSpace.unfold(*this, n->index);
         ref<Expr> value = addressSpace.unfold(*this, n->value);
-        changed |= (n->index->flag || n->value->flag);
         os->rewrittenUpdates.extend(index, value);
       }
       os->pulledUpdates = ul.getSize();
     }
-    changed = true;
   }
 
-  if (changed) {
-    ExecutionState *writable = const_cast<ExecutionState *>(this);
-    writable->addressSpace.addRewrittenObject(mo, os);
-  }
+  ExecutionState *writable = const_cast<ExecutionState *>(this);
+  writable->addressSpace.addRewrittenObject(mo, os);
 
   /* the number of updates which were set as initial values */
   size_t constants = os->pulledUpdates - os->rewrittenUpdates.getSize();
@@ -842,16 +830,18 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   bool changed = false;
 
   /* rewrite index (if needed...) */
+  assert(e.updates.root);
   ref<Expr> index = e.index;
   if (e.index->flag) {
     index = visit(index);
     changed = true;
   }
 
+  /* rewrite update list (if needed...) */
   UpdateList updates = e.updates;
   if (e.ulflag) {
-    /* rewrite update list */
-    updates = state.getRewrittenUL(e.updates, changed);
+    updates = state.getRewrittenUL(e.updates);
+    changed = true;
   }
 
   if (changed) {
