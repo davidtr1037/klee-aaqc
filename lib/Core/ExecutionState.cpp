@@ -48,6 +48,8 @@ cl::opt<bool> klee::UseLocalSymAddr("use-local-sym-addr", cl::init(false), cl::d
 
 cl::opt<bool> klee::ReuseArrays("reuse-arrays", cl::init(true), cl::desc("..."));
 
+cl::opt<bool> klee::UseKContext("use-kcontext", cl::init(false), cl::desc("..."));
+
 /***/
 
 StackFrame::StackFrame(KInstIterator _caller, KFunction *_kf)
@@ -778,7 +780,32 @@ void ExecutionState::updateRewrittenObjects() {
 }
 
 AllocationContext ExecutionState::getAC() const {
-  return AllocationContext(prevPC->info->id);
+  if (!UseKContext) {
+    return AllocationContext(prevPC->info->id);
+  }
+
+  uint64_t h = 0;
+  unsigned int k = 2;
+  unsigned int j = 0;
+
+  if (stack.size() <= 2) {
+    /* TODO: check what happens here... */
+    return AllocationContext();
+  }
+
+  for (auto i = stack.rbegin(); i != stack.rend(); i++) {
+    if (j == k) {
+      break;
+    }
+
+    const StackFrame &sf = *i;
+    h += sf.caller->info->id;
+    j++;
+  }
+
+  h += prevPC->info->id;
+
+  return AllocationContext(h);
 }
 
 /* TODO: check flag? */

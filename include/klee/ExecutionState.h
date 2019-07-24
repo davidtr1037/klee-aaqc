@@ -41,6 +41,7 @@ struct InstructionInfo;
 
 extern llvm::cl::opt<bool> UseLocalSymAddr;
 extern llvm::cl::opt<bool> ReuseArrays;
+extern llvm::cl::opt<bool> UseKContext;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
