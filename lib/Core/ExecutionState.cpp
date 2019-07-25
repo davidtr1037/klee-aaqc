@@ -710,47 +710,61 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
     os->rewrittenUpdates = updates;
     os->pulledUpdates = ul.getSize();
   } else {
-    if (os->pulledUpdates < ul.getSize()) {
-      /* collect the missing nodes */
-      std::list<const UpdateNode *> nodes;
-      unsigned int j = 0;
-      for (const UpdateNode *n = ul.head; n; n = n->next) {
-        if (j >= (ul.getSize() - os->pulledUpdates)) {
-          break;
-        }
-        nodes.push_front(n);
-        j++;
-      }
-
-      /* add the missing updates */
-      for (const UpdateNode *n : nodes) {
-        ref<Expr> index = addressSpace.unfold(*this, n->index);
-        ref<Expr> value = addressSpace.unfold(*this, n->value);
-        os->rewrittenUpdates.extend(index, value);
-      }
-      os->pulledUpdates = ul.getSize();
-    }
+    UpdateList updates = rewriteUL(ul, os->rewrittenUpdates.root);
+    os->rewrittenUpdates = updates;
   }
 
   ExecutionState *writable = const_cast<ExecutionState *>(this);
   writable->addressSpace.addRewrittenObject(mo, os);
 
-  /* the number of updates which were set as initial values */
-  size_t constants = os->pulledUpdates - os->rewrittenUpdates.getSize();
-  if (ul.getSize() < constants) {
-    /* TODO: override with updates? */
-    assert(0);
-  }
+  return os->rewrittenUpdates;
 
-  const UpdateNode *head = nullptr;
-  for (const UpdateNode *n = os->rewrittenUpdates.head; n; n = n->next) {
-    if (n->getSize() == (ul.getSize() - constants)) {
-        head = n;
-        break;
-    }
-  }
+  //if (!os->rewrittenUpdates.root) {
+  //  UpdateList updates = initializeRewrittenUL(os, ul);
+  //  os->rewrittenUpdates = updates;
+  //  os->pulledUpdates = ul.getSize();
+  //} else {
+  //  if (os->pulledUpdates < ul.getSize()) {
+  //    /* collect the missing nodes */
+  //    std::list<const UpdateNode *> nodes;
+  //    unsigned int j = 0;
+  //    for (const UpdateNode *n = ul.head; n; n = n->next) {
+  //      if (j >= (ul.getSize() - os->pulledUpdates)) {
+  //        break;
+  //      }
+  //      nodes.push_front(n);
+  //      j++;
+  //    }
 
-  return UpdateList(os->rewrittenUpdates.root, head);
+  //    /* add the missing updates */
+  //    for (const UpdateNode *n : nodes) {
+  //      ref<Expr> index = addressSpace.unfold(*this, n->index);
+  //      ref<Expr> value = addressSpace.unfold(*this, n->value);
+  //      os->rewrittenUpdates.extend(index, value);
+  //    }
+  //    os->pulledUpdates = ul.getSize();
+  //  }
+  //}
+
+  //ExecutionState *writable = const_cast<ExecutionState *>(this);
+  //writable->addressSpace.addRewrittenObject(mo, os);
+
+  ///* the number of updates which were set as initial values */
+  //size_t constants = os->pulledUpdates - os->rewrittenUpdates.getSize();
+  //if (ul.getSize() < constants) {
+  //  /* TODO: override with updates? */
+  //  assert(0);
+  //}
+
+  //const UpdateNode *head = nullptr;
+  //for (const UpdateNode *n = os->rewrittenUpdates.head; n; n = n->next) {
+  //  if (n->getSize() == (ul.getSize() - constants)) {
+  //      head = n;
+  //      break;
+  //  }
+  //}
+
+  //return UpdateList(os->rewrittenUpdates.root, head);
 }
 
 /* TODO: we don't need to rewrite everything... */
