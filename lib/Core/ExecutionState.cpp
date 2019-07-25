@@ -591,6 +591,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
     constants[i] = ul.root->constantValues[i];
   }
 
+  /* TODO: use a list? */
   std::vector<std::pair<ref<Expr>, ref<Expr>>> writes;
   for (const UpdateNode *un = ul.head; un; un = un->next) {
     ref<Expr> index = addressSpace.unfold(*this, un->index);
@@ -598,19 +599,24 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
     ref<ConstantExpr> i = dyn_cast<ConstantExpr>(index);
     ref<ConstantExpr> v = dyn_cast<ConstantExpr>(value);
     if (!i.isNull()) {
+      /* the index is concrete */
+      for (unsigned int j = 0; j < writes.size(); j++) {
+        ref<ConstantExpr> offset = dyn_cast<ConstantExpr>(writes[j].first);
+        if (!offset.isNull() && offset->getZExtValue() == i->getZExtValue()) {
+          writes.erase(writes.begin() + j);
+          break;
+        }
+      }
+
       if (!v.isNull()) {
+        /* the value is concrete */
         constants[i->getZExtValue()] = v;
       } else {
-        for (unsigned int j = 0; j < writes.size(); j++) {
-          ref<ConstantExpr> x = dyn_cast<ConstantExpr>(writes[j].first);
-          if (!x.isNull() && i->getZExtValue() == x->getZExtValue()) {
-            writes.erase(writes.begin() + j);
-            break;
-          }
-        }
+        /* the value is symbolic */
         writes.push_back(std::make_pair(index, value));
       }
     } else {
+      /* the index is symbolic */
       writes.push_back(std::make_pair(index, value));
     }
   }
