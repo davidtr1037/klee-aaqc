@@ -4238,6 +4238,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
     }
 
     segmentMO = ri.mo;
+    /* TODO: check subObjects */
     segmentOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
     assert(segmentOS->size == total_size);
   } else {
