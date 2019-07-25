@@ -586,9 +586,11 @@ void ExecutionState::computeRewrittenConstraints() {
 
 UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) const {
   std::vector<ref<ConstantExpr>> constants(ul.root->size);
+  std::vector<bool> wasOverwritten(ul.root->size);
 
   for (unsigned i = 0; i < ul.root->size; i++) {
     constants[i] = ul.root->constantValues[i];
+    wasOverwritten[i] = false;
   }
 
   /* TODO: use a list? */
@@ -596,24 +598,18 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
   for (const UpdateNode *un = ul.head; un; un = un->next) {
     ref<Expr> index = addressSpace.unfold(*this, un->index);
     ref<Expr> value = addressSpace.unfold(*this, un->value);
-    ref<ConstantExpr> i = dyn_cast<ConstantExpr>(index);
-    ref<ConstantExpr> v = dyn_cast<ConstantExpr>(value);
-    if (!i.isNull()) {
+    if (isa<ConstantExpr>(index)) {
       /* the index is concrete */
-      for (unsigned int j = 0; j < writes.size(); j++) {
-        ref<ConstantExpr> offset = dyn_cast<ConstantExpr>(writes[j].first);
-        if (!offset.isNull() && offset->getZExtValue() == i->getZExtValue()) {
-          writes.erase(writes.begin() + j);
-          break;
+      uint64_t offset = dyn_cast<ConstantExpr>(index)->getZExtValue();
+      if (!wasOverwritten[offset]) {
+        if (isa<ConstantExpr>(value)) {
+          /* the value is concrete */
+          constants[offset] = dyn_cast<ConstantExpr>(value);
+        } else {
+          /* the value is symbolic */
+          writes.push_back(std::make_pair(index, value));
         }
-      }
-
-      if (!v.isNull()) {
-        /* the value is concrete */
-        constants[i->getZExtValue()] = v;
-      } else {
-        /* the value is symbolic */
-        writes.push_back(std::make_pair(index, value));
+        wasOverwritten[offset] = true;
       }
     } else {
       /* the index is symbolic */
