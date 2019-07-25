@@ -4200,6 +4200,11 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops
   for (ObjectPair &op : ops) {
     const ObjectState *os = op.second;
     if (os->getSubObjects().size() > 1) {
+      klee_message("object: %lu was rebased", op.first->address);
+      return false;
+    }
+    if (os->getSubObjects().empty()) {
+      klee_message("object: %lu is fixed", op.first->address);
       return false;
     }
   }
