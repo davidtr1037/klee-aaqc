@@ -31,6 +31,16 @@ class MemoryManager;
 class Solver;
 class ArrayCache;
 
+struct SymbolicAddressInfo {
+  uint64_t arrayID;
+  ref<Expr> address;
+
+  SymbolicAddressInfo() :
+    arrayID(0), address(nullptr) {
+
+  }
+};
+
 class MemoryObject {
   friend class STPBuilder;
   friend class ObjectState;
@@ -43,8 +53,8 @@ private:
 public:
   unsigned id;
   uint64_t address;
-  /* TODO: ... */
-  ref<Expr> symbolicAddress;
+  /* TODO: make mutable? */
+  SymbolicAddressInfo sainfo;
   /* TODO: ... */
   bool isAddressMO;
 
@@ -85,7 +95,6 @@ public:
     : refCount(0),
       id(counter++), 
       address(_address),
-      symbolicAddress(nullptr),
       isAddressMO(false),
       size(0),
       isFixed(true),
@@ -100,7 +109,6 @@ public:
     : refCount(0), 
       id(counter++),
       address(_address),
-      symbolicAddress(nullptr),
       isAddressMO(false),
       size(_size),
       name("unnamed"),
@@ -121,11 +129,15 @@ public:
     this->name = name;
   }
 
+  bool hasSymbolicAddress() const {
+    return !sainfo.address.isNull();
+  }
+
   ref<Expr> getBaseExpr() const {
-    if (symbolicAddress.isNull()) {
+    if (!hasSymbolicAddress()) {
       return ConstantExpr::create(address, Context::get().getPointerWidth());
     } else {
-      return symbolicAddress;
+      return sainfo.address;
     }
   }
   ref<ConstantExpr> getSizeExpr() const { 
@@ -160,16 +172,11 @@ public:
   }
 };
 
-struct SymbolicAddressInfo {
-  uint64_t arrayID;
-  ref<Expr> address;
-};
-
 struct SubObject {
   unsigned int offset;
   SymbolicAddressInfo info;
 
-  SubObject(unsigned offset, SymbolicAddressInfo &info) :
+  SubObject(unsigned offset, const SymbolicAddressInfo &info) :
     offset(offset), info(info)
   {
 
@@ -190,6 +197,7 @@ private:
   const MemoryObject *object;
 
   std::vector<SubObject> subObjects;
+  std::vector<SubObject> subSegments;
 
   uint8_t *concreteStore;
 
@@ -232,8 +240,16 @@ public:
     return subObjects;
   }
 
-  void addSubObject(unsigned int offset, SymbolicAddressInfo &info) {
+  void addSubObject(unsigned int offset, const SymbolicAddressInfo &info) {
     subObjects.push_back(SubObject(offset, info));
+  }
+
+  const std::vector<SubObject> &getSubSegments() const {
+    return subSegments;
+  }
+
+  void addSubSegment(unsigned int offset, const SymbolicAddressInfo &info) {
+    subSegments.push_back(SubObject(offset, info));
   }
 
   void setReadOnly(bool ro) { readOnly = ro; }

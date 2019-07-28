@@ -141,6 +141,7 @@ ObjectState::ObjectState(const ObjectState &os)
     refCount(0),
     object(os.object),
     subObjects(os.subObjects),
+    subSegments(os.subSegments),
     concreteStore(new uint8_t[os.size]),
     concreteMask(os.concreteMask ? new BitArray(*os.concreteMask, os.size) : 0),
     flushMask(os.flushMask ? new BitArray(*os.flushMask, os.size) : 0),

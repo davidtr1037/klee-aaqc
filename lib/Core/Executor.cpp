@@ -3417,7 +3417,8 @@ void Executor::executeAlloc(ExecutionState &state,
       if (UseSymAddr && (UseLocalSymAddr || !isLocal)) {
         SymbolicAddressInfo info;
         createAddressObject(state, mo->address, info);
-        mo->symbolicAddress = info.address;
+        /* TODO: move to createAddressObject? */
+        mo->sainfo = info;
         os->addSubObject(0, info);
         bindLocal(target, state, info.address);
       } else {
@@ -4208,13 +4209,9 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   }
 
   for (ObjectPair &op : ops) {
-    const ObjectState *os = op.second;
-    if (os->getSubObjects().size() > 1) {
-      klee_message("object: %lu was rebased", op.first->address);
-      return false;
-    }
-    if (os->getSubObjects().empty()) {
-      klee_message("object: %lu is fixed", op.first->address);
+    const MemoryObject *mo = op.first;
+    if (!mo->hasSymbolicAddress()) {
+      klee_message("object: %lu has a fixed address", mo->address);
       return false;
     }
   }
@@ -4255,8 +4252,14 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
     segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
     segmentOS = bindObjectInState(state, segmentMO, false);
-    klee_message("%p: creating new segment: %lu", &state, segmentMO->address);
+    klee_message("%p: creating new segment: %lu (size = %u)",
+                 &state, segmentMO->address, segmentOS->size);
   }
+
+  SymbolicAddressInfo info;
+  createAddressObject(state, segmentMO->address, info);
+  const_cast<MemoryObject *>(segmentMO)->sainfo = info;
+  segmentOS->addSubSegment(0, info);
 
   for (unsigned i = 0; i < ops.size(); i++) {
     ObjectPair &op = ops[i];
@@ -4278,13 +4281,22 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
 
     /* update constraints */
     for (auto subObject: os->getSubObjects()) {
+      klee_message("rebasing memory object: %lu -> %lu",
+                   mo->address + subObject.offset,
+                   segmentMO->address + offset + subObject.offset);
       state.addAddressConstraint(subObject.info.arrayID,
                                  segmentMO->address + offset + subObject.offset,
                                  subObject.info.address);
       segmentOS->addSubObject(offset + subObject.offset, subObject.info);
-      klee_message("rebasing memory object: %lu -> %lu",
+    }
+    for (auto subObject: os->getSubSegments()) {
+      klee_message("rebasing segment: %lu -> %lu",
                    mo->address + subObject.offset,
                    segmentMO->address + offset + subObject.offset);
+      state.addAddressConstraint(subObject.info.arrayID,
+                                 segmentMO->address + offset + subObject.offset,
+                                 subObject.info.address);
+      segmentOS->addSubSegment(offset + subObject.offset, subObject.info);
     }
   }
 
