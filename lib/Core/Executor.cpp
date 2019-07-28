@@ -404,6 +404,8 @@ cl::opt<bool> UseSymAddr("use-sym-addr", cl::init(false), cl::desc("..."));
 cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> UseStaticResolve("use-static-resolve", cl::init(false), cl::desc("..."));
+
+cl::opt<bool> SortObjects("sort-objects", cl::init(true), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -4196,7 +4198,15 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
 }
 
 /* TODO: remove code duplication */
-bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
+bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops) {
+  if (SortObjects) {
+    std::sort(
+      ops.begin(),
+      ops.end(),
+      [ ]( const auto& op1, const auto& op2) { return op1.first->address < op2.first->address; }
+    );
+  }
+
   for (ObjectPair &op : ops) {
     const ObjectState *os = op.second;
     if (os->getSubObjects().size() > 1) {

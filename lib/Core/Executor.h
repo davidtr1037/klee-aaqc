@@ -557,7 +557,7 @@ public:
 
   void rebaseObject(ExecutionState &state, ObjectPair &op);
 
-  bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
+  bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops);
 
   void getContexts(ExecutionState &state, std::vector<AllocationContext> &acs);
 
