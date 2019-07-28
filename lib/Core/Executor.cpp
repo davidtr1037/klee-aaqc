@@ -4281,10 +4281,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       state.addAddressConstraint(subObject.info.arrayID,
                                  segmentMO->address + offset + subObject.offset,
                                  subObject.info.address);
-      if (!seen) {
-        /* TODO: clear sub objects and re-add? */
-        segmentOS->addSubObject(offset + subObject.offset, subObject.info);
-      }
+      segmentOS->addSubObject(offset + subObject.offset, subObject.info);
       klee_message("rebasing memory object: %lu -> %lu",
                    mo->address + subObject.offset,
                    segmentMO->address + offset + subObject.offset);
