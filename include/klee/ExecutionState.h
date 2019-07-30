@@ -191,6 +191,8 @@ private:
 
   History history;
 
+  uint64_t arrayID;
+
 public:
   // Execution - Control Flow specific
 
@@ -343,6 +345,10 @@ public:
   }
 
   AllocationContext getAC() const;
+
+  uint64_t allocateArrayID() {
+    return arrayID++;
+  }
 };
 
 class AddressUnfolder : public ExprVisitor {

@@ -3949,6 +3949,8 @@ void Executor::runFunctionAsMain(Function *f,
   if (statsTracker)
     statsTracker->done();
 
+  klee_message("Arrays: %lu", arrayCache.getSymbolicArrays());
+
   double t = (double)(stats::resolveTime) / (double)(statsTracker->elapsed().toMicroseconds());
   klee_message("Resolve time: %f%%", 100 * t);
 }
@@ -4165,10 +4167,7 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
 ObjectPair Executor::createAddressObject(ExecutionState &state,
                                          uint64_t address,
                                          SymbolicAddressInfo &info) {
-  static unsigned id = 0;
-
-  /* TODO: cache arrays using a per-state identifier */
-  std::string uniqueName = "addr_" + llvm::utostr(id++);
+  std::string uniqueName = "addr_" + llvm::utostr(state.allocateArrayID());
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
   /* TODO: check alignment... */

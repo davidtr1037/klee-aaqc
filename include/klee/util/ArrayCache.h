@@ -67,6 +67,10 @@ public:
                            Expr::Width _domain = Expr::Int32,
                            Expr::Width _range = Expr::Int8);
 
+  size_t getSymbolicArrays() const {
+    return cachedSymbolicArrays.size();
+  }
+
 private:
   typedef unordered_set<const Array *, klee::ArrayHashFn,
                         klee::EquivArrayCmpFn> ArrayHashMap;

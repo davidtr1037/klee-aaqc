@@ -143,6 +143,7 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
 
 ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
     memory(memory),
+    arrayID(0),
     pc(kf->instructions),
     prevPC(pc),
 
@@ -159,7 +160,7 @@ ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
 
 /* TODO: add rewritten constraints? */
 ExecutionState::ExecutionState(const std::vector<ref<Expr> > &assumptions)
-    : constraints(assumptions), ptreeNode(0) {}
+    : arrayID(0), constraints(assumptions), ptreeNode(0) {}
 
 ExecutionState::~ExecutionState() {
   for (unsigned int i=0; i<symbolics.size(); i++)
@@ -185,6 +186,7 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     cache(state.cache),
     memory(state.memory),
     history(state.history),
+    arrayID(state.arrayID),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
