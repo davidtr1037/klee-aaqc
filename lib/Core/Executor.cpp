@@ -4167,6 +4167,7 @@ ObjectPair Executor::createAddressObject(ExecutionState &state,
                                          SymbolicAddressInfo &info) {
   static unsigned id = 0;
 
+  /* TODO: cache arrays using a per-state identifier */
   std::string uniqueName = "addr_" + llvm::utostr(id++);
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
