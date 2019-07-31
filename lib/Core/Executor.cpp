@@ -4162,35 +4162,25 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
   return alignment;
 }
 
-ObjectPair Executor::symbolizeMO(ExecutionState &state,
-                                 const MemoryObject *mo,
-                                 SymbolicAddressInfo &info) {
+void Executor::symbolizeMO(ExecutionState &state,
+                           const MemoryObject *mo,
+                           SymbolicAddressInfo &info) {
   std::string uniqueName = "addr_" + llvm::utostr(state.allocateArrayID());
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
-  /* TODO: check alignment... */
-  MemoryObject *addrMO = addressMemory->allocate(Context::get().getPointerWidth() / 8,
-                                                 true,
-                                                 false,
-                                                 nullptr,
-                                                 8);
-  if (!addrMO) {
-    assert(false);
+
+  ref<Expr> kids[8];
+  for (unsigned i = 0; i < 8; i++) {
+    kids[i] = ReadExpr::create(UpdateList(array, nullptr),
+                               ConstantExpr::create(8 - i - 1, Expr::Int32));
   }
-
-  /* will be useful when resolving... */
-  addrMO->isAddressMO = true;
-
-  ObjectState *addrOS = bindObjectInState(state, addrMO, false, array);
-  ref<Expr> alpha = addrOS->read(0, Context::get().getPointerWidth());
+  ref<Expr> alpha = ConcatExpr::createN(8, kids);
   state.addAddressConstraint(array->id, mo->address, alpha);
 
   info.address = alpha;
   info.arrayID = array->id;
 
   mo->sainfo = info;
-
-  return ObjectPair(addrMO, addrOS);
 }
 
 void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
