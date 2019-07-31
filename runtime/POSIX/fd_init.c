@@ -128,11 +128,12 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
       printf("file desc %d\n", filedesc);
       file_length = read(filedesc, buffer, 500);
       buffer[file_length + 1] = 0;
-      printf("Populating %s %d\n", name, file_length);
+      printf("Populating %s %u\n", name, file_length);
       __create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
-      for (unsigned int i = 0; i < file_length; i++) {
+      unsigned int i;
+      for (i = 0; i < file_length; i++) {
         if (buffer[i] == '?') {
-          printf("Skipping %d\n", i);
+          printf("Skipping %u\n", i);
           continue;
         }
         __exe_fs.sym_files[k].contents[i] = buffer[i];
@@ -146,9 +147,37 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
   
   /* setting symbolic stdin */
   if (stdin_length) {
+    char *fileName = stdin_length > 100000 ? (char *)stdin_length : 0;
+
+    char buffer[500];
+    printf("Filename %p\n", fileName);
+    if (fileName) {
+      printf("Opening %s\n", fileName);
+      int filedesc = open(fileName, O_RDONLY);
+      stdin_length = read(filedesc, buffer, 500);
+      printf("Populating stdin with %llu\n", stdin_length);
+    }
     __exe_fs.sym_stdin = malloc(sizeof(*__exe_fs.sym_stdin));
     __create_new_dfile(__exe_fs.sym_stdin, stdin_length, "stdin", &s);
+    if (fileName) {
+      printf("Cocnrfetiyng back stdin\n");
+      unsigned long long i;
+      for (i = 0; i < stdin_length; i++) {
+        if (buffer[i] == '?') {
+          klee_assume((__exe_fs.sym_stdin->contents[i] >= 'A') & (__exe_fs.sym_stdin->contents[i] <= 'z'));
+          printf("Skipping %llu\n", i);
+          continue;
+        }
+        __exe_fs.sym_stdin->contents[i] = buffer[i];
+        struct stat64 s;
+        fstat64(0, &s);
+        memcpy(__exe_fs.sym_stdin->stat, &s, sizeof(struct stat64));
+      }
+    }
     __exe_env.fds[0].dfile = __exe_fs.sym_stdin;
+    //__exe_fs.sym_stdin = malloc(sizeof(*__exe_fs.sym_stdin));
+    //__create_new_dfile(__exe_fs.sym_stdin, stdin_length, "stdin", &s);
+    //__exe_env.fds[0].dfile = __exe_fs.sym_stdin;
   }
   else __exe_fs.sym_stdin = NULL;
 
