@@ -81,9 +81,6 @@ public:
   mutable SymbolicAddressInfo sainfo;
 
   /* TODO: ... */
-  bool isAddressMO;
-
-  /* TODO: ... */
   mutable AllocationContext ac;
 
   // DO NOT IMPLEMENT
@@ -100,8 +97,7 @@ public:
       size(0),
       isFixed(true),
       parent(NULL),
-      allocSite(0),
-      isAddressMO(false) {
+      allocSite(0) {
   }
 
   MemoryObject(uint64_t _address, unsigned _size, 
@@ -118,8 +114,7 @@ public:
       isFixed(_isFixed),
       isUserSpecified(false),
       parent(_parent), 
-      allocSite(_allocSite),
-      isAddressMO(false) {
+      allocSite(_allocSite) {
   }
 
   ~MemoryObject();

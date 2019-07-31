@@ -27,40 +27,26 @@ using namespace llvm;
 void AddressSpace::bindObject(const MemoryObject *mo, ObjectState *os) {
   assert(os->copyOnWriteOwner==0 && "object already has owner");
   os->copyOnWriteOwner = cowKey;
-  if (mo->isAddressMO) {
-    addressObjects = objects.replace(std::make_pair(mo, os));
-  } else {
-    objects = objects.replace(std::make_pair(mo, os));
-  }
+  objects = objects.replace(std::make_pair(mo, os));
 }
 
 void AddressSpace::unbindObject(const MemoryObject *mo) {
-  if (mo->isAddressMO) {
-    addressObjects = objects.remove(mo);
-  } else {
-    const ObjectState *os = findObject(mo);
-    if (os->updates.root) {
-      ObjectState *wos = getWriteable(mo, os);
-      deallocatedObjects = deallocatedObjects.replace(std::make_pair(mo, wos));
-    }
-    objects = objects.remove(mo);
+  const ObjectState *os = findObject(mo);
+  if (os->updates.root) {
+    ObjectState *wos = getWriteable(mo, os);
+    deallocatedObjects = deallocatedObjects.replace(std::make_pair(mo, wos));
   }
+  objects = objects.remove(mo);
 }
 
 const ObjectState *AddressSpace::findObject(const MemoryObject *mo) const {
-  if (mo->isAddressMO) {
-    const MemoryMap::value_type *res = addressObjects.lookup(mo);
-    return res ? res->second : 0;
-  } else {
-    const MemoryMap::value_type *res = objects.lookup(mo);
-    return res ? res->second : 0;
-  }
+  const MemoryMap::value_type *res = objects.lookup(mo);
+  return res ? res->second : 0;
 }
 
 ObjectState *AddressSpace::getWriteable(const MemoryObject *mo,
                                         const ObjectState *os) {
   assert(!os->readOnly);
-  assert(!mo->isAddressMO);
 
   if (cowKey==os->copyOnWriteOwner) {
     return const_cast<ObjectState*>(os);
@@ -138,9 +124,6 @@ bool AddressSpace::resolveOne(ExecutionState &state,
     while (oi!=begin) {
       --oi;
       const MemoryObject *mo = oi->first;
-      if (mo->isAddressMO) {
-        continue;
-      }
         
       bool mayBeTrue;
       if (!solver->mayBeTrue(state, 
@@ -164,9 +147,6 @@ bool AddressSpace::resolveOne(ExecutionState &state,
     // search forwards
     for (oi=start; oi!=end; ++oi) {
       const MemoryObject *mo = oi->first;
-      if (mo->isAddressMO) {
-        continue;
-      }
 
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, 
@@ -273,9 +253,6 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
     while (oi != begin) {
       --oi;
       const MemoryObject *mo = oi->first;
-      if (mo->isAddressMO) {
-        continue;
-      }
 
       if (timeout && timeout < timer.check())
         return true;
@@ -296,9 +273,6 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
     // search forwards
     for (oi = start; oi != end; ++oi) {
       const MemoryObject *mo = oi->first;
-      if (mo->isAddressMO) {
-        continue;
-      }
 
       if (timeout && timeout < timer.check())
         return true;
@@ -446,7 +420,6 @@ ref<Expr> AddressSpace::unfold(const ExecutionState &state,
 }
 
 void AddressSpace::addRewrittenObject(const MemoryObject *mo, ObjectState *os) {
-  assert(!mo->isAddressMO);
   rewrittenObjects = rewrittenObjects.replace(std::make_pair(mo, os));
 }
 

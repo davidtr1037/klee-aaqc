@@ -63,7 +63,6 @@ namespace klee {
     ///
     /// \invariant forall o in objects, o->copyOnWriteOwner <= cowKey
     MemoryMap objects;
-    MemoryMap addressObjects;
     /* TODO: add a flag to ObjectState instead? */
     MemoryMap rewrittenObjects;
     /* TODO: add docs */
@@ -73,7 +72,6 @@ namespace klee {
     AddressSpace(const AddressSpace &b) :
       cowKey(++b.cowKey),
       objects(b.objects),
-      addressObjects(b.addressObjects),
       rewrittenObjects(b.rewrittenObjects),
       deallocatedObjects(b.deallocatedObjects) { }
     ~AddressSpace() {}
