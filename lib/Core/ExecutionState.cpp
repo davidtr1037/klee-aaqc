@@ -631,10 +631,6 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
     klee_message("new array: %s (from %s)",
                  array->getName().data(),
                  ul.root->getName().data());
-  } else {
-    klee_message("reusing array: %s (from %s)",
-                 array->getName().data(),
-                 ul.root->getName().data());
   }
 
   UpdateList updates = UpdateList(array, 0);

@@ -4237,14 +4237,17 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   if (seen) {
     klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
 
-    /* TODO: make sure that the address is not used */
-    ref<ConstantExpr> address = ConstantExpr::create(ri.mo->address, Expr::Int64);
+    segmentMO = ri.mo;
+
+    ref<ConstantExpr> address = ConstantExpr::create(segmentMO->address, Expr::Int64);
     ObjectPair op;
     if (state.addressSpace.resolveOne(address, op)) {
       assert(0);
     }
+    if (state.addressSpace.findObject(segmentMO)) {
+      assert(0);
+    }
 
-    segmentMO = ri.mo;
     /* TODO: check subObjects */
     segmentOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
     assert(segmentOS->size == total_size);
