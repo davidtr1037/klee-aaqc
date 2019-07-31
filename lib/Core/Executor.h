@@ -239,6 +239,8 @@ private:
   /// Optimizes expressions
   ExprOptimizer optimizer;
 
+  std::map<uint64_t, ref<Expr>> addressExpresssions;
+
   llvm::Function* getTargetFunction(llvm::Value *calledVal,
                                     ExecutionState &state);
   

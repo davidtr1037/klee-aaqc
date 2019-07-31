@@ -4169,12 +4169,20 @@ void Executor::symbolizeMO(ExecutionState &state,
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
 
-  ref<Expr> kids[8];
-  for (unsigned i = 0; i < 8; i++) {
-    kids[i] = ReadExpr::create(UpdateList(array, nullptr),
-                               ConstantExpr::create(8 - i - 1, Expr::Int32));
+  ref<Expr> alpha;
+  auto i = addressExpresssions.find(array->id);
+  if (i == addressExpresssions.end()) {
+    ref<Expr> kids[8];
+    for (unsigned i = 0; i < 8; i++) {
+      kids[i] = ReadExpr::create(UpdateList(array, nullptr),
+                                 ConstantExpr::create(8 - i - 1, Expr::Int32));
+    }
+    alpha = ConcatExpr::createN(8, kids);
+    addressExpresssions[array->id] = alpha;
+  } else {
+    alpha = i->second;
   }
-  ref<Expr> alpha = ConcatExpr::createN(8, kids);
+
   state.addAddressConstraint(array->id, mo->address, alpha);
 
   info.address = alpha;
