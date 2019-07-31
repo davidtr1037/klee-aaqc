@@ -406,6 +406,8 @@ cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 cl::opt<bool> UseStaticResolve("use-static-resolve", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> SortObjects("sort-objects", cl::init(true), cl::desc("..."));
+
+cl::opt<bool> ReuseSegments("reuse-segments", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -4232,7 +4234,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   const MemoryObject *segmentMO = nullptr;
 
   bool seen = wasRebased(state, rid, ri);
-  if (seen) {
+  if (ReuseSegments && seen) {
     klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
 
     segmentMO = ri.mo;
