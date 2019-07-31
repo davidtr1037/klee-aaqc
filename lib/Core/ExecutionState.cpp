@@ -769,12 +769,7 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
 
 /* TODO: we don't need to rewrite everything... */
 void ExecutionState::updateRewrittenObjects() {
-  std::vector<ObjectPair> objects;
   for (auto i : addressSpace.rewrittenObjects) {
-    objects.push_back(std::make_pair(i.first, i.second));
-  }
-
-  for (auto i : objects) {
     ObjectState *os = addressSpace.getWriteable(i.first, i.second);
     os->rewrittenUpdates = UpdateList(0, 0);
     os->pulledUpdates = 0;
