@@ -3416,9 +3416,7 @@ void Executor::executeAlloc(ExecutionState &state,
 
       if (UseSymAddr && (UseLocalSymAddr || !isLocal)) {
         SymbolicAddressInfo info;
-        createAddressObject(state, mo->address, info);
-        /* TODO: move to createAddressObject? */
-        mo->sainfo = info;
+        symbolizeMO(state, mo, info);
         os->addSubObject(0, info);
         bindLocal(target, state, info.address);
       } else {
@@ -4164,33 +4162,35 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
   return alignment;
 }
 
-ObjectPair Executor::createAddressObject(ExecutionState &state,
-                                         uint64_t address,
-                                         SymbolicAddressInfo &info) {
+ObjectPair Executor::symbolizeMO(ExecutionState &state,
+                                 const MemoryObject *mo,
+                                 SymbolicAddressInfo &info) {
   std::string uniqueName = "addr_" + llvm::utostr(state.allocateArrayID());
   const Array *array = arrayCache.CreateArray(uniqueName,
                                               Context::get().getPointerWidth() / 8);
   /* TODO: check alignment... */
-  MemoryObject *mo = addressMemory->allocate(Context::get().getPointerWidth() / 8,
-                                             true,
-                                             false,
-                                             nullptr,
-                                             8);
-  if (!mo) {
+  MemoryObject *addrMO = addressMemory->allocate(Context::get().getPointerWidth() / 8,
+                                                 true,
+                                                 false,
+                                                 nullptr,
+                                                 8);
+  if (!addrMO) {
     assert(false);
   }
 
   /* will be useful when resolving... */
-  mo->isAddressMO = true;
+  addrMO->isAddressMO = true;
 
-  ObjectState *os = bindObjectInState(state, mo, false, array);
-  ref<Expr> alpha = os->read(0, Context::get().getPointerWidth());
-  state.addAddressConstraint(array->id, address, alpha);
+  ObjectState *addrOS = bindObjectInState(state, addrMO, false, array);
+  ref<Expr> alpha = addrOS->read(0, Context::get().getPointerWidth());
+  state.addAddressConstraint(array->id, mo->address, alpha);
 
   info.address = alpha;
   info.arrayID = array->id;
 
-  return ObjectPair(mo, os);
+  mo->sainfo = info;
+
+  return ObjectPair(addrMO, addrOS);
 }
 
 void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
@@ -4260,8 +4260,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   }
 
   SymbolicAddressInfo info;
-  createAddressObject(state, segmentMO->address, info);
-  const_cast<MemoryObject *>(segmentMO)->sainfo = info;
+  symbolizeMO(state, segmentMO, info);
   segmentOS->addSubSegment(0, info);
 
   for (unsigned i = 0; i < ops.size(); i++) {

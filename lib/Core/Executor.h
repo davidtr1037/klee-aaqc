@@ -551,9 +551,9 @@ public:
   /// Returns the errno location in memory of the state
   int *getErrnoLocation(const ExecutionState &state) const;
 
-  ObjectPair createAddressObject(ExecutionState &state,
-                                 uint64_t address,
-                                 SymbolicAddressInfo &info);
+  ObjectPair symbolizeMO(ExecutionState &state,
+                         const MemoryObject *mo,
+                         SymbolicAddressInfo &info);
 
   void rebaseObject(ExecutionState &state, ObjectPair &op);
 

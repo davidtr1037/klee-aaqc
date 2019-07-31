@@ -53,10 +53,6 @@ private:
 public:
   unsigned id;
   uint64_t address;
-  /* TODO: make mutable? */
-  SymbolicAddressInfo sainfo;
-  /* TODO: ... */
-  bool isAddressMO;
 
   /// size in bytes
   unsigned size;
@@ -82,6 +78,12 @@ public:
   mutable std::vector< ref<Expr> > cexPreferences;
 
   /* TODO: ... */
+  mutable SymbolicAddressInfo sainfo;
+
+  /* TODO: ... */
+  bool isAddressMO;
+
+  /* TODO: ... */
   mutable AllocationContext ac;
 
   // DO NOT IMPLEMENT
@@ -95,11 +97,11 @@ public:
     : refCount(0),
       id(counter++), 
       address(_address),
-      isAddressMO(false),
       size(0),
       isFixed(true),
       parent(NULL),
-      allocSite(0) {
+      allocSite(0),
+      isAddressMO(false) {
   }
 
   MemoryObject(uint64_t _address, unsigned _size, 
@@ -109,7 +111,6 @@ public:
     : refCount(0), 
       id(counter++),
       address(_address),
-      isAddressMO(false),
       size(_size),
       name("unnamed"),
       isLocal(_isLocal),
@@ -117,7 +118,8 @@ public:
       isFixed(_isFixed),
       isUserSpecified(false),
       parent(_parent), 
-      allocSite(_allocSite) {
+      allocSite(_allocSite),
+      isAddressMO(false) {
   }
 
   ~MemoryObject();
