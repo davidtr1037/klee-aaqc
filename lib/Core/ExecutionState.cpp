@@ -705,19 +705,53 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
   /* the object must hold the latest updates */
   assert(os->updates.getSize() >= ul.getSize());
 
+  ExecutionState *writable = const_cast<ExecutionState *>(this);
+  writable->addressSpace.addRewrittenObject(mo, os);
+
   if (!os->rewrittenUpdates.root) {
     UpdateList updates = initializeRewrittenUL(os, ul);
     os->rewrittenUpdates = updates;
     os->pulledUpdates = ul.getSize();
   } else {
-    UpdateList updates = rewriteUL(ul, os->rewrittenUpdates.root);
-    os->rewrittenUpdates = updates;
+    size_t missing = os->updates.getSize() - os->pulledUpdates;
+    std::list<const UpdateNode *> nodes;
+    if (missing > 0) {
+      const UpdateNode *n = os->updates.head;
+      for (unsigned int i = 0; i < missing; i++) {
+        nodes.push_front(n);
+        n = n->next;
+      }
+    }
+    for (const UpdateNode *un : nodes) {
+      ref<Expr> index = addressSpace.unfold(*this, un->index);
+      ref<Expr> value = addressSpace.unfold(*this, un->value);
+      os->rewrittenUpdates.extend(index, value);
+    }
+    os->pulledUpdates = os->updates.getSize();
+
+    if (ul.getSize() == os->updates.getSize()) {
+      return os->rewrittenUpdates;
+    } else {
+      klee_warning("UL mismatch... (%u)", os->updates.getSize() - ul.getSize());
+      return rewriteUL(ul, os->rewrittenUpdates.root);
+    }
   }
 
-  ExecutionState *writable = const_cast<ExecutionState *>(this);
-  writable->addressSpace.addRewrittenObject(mo, os);
-
   return os->rewrittenUpdates;
+
+  //if (!os->rewrittenUpdates.root) {
+  //  UpdateList updates = initializeRewrittenUL(os, ul);
+  //  os->rewrittenUpdates = updates;
+  //  os->pulledUpdates = ul.getSize();
+  //} else {
+  //  UpdateList updates = rewriteUL(ul, os->rewrittenUpdates.root);
+  //  os->rewrittenUpdates = updates;
+  //}
+
+  //ExecutionState *writable = const_cast<ExecutionState *>(this);
+  //writable->addressSpace.addRewrittenObject(mo, os);
+
+  //return os->rewrittenUpdates;
 
   //if (!os->rewrittenUpdates.root) {
   //  UpdateList updates = initializeRewrittenUL(os, ul);
