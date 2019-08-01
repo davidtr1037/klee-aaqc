@@ -354,7 +354,7 @@ public:
 class AddressUnfolder : public ExprVisitor {
 protected:
 
-  ExprVisitor::Action visitConcat(const ConcatExpr &e);
+  //ExprVisitor::Action visitConcat(const ConcatExpr &e);
 
   ExprVisitor::Action visitRead(const ReadExpr &e);
 

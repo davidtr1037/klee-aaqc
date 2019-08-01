@@ -806,18 +806,18 @@ AllocationContext ExecutionState::getAC() const {
 }
 
 /* TODO: check flag? */
-ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
-  if (!e.flag) {
-    return Action::skipChildren();
-  }
-
-  auto i = state.getCache().find(e.hash());
-  if (i != state.getCache().end()) {
-    return Action::changeTo(i->second->address);
-  }
-
-  return Action::doChildren();
-}
+//ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
+//  if (!e.flag) {
+//    return Action::skipChildren();
+//  }
+//
+//  auto i = state.getCache().find(e.hash());
+//  if (i != state.getCache().end()) {
+//    return Action::changeTo(i->second->address);
+//  }
+//
+//  return Action::doChildren();
+//}
 
 /* TODO: check flag? */
 ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
