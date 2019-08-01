@@ -82,6 +82,7 @@
 #include <string>
 #include <sys/mman.h>
 #include <vector>
+#include <list>
 
 using namespace llvm;
 using namespace klee;
@@ -408,6 +409,8 @@ cl::opt<bool> UseStaticResolve("use-static-resolve", cl::init(false), cl::desc("
 cl::opt<bool> SortObjects("sort-objects", cl::init(true), cl::desc("..."));
 
 cl::opt<bool> ReuseSegments("reuse-segments", cl::init(false), cl::desc("..."));
+
+cl::opt<bool> RebaseReachable("rebase-reachable", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3709,6 +3712,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     klee_message("multiple resolution (AC): %lu", rl.size());
   }
 
+  if (RebaseReachable) {
+    ResolutionList reachable;
+    traverseAll(state, rl, reachable);
+    rl = reachable;
+  }
+
   if (UseRebase && !rl.empty()) {
     if (rebaseObjects(state, rl)) {
       executeMemoryOperation(state, isWrite, originalAddress, value, target, true);
@@ -4366,6 +4375,52 @@ RebaseID Executor::buildRebaseID(ExecutionState &state,
   }
 
   return RebaseID(state.prevPC->info, size, arrays, acs);
+}
+
+void Executor::traverseMO(ExecutionState &state,
+                          const ObjectPair &op,
+                          ResolutionList &result) {
+  std::list<ObjectPair> worklist;
+  std::set<ObjectPair> visited;
+
+  worklist.push_back(op);
+
+  while (!worklist.empty()) {
+    ObjectPair op = worklist.front();
+    worklist.pop_front();
+    if (visited.find(op) != visited.end()) {
+      continue;
+    }
+
+    if (std::find(result.begin(), result.end(), op) == result.end()) {
+      result.push_back(op);
+    }
+
+    const ObjectState *os = op.second;
+    for (unsigned int i = 0; i + 8 <= os->size; i += 8) {
+      ref<Expr> e = os->read(i, Expr::Int64);
+      e = optimizer.optimizeExpr(e, true);
+
+      ResolutionList rl;
+      solver->setTimeout(coreSolverTimeout);
+      state.addressSpace.resolve(state, solver, e, rl, 0, coreSolverTimeout);
+      solver->setTimeout(time::Span());
+
+      for (ObjectPair &rop : rl) {
+        worklist.push_back(rop);
+      }
+    }
+
+    visited.insert(op);
+  }
+}
+
+void Executor::traverseAll(ExecutionState &state,
+                           const ResolutionList &ops,
+                           ResolutionList &result) {
+  for (const ObjectPair &op : ops) {
+    traverseMO(state, op, result);
+  }
 }
 
 void Executor::prepareForEarlyExit() {

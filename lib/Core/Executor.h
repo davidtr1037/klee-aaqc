@@ -568,6 +568,14 @@ public:
   RebaseID buildRebaseID(ExecutionState &state,
                          std::vector<ObjectPair> &ops,
                          size_t size);
+
+  void traverseMO(ExecutionState &state,
+                  const ObjectPair &op,
+                  ResolutionList &rl);
+
+  void traverseAll(ExecutionState &state,
+                   const ResolutionList &ops,
+                   ResolutionList &result);
 };
   
 } // End klee namespace
