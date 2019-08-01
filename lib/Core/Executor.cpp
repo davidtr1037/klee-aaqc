@@ -3694,6 +3694,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   ResolutionList rl;
   bool incomplete = false;
 
+  klee_message("resolving...");
   std::vector<AllocationContext> acs;
   if (UseStaticResolve) {
     getContexts(state, acs);
