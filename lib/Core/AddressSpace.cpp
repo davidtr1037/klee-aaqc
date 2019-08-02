@@ -368,8 +368,12 @@ ref<Expr> AddressSpace::unfold(const ExecutionState &state,
 
   AddressUnfolder unfolder(state);
   ref<Expr> unfolded = unfolder.visit(address);
-  assert(!unfolded->flag);
-  return unfolded;
+
+  ReadExprOptimizer optimizer(state, unfolder.arrays);
+  ref<Expr> optimized = optimizer.visit(unfolded);
+
+  assert(!optimized->flag);
+  return optimized;
 
   //AddressExprFinder finder;
   //finder.visit(address);

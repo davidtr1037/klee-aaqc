@@ -365,6 +365,23 @@ public:
   }
 
   const ExecutionState &state;
+  std::set<uint64_t> arrays;
+};
+
+class ReadExprOptimizer : public ExprVisitor {
+protected:
+
+  ExprVisitor::Action visitRead(const ReadExpr &e);
+
+public:
+
+  ReadExprOptimizer(const ExecutionState &state, std::set<uint64_t> &arrays) :
+    state(state), arrays(arrays) {
+
+  }
+
+  const ExecutionState &state;
+  const std::set<uint64_t> &arrays;
 };
 }
 

@@ -598,8 +598,8 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
   /* TODO: use a list? */
   std::vector<std::pair<ref<Expr>, ref<Expr>>> writes;
   for (const UpdateNode *un = ul.head; un; un = un->next) {
-    ref<Expr> index = addressSpace.unfold(*this, un->index);
-    ref<Expr> value = addressSpace.unfold(*this, un->value);
+    ref<Expr> index = un->index;
+    ref<Expr> value = un->value;
     if (isa<ConstantExpr>(index)) {
       /* the index is concrete */
       uint64_t offset = dyn_cast<ConstantExpr>(index)->getZExtValue();
@@ -705,53 +705,19 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
   /* the object must hold the latest updates */
   assert(os->updates.getSize() >= ul.getSize());
 
-  ExecutionState *writable = const_cast<ExecutionState *>(this);
-  writable->addressSpace.addRewrittenObject(mo, os);
-
   if (!os->rewrittenUpdates.root) {
     UpdateList updates = initializeRewrittenUL(os, ul);
     os->rewrittenUpdates = updates;
     os->pulledUpdates = ul.getSize();
   } else {
-    size_t missing = os->updates.getSize() - os->pulledUpdates;
-    std::list<const UpdateNode *> nodes;
-    if (missing > 0) {
-      const UpdateNode *n = os->updates.head;
-      for (unsigned int i = 0; i < missing; i++) {
-        nodes.push_front(n);
-        n = n->next;
-      }
-    }
-    for (const UpdateNode *un : nodes) {
-      ref<Expr> index = addressSpace.unfold(*this, un->index);
-      ref<Expr> value = addressSpace.unfold(*this, un->value);
-      os->rewrittenUpdates.extend(index, value);
-    }
-    os->pulledUpdates = os->updates.getSize();
-
-    if (ul.getSize() == os->updates.getSize()) {
-      return os->rewrittenUpdates;
-    } else {
-      klee_warning("UL mismatch... (%u)", os->updates.getSize() - ul.getSize());
-      return rewriteUL(ul, os->rewrittenUpdates.root);
-    }
+    UpdateList updates = rewriteUL(ul, os->rewrittenUpdates.root);
+    os->rewrittenUpdates = updates;
   }
 
+  ExecutionState *writable = const_cast<ExecutionState *>(this);
+  writable->addressSpace.addRewrittenObject(mo, os);
+
   return os->rewrittenUpdates;
-
-  //if (!os->rewrittenUpdates.root) {
-  //  UpdateList updates = initializeRewrittenUL(os, ul);
-  //  os->rewrittenUpdates = updates;
-  //  os->pulledUpdates = ul.getSize();
-  //} else {
-  //  UpdateList updates = rewriteUL(ul, os->rewrittenUpdates.root);
-  //  os->rewrittenUpdates = updates;
-  //}
-
-  //ExecutionState *writable = const_cast<ExecutionState *>(this);
-  //writable->addressSpace.addRewrittenObject(mo, os);
-
-  //return os->rewrittenUpdates;
 
   //if (!os->rewrittenUpdates.root) {
   //  UpdateList updates = initializeRewrittenUL(os, ul);
@@ -853,7 +819,6 @@ AllocationContext ExecutionState::getAC() const {
 //  return Action::doChildren();
 //}
 
-/* TODO: check flag? */
 ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   if (!e.flag) {
     return Action::skipChildren();
@@ -883,8 +848,18 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   /* rewrite update list (if needed...) */
   UpdateList updates = e.updates;
   if (e.ulflag) {
-    updates = state.getRewrittenUL(e.updates);
+    updates = UpdateList(e.updates.root, nullptr);
+    std::list<const UpdateNode *> nodes;
+    for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+      nodes.push_front(n);
+    }
+    for (const UpdateNode *n : nodes) {
+      ref<Expr> index = visit(n->index);
+      ref<Expr> value = visit(n->value);
+      updates.extend(index, value);
+    }
     changed = true;
+    arrays.insert(e.updates.root->id);
   }
 
   if (changed) {
@@ -893,4 +868,16 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   }
 
   return Action::doChildren();
+}
+
+ExprVisitor::Action ReadExprOptimizer::visitRead(const ReadExpr &e) {
+  assert(!e.flag && !e.ulflag);
+
+  UpdateList updates = e.updates;
+  if (arrays.find(e.updates.root->id) != arrays.end()) {
+    updates = state.getRewrittenUL(e.updates);
+  }
+
+  ref<Expr> index = visit(e.index);
+  return Action::changeTo(ReadExpr::create(updates, index));
 }
