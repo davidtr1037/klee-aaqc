@@ -4317,8 +4317,8 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   }
 
   /* TODO: add docs */
-  state.computeRewrittenConstraints();
   state.updateRewrittenObjects();
+  state.computeRewrittenConstraints();
 
   /* TODO: add docs */
   state.addRebaseID(rid);
