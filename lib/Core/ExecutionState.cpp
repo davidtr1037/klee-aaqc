@@ -917,9 +917,22 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
 ExprVisitor::Action ReadExprOptimizer::visitRead(const ReadExpr &e) {
   assert(!e.flag && !e.ulflag);
 
-  UpdateList updates = e.updates;
+  UpdateList updates = UpdateList(nullptr, nullptr);
   if (arrays.find(e.updates.root->id) != arrays.end()) {
-    updates = state.getRewrittenUL(e.updates);
+    UpdateList rw = UpdateList(e.updates.root, nullptr);
+
+    std::list<const UpdateNode *> nodes;
+    for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+      nodes.push_front(n);
+    }
+    for (const UpdateNode *n : nodes) {
+      ref<Expr> index = visit(n->index);
+      ref<Expr> value = visit(n->value);
+      rw.extend(index, value);
+    }
+    updates = state.getRewrittenUL(rw);
+  } else {
+    updates = e.updates;
   }
 
   ref<Expr> index = visit(e.index);
