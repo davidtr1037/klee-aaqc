@@ -213,6 +213,8 @@ private:
 
   mutable size_t pulledUpdates;
 
+  mutable size_t minUpdates;
+
 public:
   unsigned size;
 

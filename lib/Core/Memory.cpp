@@ -105,6 +105,7 @@ ObjectState::ObjectState(const MemoryObject *mo)
     updates(0, 0),
     rewrittenUpdates(0, 0),
     pulledUpdates(0),
+    minUpdates(0),
     size(mo->size),
     readOnly(false) {
   mo->refCount++;
@@ -129,6 +130,7 @@ ObjectState::ObjectState(const MemoryObject *mo, const Array *array)
     updates(array, 0),
     rewrittenUpdates(0, 0),
     pulledUpdates(0),
+    minUpdates(0),
     size(mo->size),
     readOnly(false) {
   mo->refCount++;
@@ -149,6 +151,7 @@ ObjectState::ObjectState(const ObjectState &os)
     updates(os.updates),
     rewrittenUpdates(os.rewrittenUpdates),
     pulledUpdates(os.pulledUpdates),
+    minUpdates(os.minUpdates),
     size(os.size),
     readOnly(false) {
   assert(!os.readOnly && "no need to copy read only object?");
