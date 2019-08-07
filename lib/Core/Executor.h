@@ -338,7 +338,8 @@ private:
                               ref<Expr> address,
                               ref<Expr> value /* undef if read */,
                               KInstruction *target /* undef if write */,
-                              bool retry = false);
+                              bool retry = false,
+                              bool forceSolver = false);
 
   void executeMakeSymbolic(ExecutionState &state, const MemoryObject *mo,
                            const std::string &name);
@@ -562,6 +563,8 @@ public:
   bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops);
 
   void getContexts(ExecutionState &state, std::vector<AllocationContext> &acs);
+
+  void getArrays(ExecutionState &state, std::set<uint64_t> &ids);
 
   bool wasRebased(ExecutionState &state, const RebaseID &rid, RebaseInfo &result);
 

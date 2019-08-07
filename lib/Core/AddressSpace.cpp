@@ -307,6 +307,21 @@ bool AddressSpace::resolve(ExecutionState &state,
   return true;
 }
 
+bool AddressSpace::resolveByID(ExecutionState &state,
+                               std::set<uint64_t> &ids,
+                               ResolutionList &rl) const {
+  for (auto i : objects) {
+    const MemoryObject *mo = i.first;
+    if (!mo->sainfo.address.isNull()) {
+      if (ids.find(mo->sainfo.arrayID) != ids.end()) {
+        rl.push_back(ObjectPair(mo, i.second));
+      }
+    }
+  }
+
+  return true;
+}
+
 // These two are pretty big hack so we can sort of pass memory back
 // and forth to externals. They work by abusing the concrete cache
 // store inside of the object states, which allows them to

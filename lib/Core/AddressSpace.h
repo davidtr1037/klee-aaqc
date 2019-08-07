@@ -112,6 +112,10 @@ namespace klee {
     bool resolve(ExecutionState &state,
                  std::vector<AllocationContext> &acs,
                  ResolutionList &rl) const;
+
+    bool resolveByID(ExecutionState &state,
+                     std::set<uint64_t> &ids,
+                     ResolutionList &rl) const;
     /***/
 
     /// Add a binding to the address space.

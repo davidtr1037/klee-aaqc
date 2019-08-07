@@ -411,6 +411,8 @@ cl::opt<bool> SortObjects("sort-objects", cl::init(true), cl::desc("..."));
 cl::opt<bool> ReuseSegments("reuse-segments", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> RebaseReachable("rebase-reachable", cl::init(false), cl::desc("..."));
+
+cl::opt<bool> UseCachedResolution("use-cached-resolution", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3542,6 +3544,7 @@ void Executor::executeFree(ExecutionState &state,
         const ObjectState *os = it->first.second;
         if (os->getSubObjects().size() > 1) {
           /* TODO: fix later... */
+          klee_message("ignoring free: %lu", it->first.first->address);
           continue;
         }
         it->second->unbindObject(mo);
@@ -3606,7 +3609,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                       ref<Expr> address,
                                       ref<Expr> value /* undef if read */,
                                       KInstruction *target /* undef if write */,
-                                      bool retry) {
+                                      bool retry,
+                                      bool forceSolver) {
   /* save the address expression, before the substitution */
   ref<Expr> originalAddress = address;
 
@@ -3698,19 +3702,21 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   bool incomplete = false;
 
   klee_message("resolving...");
-  std::vector<AllocationContext> acs;
-  if (UseStaticResolve) {
-    getContexts(state, acs);
+  std::set<uint64_t> ids;
+  if (UseCachedResolution && !forceSolver) {
+    getArrays(state, ids);
   }
-  if (acs.empty()) {
+  bool usingAlternativeResolve = !ids.empty();
+
+  if (usingAlternativeResolve) {
+    state.addressSpace.resolveByID(state, ids, rl);
+    klee_message("multiple resolution (alternative): %lu", rl.size());
+  } else {
     address = optimizer.optimizeExpr(address, true);
     solver->setTimeout(coreSolverTimeout);
     incomplete = state.addressSpace.resolve(state, solver, address, rl, 0, coreSolverTimeout);
     solver->setTimeout(time::Span());
     klee_message("multiple resolution (solver): %lu", rl.size());
-  } else {
-    state.addressSpace.resolve(state, acs, rl);
-    klee_message("multiple resolution (AC): %lu", rl.size());
   }
 
   if (RebaseReachable) {
@@ -3721,7 +3727,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
 
   if (UseRebase && !rl.empty()) {
     if (rebaseObjects(state, rl)) {
-      executeMemoryOperation(state, isWrite, originalAddress, value, target, true);
+      if (usingAlternativeResolve) {
+        executeMemoryOperation(state, isWrite, originalAddress, value, target, false, true);
+      } else {
+        executeMemoryOperation(state, isWrite, originalAddress, value, target, true);
+      }
       return;
     }
     klee_message("%p: rebase failed...", &state);
@@ -4335,14 +4345,23 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
 
 void Executor::getContexts(ExecutionState &state,
                            std::vector<AllocationContext> &acs) {
-  std::vector<ObjectPair> ops;
-
   for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
     if (ri.rid.info->id == state.prevPC->info->id) {
       for (AllocationContext &ac : ri.rid.acs) {
         if (std::find(acs.begin(), acs.end(), ac) == acs.end()) {
           acs.push_back(ac);
         }
+      }
+    }
+  }
+}
+
+void Executor::getArrays(ExecutionState &state,
+                         std::set<uint64_t> &ids) {
+  for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
+    if (ri.rid.info->id == state.prevPC->info->id) {
+      for (uint64_t &arrayID : ri.rid.arrays) {
+        ids.insert(arrayID);
       }
     }
   }
