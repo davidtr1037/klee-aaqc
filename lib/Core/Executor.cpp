@@ -3711,7 +3711,9 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   if (usingAlternativeResolve) {
     state.addressSpace.resolveByID(state, ids, rl);
     klee_message("multiple resolution (alternative): %lu", rl.size());
-  } else {
+  }
+
+  if (rl.empty()) {
     address = optimizer.optimizeExpr(address, true);
     solver->setTimeout(coreSolverTimeout);
     incomplete = state.addressSpace.resolve(state, solver, address, rl, 0, coreSolverTimeout);
