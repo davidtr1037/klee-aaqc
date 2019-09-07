@@ -715,37 +715,8 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
     os->minUpdates = ul.getSize();
     return os->rewrittenUpdates;
   } else {
-    if (ul.getSize() < os->minUpdates) {
-      return rewriteUL(ul, os->rewrittenUpdates.root);
-    }
-
-    if (ul.getSize() >= os->pulledUpdates) {
-      size_t missing = ul.getSize() - os->pulledUpdates;
-      std::list<const UpdateNode *> nodes;
-      if (missing != 0) {
-        const UpdateNode *n = ul.head;
-        for (unsigned int i = 0; i < missing; i++) {
-          nodes.push_front(n);
-          n = n->next;
-        }
-      }
-
-      for (const UpdateNode *n : nodes) {
-        ref<Expr> index = n->index;
-        ref<Expr> value = n->value;
-        os->rewrittenUpdates.extend(index, value);
-      }
-
-      os->pulledUpdates += missing;
-      return os->rewrittenUpdates;
-    } else {
-      size_t backward = os->pulledUpdates - ul.getSize();
-      const UpdateNode *h = os->rewrittenUpdates.head;
-      for (unsigned int i = 0; i < backward; i++) {
-        h = h->next;
-      }
-      return UpdateList(os->rewrittenUpdates.root, h);
-    }
+    return rewriteUL(ul, os->rewrittenUpdates.root);
+   }
   }
 
   //if (!os->rewrittenUpdates.root) {
