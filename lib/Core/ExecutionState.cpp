@@ -716,7 +716,6 @@ UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
     return os->rewrittenUpdates;
   } else {
     return rewriteUL(ul, os->rewrittenUpdates.root);
-   }
   }
 
   //if (!os->rewrittenUpdates.root) {
