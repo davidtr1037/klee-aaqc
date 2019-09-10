@@ -74,6 +74,16 @@ StackFrame::~StackFrame() {
   delete[] locals; 
 }
 
+AddressRecord::AddressRecord(uint64_t c, ref<Expr> alpha) : refCount(0) {
+  address = ConstantExpr::create(c, Context::get().getPointerWidth());
+  for (unsigned i = 0; i < 8; i++) {
+    uint64_t value = (c >> (i * 8)) & 0xff;
+    ref<ConstantExpr> e = ConstantExpr::create(value, Expr::Int8);
+    bytes.push_back(e);
+  }
+  constraint = EqExpr::create(address, alpha);
+}
+
 void RebaseID::dump() const {
   errs() << "RID: " << "\n";
   errs() << "- Instruction: " << info->id << "\n";
@@ -504,17 +514,7 @@ void ExecutionState::unbindObject(const MemoryObject *mo) {
 void ExecutionState::addAddressConstraint(uint64_t id,
                                           uint64_t address,
                                           ref<Expr> alpha) {
-  ref<ConstantExpr> c = ConstantExpr::create(address, Context::get().getPointerWidth());
-  ref<Expr> eq = EqExpr::create(c, alpha);
-
-  std::vector<ref<ConstantExpr>> bytes;
-  for (unsigned i = 0; i < 8; i++) {
-    uint64_t value = (address >> (i * 8)) & 0xff;
-    ref<ConstantExpr> e = ConstantExpr::create(value, Expr::Int8);
-    bytes.push_back(e);
-  }
-  ref<AddressRecord> record = new AddressRecord(c, bytes, eq);
-
+  ref<AddressRecord> record = new AddressRecord(address, alpha);
   addressConstraints[id] = record;
   cache[alpha->hash()] = record;
 }
