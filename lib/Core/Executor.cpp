@@ -4189,9 +4189,11 @@ size_t Executor::getAllocationAlignment(const llvm::Value *allocSite) const {
 void Executor::symbolizeMO(ExecutionState &state,
                            const MemoryObject *mo,
                            SymbolicAddressInfo &info) {
-  std::string uniqueName = "addr_" + llvm::utostr(state.allocateArrayID());
-  const Array *array = arrayCache.CreateArray(uniqueName,
-                                              Context::get().getPointerWidth() / 8);
+  const Array *array = nullptr;
+  do {
+    std::string uniqueName = "addr_" + llvm::utostr(state.allocateArrayID());
+    array = arrayCache.CreateArray(uniqueName, Context::get().getPointerWidth() / 8);
+  } while (state.hasAddressConstraint(array->id));
 
   ref<Expr> alpha;
   auto i = addressExpresssions.find(array->id);
@@ -4273,17 +4275,20 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     /* TODO: check subObjects */
     segmentOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
     assert(segmentOS->size == total_size);
+
+    state.addAddressConstraint(segmentMO->sainfo.arrayID,
+                               segmentMO->address,
+                               segmentMO->sainfo.address);
   } else {
     klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
     segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
     segmentOS = bindObjectInState(state, segmentMO, false);
     klee_message("%p: creating new segment: %lu (size = %u)",
                  &state, segmentMO->address, segmentOS->size);
+    SymbolicAddressInfo info;
+    symbolizeMO(state, segmentMO, info);
+    segmentOS->addSubSegment(0, info);
   }
-
-  SymbolicAddressInfo info;
-  symbolizeMO(state, segmentMO, info);
-  segmentOS->addSubSegment(0, info);
 
   for (unsigned i = 0; i < ops.size(); i++) {
     ObjectPair &op = ops[i];

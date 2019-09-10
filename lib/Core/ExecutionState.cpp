@@ -141,6 +141,8 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
 
 /***/
 
+std::map<const Array *, const Array *> ExecutionState::rewriteCache;
+
 ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
     memory(memory),
     arrayID(0),
@@ -699,28 +701,38 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
 UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
   assert(ul.root && ul.head);
 
-  /* TODO: add cache? */
-  ObjectState *os = nullptr;
-  const MemoryObject *mo = nullptr;
-  bool found = findRewrittenObject(ul, mo, os);
-
-  /* the object must be there... */
-  assert(found);
-  /* the object must hold the latest updates */
-  assert(os->updates.getSize() >= ul.getSize());
-
-  ExecutionState *writable = const_cast<ExecutionState *>(this);
-  writable->addressSpace.addRewrittenObject(mo, os);
-
-  if (!os->rewrittenUpdates.root) {
-    UpdateList updates = initializeRewrittenUL(os, ul);
-    os->rewrittenUpdates = updates;
-    os->pulledUpdates = ul.getSize();
-    os->minUpdates = ul.getSize();
-    return os->rewrittenUpdates;
+  auto i = rewriteCache.find(ul.root);
+  if (i == rewriteCache.end()) {
+    UpdateList updates = rewriteUL(ul, nullptr);
+    ExecutionState *writable = const_cast<ExecutionState *>(this);
+    writable->rewriteCache[ul.root] = updates.root;
+    return updates;
   } else {
-    return rewriteUL(ul, os->rewrittenUpdates.root);
+    return rewriteUL(ul, i->second);
   }
+
+  ///* TODO: add cache? */
+  //ObjectState *os = nullptr;
+  //const MemoryObject *mo = nullptr;
+  //bool found = findRewrittenObject(ul, mo, os);
+
+  ///* the object must be there... */
+  //assert(found);
+  ///* the object must hold the latest updates */
+  //assert(os->updates.getSize() >= ul.getSize());
+
+  //ExecutionState *writable = const_cast<ExecutionState *>(this);
+  //writable->addressSpace.addRewrittenObject(mo, os);
+
+  //if (!os->rewrittenUpdates.root) {
+  //  UpdateList updates = initializeRewrittenUL(os, ul);
+  //  os->rewrittenUpdates = updates;
+  //  os->pulledUpdates = ul.getSize();
+  //  os->minUpdates = ul.getSize();
+  //  return os->rewrittenUpdates;
+  //} else {
+  //  return rewriteUL(ul, os->rewrittenUpdates.root);
+  //}
 
   //if (!os->rewrittenUpdates.root) {
   //  UpdateList updates = initializeRewrittenUL(os, ul);
@@ -792,6 +804,7 @@ void ExecutionState::updateRewrittenObjects() {
     os->pulledUpdates = 0;
     os->minUpdates = 0;
   }
+  //rewriteCache.clear();
 }
 
 AllocationContext ExecutionState::getAC() const {

@@ -193,6 +193,8 @@ private:
 
   uint64_t arrayID;
 
+  static std::map<const Array *, const Array *> rewriteCache;
+
 public:
   // Execution - Control Flow specific
 
