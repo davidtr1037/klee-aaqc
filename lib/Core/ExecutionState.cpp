@@ -578,7 +578,7 @@ ref<Expr> ExecutionState::build(std::vector<ref<Expr>> &es) const {
 void ExecutionState::dumpAddressConstraints() const {
   for (auto &i : addressConstraints) {
     ref<AddressRecord> ar = i.second;
-    ar->constraint->dump();
+    errs() << i.first << " " << ar->constraint << "\n";
   }
 }
 
