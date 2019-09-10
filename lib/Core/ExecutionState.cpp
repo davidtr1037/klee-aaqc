@@ -517,6 +517,10 @@ void ExecutionState::addAddressConstraint(uint64_t id,
   cache[alpha->hash()] = record;
 }
 
+bool ExecutionState::hasAddressConstraint(uint64_t id) {
+  return addressConstraints.find(id) != addressConstraints.end();
+}
+
 ref<AddressRecord> ExecutionState::getAddressConstraint(uint64_t id) const {
   auto i = addressConstraints.find(id);
   if (i == addressConstraints.end()) {

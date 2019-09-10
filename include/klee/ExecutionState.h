@@ -306,6 +306,8 @@ public:
                             uint64_t address,
                             ref<Expr> e);
 
+  bool hasAddressConstraint(uint64_t id);
+
   ref<AddressRecord> getAddressConstraint(uint64_t id) const;
 
   void removeAddressConstraint(uint64_t id);
