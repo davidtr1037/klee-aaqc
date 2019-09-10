@@ -75,6 +75,7 @@ struct StackFrame {
 struct AddressRecord {
   ref<ConstantExpr> address;
   std::vector<ref<ConstantExpr>> bytes;
+  ref<Expr> alpha;
   ref<Expr> constraint;
   mutable unsigned refCount;
 
@@ -299,6 +300,9 @@ public:
   void addAddressConstraint(uint64_t id,
                             uint64_t address,
                             ref<Expr> e);
+
+  void updateAddressConstraint(uint64_t id,
+                               uint64_t address);
 
   bool hasAddressConstraint(uint64_t id);
 

@@ -74,7 +74,7 @@ StackFrame::~StackFrame() {
   delete[] locals; 
 }
 
-AddressRecord::AddressRecord(uint64_t c, ref<Expr> alpha) : refCount(0) {
+AddressRecord::AddressRecord(uint64_t c, ref<Expr> alpha) : alpha(alpha), refCount(0) {
   address = ConstantExpr::create(c, Context::get().getPointerWidth());
   for (unsigned i = 0; i < 8; i++) {
     uint64_t value = (c >> (i * 8)) & 0xff;
@@ -195,7 +195,7 @@ ExecutionState::~ExecutionState() {
 ExecutionState::ExecutionState(const ExecutionState& state):
     fnAliases(state.fnAliases),
     addressConstraints(state.addressConstraints),
-    cache(state.cache),
+    //cache(state.cache),
     memory(state.memory),
     history(state.history),
     arrayID(state.arrayID),
@@ -514,9 +514,26 @@ void ExecutionState::unbindObject(const MemoryObject *mo) {
 void ExecutionState::addAddressConstraint(uint64_t id,
                                           uint64_t address,
                                           ref<Expr> alpha) {
+  if (addressConstraints.find(id) != addressConstraints.end()) {
+    assert(0);
+  }
+
   ref<AddressRecord> record = new AddressRecord(address, alpha);
   addressConstraints[id] = record;
-  cache[alpha->hash()] = record;
+  //cache[alpha->hash()] = record;
+}
+
+void ExecutionState::updateAddressConstraint(uint64_t id,
+                                             uint64_t address) {
+  auto i = addressConstraints.find(id);
+  if (i == addressConstraints.end()) {
+    assert(0);
+  }
+
+  ref<AddressRecord> old = i->second;
+  ref<AddressRecord> record = new AddressRecord(address, old->alpha);
+  addressConstraints[id] = record;
+  //cache[alpha->hash()] = record;
 }
 
 bool ExecutionState::hasAddressConstraint(uint64_t id) {

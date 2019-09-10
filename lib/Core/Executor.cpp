@@ -4313,18 +4313,16 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       klee_message("rebasing memory object: %lu -> %lu",
                    mo->address + subObject.offset,
                    segmentMO->address + offset + subObject.offset);
-      state.addAddressConstraint(subObject.info.arrayID,
-                                 segmentMO->address + offset + subObject.offset,
-                                 subObject.info.address);
+      state.updateAddressConstraint(subObject.info.arrayID,
+                                    segmentMO->address + offset + subObject.offset);
       segmentOS->addSubObject(offset + subObject.offset, subObject.info);
     }
     for (auto subObject: os->getSubSegments()) {
       klee_message("rebasing segment: %lu -> %lu",
                    mo->address + subObject.offset,
                    segmentMO->address + offset + subObject.offset);
-      state.addAddressConstraint(subObject.info.arrayID,
-                                 segmentMO->address + offset + subObject.offset,
-                                 subObject.info.address);
+      state.updateAddressConstraint(subObject.info.arrayID,
+                                    segmentMO->address + offset + subObject.offset);
       segmentOS->addSubSegment(offset + subObject.offset, subObject.info);
     }
   }
