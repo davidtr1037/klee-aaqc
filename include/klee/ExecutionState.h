@@ -42,6 +42,7 @@ struct InstructionInfo;
 extern llvm::cl::opt<bool> UseLocalSymAddr;
 extern llvm::cl::opt<bool> ReuseArrays;
 extern llvm::cl::opt<bool> UseKContext;
+extern llvm::cl::opt<bool> UseGlobalID;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
@@ -185,6 +186,8 @@ private:
   History history;
 
   uint64_t arrayID;
+
+  static uint64_t globalArrayID;
 
   static std::map<const Array *, const Array *> rewriteCache;
 
@@ -346,9 +349,7 @@ public:
 
   AllocationContext getAC() const;
 
-  uint64_t allocateArrayID() {
-    return arrayID++;
-  }
+  uint64_t allocateArrayID();
 };
 
 class AddressUnfolder : public ExprVisitor {

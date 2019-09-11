@@ -50,6 +50,8 @@ cl::opt<bool> klee::ReuseArrays("reuse-arrays", cl::init(true), cl::desc("..."))
 
 cl::opt<bool> klee::UseKContext("use-kcontext", cl::init(false), cl::desc("..."));
 
+cl::opt<bool> klee::UseGlobalID("use-global-id", cl::init(false), cl::desc("..."));
+
 /***/
 
 StackFrame::StackFrame(KInstIterator _caller, KFunction *_kf)
@@ -152,6 +154,8 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
 /***/
 
 std::map<const Array *, const Array *> ExecutionState::rewriteCache;
+
+uint64_t ExecutionState::globalArrayID = 0;
 
 ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
     memory(memory),
@@ -822,6 +826,14 @@ void ExecutionState::updateRewrittenObjects() {
     os->minUpdates = 0;
   }
   //rewriteCache.clear();
+}
+
+uint64_t ExecutionState::allocateArrayID() {
+  if (UseGlobalID) {
+    return globalArrayID++;
+  } else {
+    return arrayID++;
+  }
 }
 
 AllocationContext ExecutionState::getAC() const {
