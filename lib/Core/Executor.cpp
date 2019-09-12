@@ -415,6 +415,8 @@ cl::opt<bool> RebaseReachable("rebase-reachable", cl::init(false), cl::desc("...
 cl::opt<bool> UseCachedResolution("use-cached-resolution", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> UseRecursiveRebase("use-recursive-rebase", cl::init(true), cl::desc("..."));
+
+cl::opt<bool> ExtendSegments("extend-segments", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3426,7 +3428,8 @@ void Executor::executeAlloc(ExecutionState &state,
       if (UseSymAddr && (UseLocalSymAddr || !isLocal)) {
         SymbolicAddressInfo info;
         symbolizeMO(state, mo, info);
-        os->addSubObject(0, info);
+        /* TODO: the number of bytes can be less thatn the aligned size */
+        os->addSubObject(0, getAlignedSize(mo->size), info);
         bindLocal(target, state, info.address);
       } else {
         bindLocal(target, state, mo->getBaseExpr());
@@ -4234,28 +4237,38 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     );
   }
 
+  const ObjectState *baseSegmentOS = nullptr;
+  const MemoryObject *baseSegmentMO = nullptr;
+
+  std::vector<ObjectPair> opsToRebase;
   for (ObjectPair &op : ops) {
     const MemoryObject *mo = op.first;
     const ObjectState *os = op.second;
+
     if (!UseRecursiveRebase && os->getSubObjects().size() > 1) {
       klee_message("object: %lu was rebased...", mo->address);
       return false;
     }
+
     if (!mo->hasSymbolicAddress()) {
       klee_message("object: %lu has a fixed address", mo->address);
       return false;
     }
+
+    if (ExtendSegments && !baseSegmentOS && os->getSubObjects().size() > 1) {
+      baseSegmentMO = op.first;
+      baseSegmentOS = op.second;
+    } else {
+      opsToRebase.push_back(op);
+    }
   }
 
-  unsigned int total_size = 0;
+  unsigned int total_size = (baseSegmentOS == nullptr) ? 0 : baseSegmentOS->getEffectiveSize();
   std::vector<unsigned> offsets;
-  for (ObjectPair &op : ops) {
+  for (ObjectPair &op : opsToRebase) {
     offsets.push_back(total_size);
-#if LLVM_VERSION_CODE >= LLVM_VERSION(3, 9)
-    total_size += llvm::alignTo(op.first->size, 16);
-#else
-    total_size += RoundUpToAlignment(op.first->size, 16);
-#endif
+    uint64_t effectiveSize = op.second->getEffectiveSize();
+    total_size += getAlignedSize(effectiveSize);
   }
 
   RebaseID rid = buildRebaseID(state, ops, total_size);
@@ -4287,54 +4300,27 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
                                segmentMO->address,
                                segmentMO->sainfo.address);
   } else {
-    klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
-    segmentMO = memory->allocate(total_size, false, false, nullptr, 8);
-    segmentOS = bindObjectInState(state, segmentMO, false);
-    klee_message("%p: creating new segment: %lu (size = %u)",
-                 &state, segmentMO->address, segmentOS->size);
-    SymbolicAddressInfo info;
-    symbolizeMO(state, segmentMO, info);
-    segmentOS->addSubSegment(0, info);
-  }
-
-  for (unsigned i = 0; i < ops.size(); i++) {
-    ObjectPair &op = ops[i];
-    const MemoryObject *mo = op.first;
-    const ObjectState *os = op.second;
-    unsigned offset = offsets[i];
-
-    for (unsigned j = 0; j < mo->size; j++) {
-      ref<Expr> old = segmentOS->read8(offset + j);
-      ref<Expr> n = os->read8(j);
-      /* TODO: hash check? */
-      if (!seen || old->hash() != n->hash()) {
-        segmentOS->write(offset + j, n);
-      }
-    }
-
-    /* can't rebase fixed objects */
-    assert(!os->getSubObjects().empty());
-
-    /* update constraints */
-    for (auto subObject: os->getSubObjects()) {
-      klee_message("rebasing memory object: %lu -> %lu",
-                   mo->address + subObject.offset,
-                   segmentMO->address + offset + subObject.offset);
-      state.updateAddressConstraint(subObject.info.arrayID,
-                                    segmentMO->address + offset + subObject.offset);
-      segmentOS->addSubObject(offset + subObject.offset, subObject.info);
-    }
-    for (auto subObject: os->getSubSegments()) {
-      klee_message("rebasing segment: %lu -> %lu",
-                   mo->address + subObject.offset,
-                   segmentMO->address + offset + subObject.offset);
-      state.updateAddressConstraint(subObject.info.arrayID,
-                                    segmentMO->address + offset + subObject.offset);
-      segmentOS->addSubSegment(offset + subObject.offset, subObject.info);
+    if (!baseSegmentOS) {
+      uint32_t reserved = ExtendSegments ? 100 : 0;
+      segmentMO = memory->allocate(total_size + reserved, false, false, nullptr, 8);
+      segmentOS = bindObjectInState(state, segmentMO, false);
+      klee_message("%p: creating new segment: %lu (size = %u)",
+                   &state, segmentMO->address, segmentOS->size);
+      SymbolicAddressInfo info;
+      symbolizeMO(state, segmentMO, info);
+      segmentOS->addSubSegment(0, total_size, info);
+    } else {
+      klee_message("%p: using existing segment: %lu (size = %u)",
+                   &state, baseSegmentMO->address, baseSegmentOS->size);
+      segmentMO = baseSegmentMO;
+      segmentOS = state.addressSpace.getWriteable(baseSegmentMO, baseSegmentOS);
     }
   }
 
-  for (ObjectPair &op : ops) {
+  klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
+  fillSegment(state, segmentMO, segmentOS, opsToRebase, offsets, seen);
+
+  for (ObjectPair &op : opsToRebase) {
     state.unbindObject(op.first);
   }
 
@@ -4353,6 +4339,61 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   }
 
   return true;
+}
+
+size_t Executor::getAlignedSize(uint64_t size) {
+#if LLVM_VERSION_CODE >= LLVM_VERSION(3, 9)
+  return llvm::alignTo(size, 16);
+#else
+  return RoundUpToAlignment(size, 16);
+#endif
+}
+
+void Executor::fillSegment(ExecutionState &state,
+                           const MemoryObject *segmentMO,
+                           ObjectState *segmentOS,
+                           std::vector<ObjectPair> &ops,
+                           std::vector<unsigned int> &offsets,
+                           bool seen) {
+  assert(ops.size() == offsets.size());
+
+  for (unsigned i = 0; i < ops.size(); i++) {
+    ObjectPair &op = ops[i];
+    const MemoryObject *mo = op.first;
+    const ObjectState *os = op.second;
+    unsigned offset = offsets[i];
+
+    for (unsigned j = 0; j < mo->size; j++) {
+      assert(offset + j < segmentOS->size);
+      ref<Expr> old = segmentOS->read8(offset + j);
+      ref<Expr> n = os->read8(j);
+      /* TODO: hash check? */
+      if (!seen || old->hash() != n->hash()) {
+        segmentOS->write(offset + j, n);
+      }
+    }
+
+    /* can't rebase fixed objects */
+    assert(!os->getSubObjects().empty());
+
+    /* update constraints */
+    for (auto subObject: os->getSubObjects()) {
+      klee_message("rebasing memory object: %lu -> %lu",
+                   mo->address + subObject.offset,
+                   segmentMO->address + offset + subObject.offset);
+      state.updateAddressConstraint(subObject.info.arrayID,
+                                    segmentMO->address + offset + subObject.offset);
+      segmentOS->addSubObject(offset + subObject.offset, subObject.size, subObject.info);
+    }
+    for (auto subObject: os->getSubSegments()) {
+      klee_message("rebasing segment: %lu -> %lu",
+                   mo->address + subObject.offset,
+                   segmentMO->address + offset + subObject.offset);
+      state.updateAddressConstraint(subObject.info.arrayID,
+                                    segmentMO->address + offset + subObject.offset);
+      segmentOS->addSubSegment(offset + subObject.offset, subObject.size, subObject.info);
+    }
+  }
 }
 
 void Executor::getContexts(ExecutionState &state,

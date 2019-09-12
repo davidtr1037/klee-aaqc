@@ -171,10 +171,11 @@ public:
 
 struct SubObject {
   unsigned int offset;
+  uint64_t size;
   SymbolicAddressInfo info;
 
-  SubObject(unsigned offset, const SymbolicAddressInfo &info) :
-    offset(offset), info(info)
+  SubObject(unsigned offset, uint64_t size, const SymbolicAddressInfo &info) :
+    offset(offset), size(size), info(info)
   {
 
   }
@@ -239,16 +240,29 @@ public:
     return subObjects;
   }
 
-  void addSubObject(unsigned int offset, const SymbolicAddressInfo &info) {
-    subObjects.push_back(SubObject(offset, info));
+  void addSubObject(unsigned int offset, uint64_t size, const SymbolicAddressInfo &info) {
+    subObjects.push_back(SubObject(offset, size, info));
+  }
+
+  /* the size of the object when placed in a segment */
+  uint64_t getEffectiveSize() const {
+    if (subObjects.empty()) {
+      return size;
+    } else {
+      size_t total = 0;
+      for (const SubObject &so : subObjects) {
+        total += so.size;
+      }
+      return total;
+    }
   }
 
   const std::vector<SubObject> &getSubSegments() const {
     return subSegments;
   }
 
-  void addSubSegment(unsigned int offset, const SymbolicAddressInfo &info) {
-    subSegments.push_back(SubObject(offset, info));
+  void addSubSegment(unsigned int offset, uint64_t size, const SymbolicAddressInfo &info) {
+    subSegments.push_back(SubObject(offset, size, info));
   }
 
   void setReadOnly(bool ro) { readOnly = ro; }

@@ -562,6 +562,15 @@ public:
 
   bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops);
 
+  size_t getAlignedSize(uint64_t size);
+
+  void fillSegment(ExecutionState &state,
+                   const MemoryObject *segmentMO,
+                   ObjectState *segmentOS,
+                   std::vector<ObjectPair> &ops,
+                   std::vector<unsigned int> &offsets,
+                   bool seen);
+
   void getContexts(ExecutionState &state, std::vector<AllocationContext> &acs);
 
   void getArrays(ExecutionState &state, std::set<uint64_t> &ids);
