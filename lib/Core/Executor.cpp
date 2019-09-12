@@ -413,6 +413,8 @@ cl::opt<bool> ReuseSegments("reuse-segments", cl::init(false), cl::desc("..."));
 cl::opt<bool> RebaseReachable("rebase-reachable", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> UseCachedResolution("use-cached-resolution", cl::init(false), cl::desc("..."));
+
+cl::opt<bool> UseRecursiveRebase("use-recursive-rebase", cl::init(true), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -4234,6 +4236,11 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
 
   for (ObjectPair &op : ops) {
     const MemoryObject *mo = op.first;
+    const ObjectState *os = op.second;
+    if (!UseRecursiveRebase && os->getSubObjects().size() > 1) {
+      klee_message("object: %lu was rebased...", mo->address);
+      return false;
+    }
     if (!mo->hasSymbolicAddress()) {
       klee_message("object: %lu has a fixed address", mo->address);
       return false;
