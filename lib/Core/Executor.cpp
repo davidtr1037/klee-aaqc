@@ -4269,7 +4269,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       total_size += getAlignedSize(op.second->getEffectiveSize());
     }
     if (total_size > segmentOS->size) {
-      klee_message("reserve size is too small... (%lu > %lu)", total_size, segmentOS->size);
+      klee_message("reserve size is too small... (%u > %u)", total_size, segmentOS->size);
       segmentMO = nullptr;
       segmentOS = nullptr;
     }
