@@ -417,6 +417,8 @@ cl::opt<bool> UseCachedResolution("use-cached-resolution", cl::init(false), cl::
 cl::opt<bool> UseRecursiveRebase("use-recursive-rebase", cl::init(true), cl::desc("..."));
 
 cl::opt<bool> ExtendSegments("extend-segments", cl::init(false), cl::desc("..."));
+
+cl::opt<unsigned> ReserveSize("reserve-size", cl::init(200), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -4237,10 +4239,9 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     );
   }
 
-  const ObjectState *baseSegmentOS = nullptr;
-  const MemoryObject *baseSegmentMO = nullptr;
+  ObjectState *segmentOS = nullptr;
+  const MemoryObject *segmentMO = nullptr;
 
-  std::vector<ObjectPair> opsToRebase;
   for (ObjectPair &op : ops) {
     const MemoryObject *mo = op.first;
     const ObjectState *os = op.second;
@@ -4255,17 +4256,34 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       return false;
     }
 
-    if (ExtendSegments && !baseSegmentOS && os->getSubObjects().size() > 1) {
-      baseSegmentMO = op.first;
-      baseSegmentOS = op.second;
-    } else {
-      opsToRebase.push_back(op);
+    /* find the first segment (to extend...) */
+    if (ExtendSegments && !segmentOS && os->getSubObjects().size() > 1) {
+      segmentMO = op.first;
+      segmentOS = state.addressSpace.getWriteable(segmentMO, op.second);
     }
   }
 
-  unsigned int total_size = (baseSegmentOS == nullptr) ? 0 : baseSegmentOS->getEffectiveSize();
+  if (segmentMO) {
+    unsigned int total_size = 0;
+    for (ObjectPair &op : ops) {
+      total_size += getAlignedSize(op.second->getEffectiveSize());
+    }
+    if (total_size > segmentOS->size) {
+      klee_message("reserve size is too small... (%lu > %lu)", total_size, segmentOS->size);
+      segmentMO = nullptr;
+      segmentOS = nullptr;
+    }
+  }
+
+  std::vector<ObjectPair> opsToRebase;
   std::vector<unsigned> offsets;
-  for (ObjectPair &op : opsToRebase) {
+  unsigned int total_size = (segmentOS == nullptr) ? 0 : segmentOS->getEffectiveSize();
+  for (ObjectPair &op : ops) {
+    if (segmentMO && op.first->address == segmentMO->address) {
+      /* don't rebase the extended segment */
+      continue;
+    }
+    opsToRebase.push_back(op);
     offsets.push_back(total_size);
     uint64_t effectiveSize = op.second->getEffectiveSize();
     total_size += getAlignedSize(effectiveSize);
@@ -4273,9 +4291,6 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
 
   RebaseID rid = buildRebaseID(state, ops, total_size);
   RebaseInfo ri;
-
-  ObjectState *segmentOS = nullptr;
-  const MemoryObject *segmentMO = nullptr;
 
   bool seen = wasRebased(state, rid, ri);
   if (ReuseSegments && seen) {
@@ -4300,8 +4315,8 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
                                segmentMO->address,
                                segmentMO->sainfo.address);
   } else {
-    if (!baseSegmentOS) {
-      uint32_t reserved = ExtendSegments ? 100 : 0;
+    if (!segmentOS) {
+      uint32_t reserved = ExtendSegments ? ReserveSize : 0;
       segmentMO = memory->allocate(total_size + reserved, false, false, nullptr, 8);
       segmentOS = bindObjectInState(state, segmentMO, false);
       klee_message("%p: creating new segment: %lu (size = %u)",
@@ -4311,9 +4326,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       segmentOS->addSubSegment(0, total_size, info);
     } else {
       klee_message("%p: using existing segment: %lu (size = %u)",
-                   &state, baseSegmentMO->address, baseSegmentOS->size);
-      segmentMO = baseSegmentMO;
-      segmentOS = state.addressSpace.getWriteable(baseSegmentMO, baseSegmentOS);
+                   &state, segmentMO->address, segmentOS->size);
     }
   }
 
@@ -4363,8 +4376,11 @@ void Executor::fillSegment(ExecutionState &state,
     const ObjectState *os = op.second;
     unsigned offset = offsets[i];
 
-    for (unsigned j = 0; j < mo->size; j++) {
-      assert(offset + j < segmentOS->size);
+    uint64_t to_copy = os->getSubObjects().size() == 1 ? mo->size : os->getEffectiveSize();
+    for (unsigned j = 0; j < to_copy; j++) {
+      if (offset + j >= segmentOS->size) {
+        assert(0);
+      }
       ref<Expr> old = segmentOS->read8(offset + j);
       ref<Expr> n = os->read8(j);
       /* TODO: hash check? */
