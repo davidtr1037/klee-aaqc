@@ -145,6 +145,7 @@ namespace klee {
     HANDLER(handleDivRemOverflow);
     HANDLER(handleRebase);
     HANDLER(handleMultipleRebase);
+    HANDLER(handleSplit);
 #undef HANDLER
   };
 } // End klee namespace

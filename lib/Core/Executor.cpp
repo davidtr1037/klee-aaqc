@@ -4512,6 +4512,49 @@ void Executor::traverseAll(ExecutionState &state,
   }
 }
 
+#define PSIZE (100)
+
+void Executor::splitMO(ExecutionState &state, ObjectPair op) {
+  const MemoryObject *mo = op.first;
+  const ObjectState *os = op.second;
+  std::vector<const MemoryObject *> objects;
+  std::vector<uint64_t> partition;
+
+  uint64_t total = 0;
+  while (total < mo->size) {
+    partition.push_back(std::min((uint64_t)(PSIZE), mo->size - total));
+    total += PSIZE;
+  }
+
+  memory->allocateWithPartition(partition, false, false, nullptr, 16, objects);
+  klee_message("splitting object %lu to %lu objects", mo->address, objects.size());
+
+  uint64_t offset = 0;
+  for (const MemoryObject *newMO : objects) {
+    /* the splitted object has a fixed address */
+    ObjectState *newOS = bindObjectInState(state, newMO, false);
+    for (unsigned int i = 0; i < newMO->size; i++) {
+      ref<Expr> e = os->read8(offset + i);
+      newOS->write(i, e);
+    }
+    klee_message("binding new object: %lu", newMO->address);
+    offset += newMO->size;
+  }
+
+  for (auto subObject: os->getSubObjects()) {
+    klee_message("rebasing memory object: %lu -> %lu",
+                 mo->address + subObject.offset,
+                 objects[0]->address);
+    state.updateAddressConstraint(subObject.info.arrayID, objects[0]->address);
+  }
+
+  state.unbindObject(mo);
+
+  /* TODO: add docs */
+  state.updateRewrittenObjects();
+  state.computeRewrittenConstraints();
+}
+
 void Executor::prepareForEarlyExit() {
   if (statsTracker) {
     // Make sure stats get flushed out

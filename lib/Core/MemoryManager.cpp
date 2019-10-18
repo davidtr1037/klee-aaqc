@@ -174,6 +174,73 @@ MemoryObject *MemoryManager::allocateFixed(uint64_t address, uint64_t size,
   return res;
 }
 
+bool MemoryManager::allocateWithPartition(std::vector<uint64_t> partition,
+                                          bool isLocal,
+                                          bool isGlobal,
+                                          const llvm::Value *allocSite,
+                                          size_t alignment,
+                                          std::vector<const MemoryObject *> &result) {
+  uint64_t total_size = 0;
+  for (uint64_t mo_size : partition) {
+    total_size += mo_size;
+  }
+
+  if (total_size > 10 * 1024 * 1024) {
+    klee_warning_once(0, "Large alloc: %" PRIu64 " bytes.  KLEE may run out of memory.", total_size);
+  }
+
+  if (NullOnZeroMalloc && total_size == 0) {
+    assert(0);
+  }
+
+  if (!llvm::isPowerOf2_64(alignment)) {
+    klee_warning("Only alignment of power of two is supported");
+    return false;
+  }
+
+  uint64_t address = 0;
+  if (DeterministicAllocation) {
+#if LLVM_VERSION_CODE >= LLVM_VERSION(3, 9)
+    address = llvm::alignTo((uint64_t)(nextFreeSlot) + alignment - 1, alignment);
+#else
+    address = llvm::RoundUpToAlignment((uint64_t)(nextFreeSlot) + alignment - 1,
+                                       alignment);
+#endif
+
+    size_t alloc_size = std::max(total_size, (uint64_t)(1));
+    if ((char *)(address) + alloc_size < deterministicSpace + spaceSize) {
+      nextFreeSlot = (char *)(address) + alloc_size + RedzoneSize;
+    } else {
+      klee_warning_once(0, "Couldn't allocate %" PRIu64 " bytes. Not enough deterministic space left.", total_size);
+      address = 0;
+    }
+  } else {
+    /* not supported yet... */
+    assert(0);
+  }
+
+  if (!address) {
+    return false;
+  }
+
+  uint64_t offset = 0;
+  for (size_t mo_size : partition) {
+    ++stats::allocations;
+    MemoryObject *mo = new MemoryObject(address + offset,
+                                        mo_size,
+                                        isLocal,
+                                        isGlobal,
+                                        false,
+                                        allocSite,
+                                        this);
+    objects.insert(mo);
+    result.push_back(mo);
+    offset += mo_size;
+  }
+
+  return true;
+}
+
 void MemoryManager::deallocate(const MemoryObject *mo) { assert(0); }
 
 void MemoryManager::markFreed(MemoryObject *mo) {

@@ -588,6 +588,8 @@ public:
   void traverseAll(ExecutionState &state,
                    const ResolutionList &ops,
                    ResolutionList &result);
+
+  void splitMO(ExecutionState &state, ObjectPair op);
 };
   
 } // End klee namespace

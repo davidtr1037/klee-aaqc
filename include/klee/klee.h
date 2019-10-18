@@ -164,6 +164,8 @@ extern "C" {
   void klee_rebase_object(void *);
 
   void klee_rebase_objects(int, ...);
+
+  void klee_split_object(void *);
 #ifdef __cplusplus
 }
 #endif

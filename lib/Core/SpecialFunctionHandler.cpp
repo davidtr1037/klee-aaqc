@@ -138,6 +138,7 @@ static SpecialFunctionHandler::HandlerInfo handlerInfo[] = {
   add("__ubsan_handle_divrem_overflow", handleDivRemOverflow, false),
   add("klee_rebase_object", handleRebase, true),
   add("klee_rebase_objects", handleMultipleRebase, true),
+  add("klee_split_object", handleSplit, true),
 
 #undef addDNR
 #undef add
@@ -915,4 +916,16 @@ void SpecialFunctionHandler::handleMultipleRebase(ExecutionState &state,
   }
 
   executor.rebaseObjects(state, ops);
+}
+
+void SpecialFunctionHandler::handleSplit(ExecutionState &state,
+                                         KInstruction *target,
+                                         std::vector<ref<Expr> > &arguments) {
+  ref<Expr> address = arguments[0];
+  bool success;
+  ObjectPair op;
+  if (!state.addressSpace.resolveOne(state, executor.solver, address, op, success)) {
+    assert(0);
+  }
+  executor.splitMO(state, op);
 }
