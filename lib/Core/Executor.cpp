@@ -421,6 +421,8 @@ cl::opt<bool> ExtendSegments("extend-segments", cl::init(false), cl::desc("...")
 cl::opt<unsigned> ReserveSize("reserve-size", cl::init(200), cl::desc("..."));
 
 cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("..."));
+
+cl::opt<bool> SplitObjects("split-objects", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3772,7 +3774,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         }
       } else {
         ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
-        if (!isa<ConstantExpr>(offset) && mo->size > 1000) {
+        if (SplitObjects && !isa<ConstantExpr>(offset) && mo->size > 1000) {
           klee_warning("symbolic read from array of size %u", mo->size);
           splitMO(*bound, ObjectPair(mo, os));
           executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);
