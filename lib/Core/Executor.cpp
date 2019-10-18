@@ -419,6 +419,8 @@ cl::opt<bool> UseRecursiveRebase("use-recursive-rebase", cl::init(true), cl::des
 cl::opt<bool> ExtendSegments("extend-segments", cl::init(false), cl::desc("..."));
 
 cl::opt<unsigned> ReserveSize("reserve-size", cl::init(200), cl::desc("..."));
+
+cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -4512,19 +4514,22 @@ void Executor::traverseAll(ExecutionState &state,
   }
 }
 
-#define PSIZE (100)
-
 void Executor::getPartition(const MemoryObject *mo,
                             const ObjectState *os,
                             std::vector<uint64_t> &partition) {
   uint64_t total = 0;
   while (total < mo->size) {
-    partition.push_back(std::min((uint64_t)(PSIZE), mo->size - total));
-    total += PSIZE;
+    partition.push_back(std::min((uint64_t)(PartitionSize), mo->size - total));
+    total += PartitionSize;
   }
 }
 
 void Executor::splitMO(ExecutionState &state, ObjectPair op) {
+  if (!UseSymAddr) {
+    klee_warning("can be used only in symbolic address mode, ignoring...");
+    return;
+  }
+
   const MemoryObject *mo = op.first;
   const ObjectState *os = op.second;
   std::vector<const MemoryObject *> objects;
@@ -4543,7 +4548,7 @@ void Executor::splitMO(ExecutionState &state, ObjectPair op) {
       ref<Expr> e = os->read8(offset + i);
       newOS->write(i, e);
     }
-    klee_message("binding new object: %lu", newMO->address);
+    klee_message("binding new object: %lu (size = %u)", newMO->address, newMO->size);
     offset += newMO->size;
   }
 
