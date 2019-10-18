@@ -3767,13 +3767,19 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                 ReadOnly);
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-          ref<Expr> offset = state.addressSpace.unfold(state, mo->getOffsetExpr(address), solver);
+          ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
           wos->write(offset, value);
         }
       } else {
-        ref<Expr> offset = state.addressSpace.unfold(state, mo->getOffsetExpr(address), solver);
-        ref<Expr> result = os->read(offset, type);
-        bindLocal(target, *bound, result);
+        ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
+        if (!isa<ConstantExpr>(offset) && mo->size > 1000) {
+          klee_warning("symbolic read from array of size %u", mo->size);
+          splitMO(*bound, ObjectPair(mo, os));
+          executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);
+        } else {
+          ref<Expr> result = os->read(offset, type);
+          bindLocal(target, *bound, result);
+        }
       }
     }
 
