@@ -4514,17 +4514,23 @@ void Executor::traverseAll(ExecutionState &state,
 
 #define PSIZE (100)
 
-void Executor::splitMO(ExecutionState &state, ObjectPair op) {
-  const MemoryObject *mo = op.first;
-  const ObjectState *os = op.second;
-  std::vector<const MemoryObject *> objects;
-  std::vector<uint64_t> partition;
-
+void Executor::getPartition(const MemoryObject *mo,
+                            const ObjectState *os,
+                            std::vector<uint64_t> &partition) {
   uint64_t total = 0;
   while (total < mo->size) {
     partition.push_back(std::min((uint64_t)(PSIZE), mo->size - total));
     total += PSIZE;
   }
+}
+
+void Executor::splitMO(ExecutionState &state, ObjectPair op) {
+  const MemoryObject *mo = op.first;
+  const ObjectState *os = op.second;
+  std::vector<const MemoryObject *> objects;
+
+  std::vector<uint64_t> partition;
+  getPartition(mo, os, partition);
 
   memory->allocateWithPartition(partition, false, false, nullptr, 16, objects);
   klee_message("splitting object %lu to %lu objects", mo->address, objects.size());

@@ -589,6 +589,10 @@ public:
                    const ResolutionList &ops,
                    ResolutionList &result);
 
+  void getPartition(const MemoryObject *mo,
+                    const ObjectState *os,
+                    std::vector<uint64_t> &partition);
+
   void splitMO(ExecutionState &state, ObjectPair op);
 };
   
