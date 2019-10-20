@@ -593,6 +593,10 @@ public:
                     const ObjectState *os,
                     std::vector<uint64_t> &partition);
 
+  bool shouldSplit(ExecutionState &state,
+                   const MemoryObject *mo,
+                   ref<Expr> offset);
+
   void splitMO(ExecutionState &state, ObjectPair op);
 };
   

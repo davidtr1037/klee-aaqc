@@ -423,6 +423,8 @@ cl::opt<unsigned> ReserveSize("reserve-size", cl::init(200), cl::desc("..."));
 cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("..."));
 
 cl::opt<bool> SplitObjects("split-objects", cl::init(false), cl::desc("..."));
+
+cl::opt<unsigned> SplitThreshold("split-threshold", cl::init(128), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -3691,11 +3693,16 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         }          
       } else {
         ref<Expr> result = os->read(offset, type);
-        
-        if (interpreterOpts.MakeConcreteSymbolic)
-          result = replaceReadWithSymbolic(state, result);
-        
-        bindLocal(target, state, result);
+        if (shouldSplit(state, mo, offset)) {
+          klee_warning("symbolic read from array of size %u", mo->size);
+          splitMO(state, ObjectPair(mo, os));
+          executeMemoryOperation(state, isWrite, originalAddress, value, target, false, false);
+        } else {
+          if (interpreterOpts.MakeConcreteSymbolic)
+            result = replaceReadWithSymbolic(state, result);
+
+          bindLocal(target, state, result);
+        }
       }
 
       return;
@@ -3774,7 +3781,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         }
       } else {
         ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
-        if (SplitObjects && !isa<ConstantExpr>(offset) && mo->size > 1000) {
+        if (shouldSplit(state, mo, offset)) {
           klee_warning("symbolic read from array of size %u", mo->size);
           splitMO(*bound, ObjectPair(mo, os));
           executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);
@@ -4525,11 +4532,21 @@ void Executor::traverseAll(ExecutionState &state,
 void Executor::getPartition(const MemoryObject *mo,
                             const ObjectState *os,
                             std::vector<uint64_t> &partition) {
+  if (PartitionSize % (Context::get().getPointerWidth() / 8) != 0) {
+    klee_error("partition size must be aligned to pointer size");
+  }
+
   uint64_t total = 0;
   while (total < mo->size) {
     partition.push_back(std::min((uint64_t)(PartitionSize), mo->size - total));
     total += PartitionSize;
   }
+}
+
+bool Executor::shouldSplit(ExecutionState &state,
+                           const MemoryObject *mo,
+                           ref<Expr> offset) {
+  return SplitObjects && !isa<ConstantExpr>(offset) && mo->size > SplitThreshold;
 }
 
 void Executor::splitMO(ExecutionState &state, ObjectPair op) {
@@ -4540,11 +4557,16 @@ void Executor::splitMO(ExecutionState &state, ObjectPair op) {
 
   const MemoryObject *mo = op.first;
   const ObjectState *os = op.second;
-  std::vector<const MemoryObject *> objects;
+
+  if (os->getSubObjects().empty()) {
+    klee_warning("can't split fixed object");
+    return;
+  }
 
   std::vector<uint64_t> partition;
   getPartition(mo, os, partition);
 
+  std::vector<const MemoryObject *> objects;
   memory->allocateWithPartition(partition, false, false, nullptr, 16, objects);
   klee_message("splitting object %lu to %lu objects", mo->address, objects.size());
 
