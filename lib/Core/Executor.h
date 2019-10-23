@@ -597,7 +597,7 @@ public:
                    const MemoryObject *mo,
                    ref<Expr> offset);
 
-  void splitMO(ExecutionState &state, ObjectPair op);
+  bool splitMO(ExecutionState &state, ObjectPair op);
 };
   
 } // End klee namespace

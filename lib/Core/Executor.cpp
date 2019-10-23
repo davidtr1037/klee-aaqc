@@ -4549,10 +4549,10 @@ bool Executor::shouldSplit(ExecutionState &state,
   return SplitObjects && !isa<ConstantExpr>(offset) && mo->size > SplitThreshold;
 }
 
-void Executor::splitMO(ExecutionState &state, ObjectPair op) {
+bool Executor::splitMO(ExecutionState &state, ObjectPair op) {
   if (!UseSymAddr) {
     klee_warning("can be used only in symbolic address mode, ignoring...");
-    return;
+    return false;
   }
 
   const MemoryObject *mo = op.first;
@@ -4560,7 +4560,7 @@ void Executor::splitMO(ExecutionState &state, ObjectPair op) {
 
   if (os->getSubObjects().empty()) {
     klee_warning("can't split fixed object");
-    return;
+    return false;
   }
 
   std::vector<uint64_t> partition;
@@ -4594,6 +4594,7 @@ void Executor::splitMO(ExecutionState &state, ObjectPair op) {
   /* TODO: add docs */
   state.updateRewrittenObjects();
   state.computeRewrittenConstraints();
+  return true;
 }
 
 void Executor::prepareForEarlyExit() {
