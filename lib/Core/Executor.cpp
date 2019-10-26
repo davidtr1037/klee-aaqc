@@ -3693,10 +3693,10 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         }          
       } else {
         ref<Expr> result = os->read(offset, type);
-        if (shouldSplit(state, mo, offset)) {
-          klee_warning("symbolic read from array of size %u", mo->size);
+        if (shouldSplit(state, mo, os, offset)) {
           splitMO(state, ObjectPair(mo, os));
           executeMemoryOperation(state, isWrite, originalAddress, value, target, false, false);
+          return;
         } else {
           if (interpreterOpts.MakeConcreteSymbolic)
             result = replaceReadWithSymbolic(state, result);
@@ -3781,8 +3781,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
         }
       } else {
         ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
-        if (shouldSplit(state, mo, offset)) {
-          klee_warning("symbolic read from array of size %u", mo->size);
+        if (shouldSplit(state, mo, os, offset)) {
           splitMO(*bound, ObjectPair(mo, os));
           executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);
         } else {
@@ -4545,8 +4544,19 @@ void Executor::getPartition(const MemoryObject *mo,
 
 bool Executor::shouldSplit(ExecutionState &state,
                            const MemoryObject *mo,
+                           const ObjectState *os,
                            ref<Expr> offset) {
-  return SplitObjects && !isa<ConstantExpr>(offset) && mo->size > SplitThreshold;
+  if (SplitObjects && !isa<ConstantExpr>(offset) && mo->size > SplitThreshold) {
+    klee_warning("symbolic read from array of size %u", mo->size);
+    if (os->getSubObjects().empty()) {
+      klee_warning("can't split fixed object");
+      return false;
+    } else {
+      return true;
+    }
+  } else {
+    return false;
+  }
 }
 
 bool Executor::splitMO(ExecutionState &state, ObjectPair op) {

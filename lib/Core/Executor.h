@@ -595,6 +595,7 @@ public:
 
   bool shouldSplit(ExecutionState &state,
                    const MemoryObject *mo,
+                   const ObjectState *os,
                    ref<Expr> offset);
 
   bool splitMO(ExecutionState &state, ObjectPair op);
