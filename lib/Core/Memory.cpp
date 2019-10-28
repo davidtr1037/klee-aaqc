@@ -107,7 +107,9 @@ ObjectState::ObjectState(const MemoryObject *mo)
     pulledUpdates(0),
     minUpdates(0),
     size(mo->size),
-    readOnly(false) {
+    readOnly(false),
+    originalSize(0),
+    isSplit(false) {
   mo->refCount++;
   if (!UseConstantArrays) {
     static unsigned id = 0;
@@ -132,7 +134,9 @@ ObjectState::ObjectState(const MemoryObject *mo, const Array *array)
     pulledUpdates(0),
     minUpdates(0),
     size(mo->size),
-    readOnly(false) {
+    readOnly(false),
+    originalSize(0),
+    isSplit(false) {
   mo->refCount++;
   makeSymbolic();
   memset(concreteStore, 0, size);
@@ -153,7 +157,9 @@ ObjectState::ObjectState(const ObjectState &os)
     pulledUpdates(os.pulledUpdates),
     minUpdates(os.minUpdates),
     size(os.size),
-    readOnly(false) {
+    readOnly(false),
+    originalSize(os.originalSize),
+    isSplit(os.isSplit) {
   assert(!os.readOnly && "no need to copy read only object?");
   if (object)
     object->refCount++;

@@ -3444,9 +3444,27 @@ void Executor::executeAlloc(ExecutionState &state,
       }
 
       if (reallocFrom) {
-        unsigned count = std::min(reallocFrom->size, os->size);
-        for (unsigned i=0; i<count; i++)
-          os->write(i, reallocFrom->read8(i));
+        unsigned count;
+        if (reallocFrom->isSplit) {
+          count = reallocFrom->originalSize;
+          klee_warning("realloc of split object (original size = %u)", count);
+          for (unsigned i=0; i<count; i++) {
+            uint64_t a = reallocFrom->getObject()->address + i;
+            ref<Expr> ae = ConstantExpr::create(reallocFrom->getObject()->address + i, Expr::Int64);
+            bool success;
+            ObjectPair op;
+            assert(state.addressSpace.resolveOne(state, solver, ae, op, success));
+            assert(success);
+
+            const ObjectState *splitOS = op.second;
+            os->write(i, splitOS->read8(a - splitOS->getObject()->address));
+          }
+        } else {
+          count = std::min(reallocFrom->size, os->size);
+          for (unsigned i=0; i<count; i++) {
+            os->write(i, reallocFrom->read8(i));
+          }
+        }
         state.unbindObject(reallocFrom->getObject());
       }
     }
@@ -3555,6 +3573,9 @@ void Executor::executeFree(ExecutionState &state,
                               getAddressInfo(*it->second, address));
       } else {
         const ObjectState *os = it->first.second;
+        if (os->isSplit) {
+            klee_warning("free memory chunk, may leak...");
+        }
         if (os->getSubObjects().size() > 1) {
           /* TODO: fix later... */
           klee_message("ignoring free: %lu", it->first.first->address);
@@ -4584,6 +4605,8 @@ bool Executor::splitMO(ExecutionState &state, ObjectPair op) {
   for (const MemoryObject *newMO : objects) {
     /* the splitted object has a fixed address */
     ObjectState *newOS = bindObjectInState(state, newMO, false);
+    newOS->isSplit = true;
+    newOS->originalSize = os->size;
     for (unsigned int i = 0; i < newMO->size; i++) {
       ref<Expr> e = os->read8(offset + i);
       newOS->write(i, e);
