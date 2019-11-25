@@ -4279,21 +4279,13 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   ObjectState *segmentOS = nullptr;
   const MemoryObject *segmentMO = nullptr;
 
+  if (!canRebase(ops)) {
+    return false;
+  }
+
+  /* find the first segment (to extend...) */
   for (ObjectPair &op : ops) {
-    const MemoryObject *mo = op.first;
     const ObjectState *os = op.second;
-
-    if (!UseRecursiveRebase && os->getSubObjects().size() > 1) {
-      klee_message("object: %lu was rebased...", mo->address);
-      return false;
-    }
-
-    if (!mo->hasSymbolicAddress()) {
-      klee_message("object: %lu has a fixed address", mo->address);
-      return false;
-    }
-
-    /* find the first segment (to extend...) */
     if (ExtendSegments && !segmentOS && os->getSubObjects().size() > 1) {
       segmentMO = op.first;
       segmentOS = state.addressSpace.getWriteable(segmentMO, op.second);
@@ -4386,6 +4378,25 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     assert(segmentMO);
     RebaseInfo info(rid, segmentMO, ObjectHolder(segmentOS));
     RebaseCache::getRebaseCache()->rebased.push_back(info);
+  }
+
+  return true;
+}
+
+bool Executor::canRebase(std::vector<ObjectPair> ops) {
+  for (ObjectPair &op : ops) {
+    const MemoryObject *mo = op.first;
+    const ObjectState *os = op.second;
+
+    if (!UseRecursiveRebase && os->getSubObjects().size() > 1) {
+      klee_message("object: %lu was rebased...", mo->address);
+      return false;
+    }
+
+    if (!mo->hasSymbolicAddress()) {
+      klee_message("object: %lu has a fixed address", mo->address);
+      return false;
+    }
   }
 
   return true;

@@ -562,6 +562,8 @@ public:
 
   bool rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops);
 
+  bool canRebase(std::vector<ObjectPair> ops);
+
   size_t getAlignedSize(uint64_t size);
 
   void fillSegment(ExecutionState &state,
