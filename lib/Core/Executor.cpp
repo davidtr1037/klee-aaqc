@@ -4359,7 +4359,8 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     }
   }
 
-  klee_message("%p: rebasing %lu objects at %u", &state, ops.size(), state.prevPC->info->id);
+  klee_message("%p: rebasing %lu objects at %u (line %u)",
+               &state, ops.size(), state.prevPC->info->id, state.prevPC->info->line);
   fillSegment(state, segmentMO, segmentOS, opsToRebase, offsets, seen);
 
   for (ObjectPair &op : opsToRebase) {
