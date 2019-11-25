@@ -585,10 +585,12 @@ public:
 
   void traverseMO(ExecutionState &state,
                   const ObjectPair &op,
+                  unsigned int depth,
                   ResolutionList &rl);
 
   void traverseAll(ExecutionState &state,
                    const ResolutionList &ops,
+                   unsigned int depth,
                    ResolutionList &result);
 
   void getPartition(const MemoryObject *mo,

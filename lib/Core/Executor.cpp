@@ -412,6 +412,8 @@ cl::opt<bool> ReuseSegments("reuse-segments", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> RebaseReachable("rebase-reachable", cl::init(false), cl::desc("..."));
 
+cl::opt<unsigned> ReachabilityDepth("reachability-depth", cl::init(0), cl::desc("..."));
+
 cl::opt<bool> UseCachedResolution("use-cached-resolution", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> UseRecursiveRebase("use-recursive-rebase", cl::init(true), cl::desc("..."));
@@ -3762,7 +3764,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
 
   if (RebaseReachable) {
     ResolutionList reachable;
-    traverseAll(state, rl, reachable);
+    traverseAll(state, rl, ReachabilityDepth, reachable);
     rl = reachable;
   }
 
@@ -4517,16 +4519,24 @@ RebaseID Executor::buildRebaseID(ExecutionState &state,
 
 void Executor::traverseMO(ExecutionState &state,
                           const ObjectPair &op,
+                          unsigned int depth,
                           ResolutionList &result) {
-  std::list<ObjectPair> worklist;
+  std::list<std::pair<unsigned, ObjectPair>> worklist;
   std::set<ObjectPair> visited;
 
-  worklist.push_back(op);
+  worklist.push_back(std::make_pair(1, op));
 
   while (!worklist.empty()) {
-    ObjectPair op = worklist.front();
+    auto i = worklist.front();
+    unsigned int d = i.first;
+    ObjectPair op = i.second;
     worklist.pop_front();
+
     if (visited.find(op) != visited.end()) {
+      continue;
+    }
+
+    if (depth && d > depth) {
       continue;
     }
 
@@ -4545,7 +4555,7 @@ void Executor::traverseMO(ExecutionState &state,
       solver->setTimeout(time::Span());
 
       for (ObjectPair &rop : rl) {
-        worklist.push_back(rop);
+        worklist.push_back(std::make_pair(d + 1, rop));
       }
     }
 
@@ -4555,9 +4565,10 @@ void Executor::traverseMO(ExecutionState &state,
 
 void Executor::traverseAll(ExecutionState &state,
                            const ResolutionList &ops,
+                           unsigned int depth,
                            ResolutionList &result) {
   for (const ObjectPair &op : ops) {
-    traverseMO(state, op, result);
+    traverseMO(state, op, depth, result);
   }
 }
 
