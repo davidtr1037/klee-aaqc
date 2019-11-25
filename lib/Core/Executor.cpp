@@ -3766,6 +3766,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     ResolutionList reachable;
     traverseAll(state, rl, ReachabilityDepth, reachable);
     rl = reachable;
+    klee_message("traversed %lu objects", rl.size());
   }
 
   if (UseRebase && !rl.empty()) {
