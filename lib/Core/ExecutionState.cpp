@@ -52,6 +52,8 @@ cl::opt<bool> klee::UseKContext("use-kcontext", cl::init(false), cl::desc("...")
 
 cl::opt<bool> klee::UseGlobalID("use-global-id", cl::init(false), cl::desc("..."));
 
+cl::opt<bool> klee::UseGlobalRewriteCache("use-global-rewrite-cache", cl::init(true), cl::desc("..."));
+
 /***/
 
 StackFrame::StackFrame(KInstIterator _caller, KFunction *_kf)
@@ -92,6 +94,11 @@ void RebaseID::dump() const {
   errs() << "- Size: " << size << "\n";
   errs() << "- Arrays: [ ";
   for (uint64_t a : arrays) {
+    errs() << a << " ";
+  }
+  errs() << "]\n";
+  errs() << "- Addresses: [ ";
+  for (uint64_t a : addrs) {
     errs() << a << " ";
   }
   errs() << "]\n";
@@ -153,7 +160,7 @@ UpdateList RebaseCache::find(const ExecutionState &state, ObjectState *os, const
 
 /***/
 
-std::map<const Array *, const Array *> ExecutionState::rewriteCache;
+std::map<const Array *, const Array *> ExecutionState::globalRewriteCache;
 
 uint64_t ExecutionState::globalArrayID = 0;
 
@@ -203,6 +210,7 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     memory(state.memory),
     history(state.history),
     arrayID(state.arrayID),
+    rewriteCache(state.rewriteCache),
     pc(state.pc),
     prevPC(state.prevPC),
     stack(state.stack),
@@ -722,14 +730,14 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
 UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
   assert(ul.root && ul.head);
 
-  auto i = rewriteCache.find(ul.root);
-  if (i == rewriteCache.end()) {
+  const Array *rewritten = getRewrittenArray(ul.root);
+  if (!rewritten) {
     UpdateList updates = rewriteUL(ul, nullptr);
     ExecutionState *writable = const_cast<ExecutionState *>(this);
-    writable->rewriteCache[ul.root] = updates.root;
+    writable->updateRewrittenArray(ul.root, updates.root);
     return updates;
   } else {
-    return rewriteUL(ul, i->second);
+    return rewriteUL(ul, rewritten);
   }
 
   ///* TODO: add cache? */
@@ -833,6 +841,33 @@ uint64_t ExecutionState::allocateArrayID() {
     return globalArrayID++;
   } else {
     return arrayID++;
+  }
+}
+
+const Array *ExecutionState::getRewrittenArray(const Array *array) const {
+  if (UseGlobalRewriteCache) {
+    auto i = globalRewriteCache.find(array);
+    if (i == globalRewriteCache.end()) {
+      return nullptr;
+    } else {
+      return i->second;
+    }
+  } else {
+    auto i = rewriteCache.find(array);
+    if (i == rewriteCache.end()) {
+      return nullptr;
+    } else {
+      return i->second;
+    }
+  }
+}
+
+void ExecutionState::updateRewrittenArray(const Array *array,
+                                          const Array *rewritten) {
+  if (UseGlobalRewriteCache) {
+    globalRewriteCache[array] = rewritten;
+  } else {
+    rewriteCache[array] = rewritten;
   }
 }
 
