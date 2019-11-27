@@ -43,6 +43,7 @@ extern llvm::cl::opt<bool> UseLocalSymAddr;
 extern llvm::cl::opt<bool> ReuseArrays;
 extern llvm::cl::opt<bool> UseKContext;
 extern llvm::cl::opt<bool> UseGlobalID;
+extern llvm::cl::opt<bool> UseGlobalRewriteCache;
 
 llvm::raw_ostream &operator<<(llvm::raw_ostream &os, const MemoryMap &mm);
 
@@ -189,7 +190,9 @@ private:
 
   static uint64_t globalArrayID;
 
-  static std::map<const Array *, const Array *> rewriteCache;
+  std::map<const Array *, const Array *> rewriteCache;
+
+  static std::map<const Array *, const Array *> globalRewriteCache;
 
 public:
   // Execution - Control Flow specific
@@ -350,6 +353,10 @@ public:
   AllocationContext getAC() const;
 
   uint64_t allocateArrayID();
+
+  const Array *getRewrittenArray(const Array *array) const;
+
+  void updateRewrittenArray(const Array *array, const Array *rewritten);
 };
 
 class AddressUnfolder : public ExprVisitor {
