@@ -4339,7 +4339,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
     }
 
     /* TODO: check subObjects */
-    segmentOS = state.addressSpace.bindCopyWithArray(ri.mo, ri.oh);
+    segmentOS = state.addressSpace.bindCopyWithArray(segmentMO, ri.oh);
     assert(segmentOS->size == total_size);
 
     state.addAddressConstraint(segmentMO->sainfo.arrayID,
