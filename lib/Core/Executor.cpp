@@ -4501,6 +4501,7 @@ RebaseID Executor::buildRebaseID(ExecutionState &state,
                                  std::vector<ObjectPair> &ops,
                                  size_t size) {
   Arrays arrays;
+  std::vector<uint64_t> addrs;
   std::vector<AllocationContext> acs;
 
   for (ObjectPair &op : ops) {
@@ -4512,9 +4513,10 @@ RebaseID Executor::buildRebaseID(ExecutionState &state,
     if (std::find(acs.begin(), acs.end(), mo->ac) == acs.end()) {
       acs.push_back(mo->ac);
     }
+    addrs.push_back(mo->address);
   }
 
-  return RebaseID(state.prevPC->info, size, arrays, acs);
+  return RebaseID(state.prevPC->info, size, arrays, addrs, acs);
 }
 
 void Executor::traverseMO(ExecutionState &state,

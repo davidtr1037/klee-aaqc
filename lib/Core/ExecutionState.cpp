@@ -97,6 +97,11 @@ void RebaseID::dump() const {
     errs() << a << " ";
   }
   errs() << "]\n";
+  errs() << "- Addresses: [ ";
+  for (uint64_t a : addrs) {
+    errs() << a << " ";
+  }
+  errs() << "]\n";
 }
 
 RebaseCache *RebaseCache::instance = nullptr;

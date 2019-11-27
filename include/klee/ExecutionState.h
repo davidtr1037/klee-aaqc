@@ -92,6 +92,8 @@ struct RebaseID {
   size_t size;
   /* TODO: add docs */
   Arrays arrays;
+  /* TODO: add docs */
+  std::vector<uint64_t> addrs;
   /* TODO: should be here? */
   std::vector<AllocationContext> acs;
 
@@ -103,8 +105,9 @@ struct RebaseID {
   RebaseID(const InstructionInfo *info,
            size_t size,
            Arrays &arrays,
+           std::vector<uint64_t> addrs,
            std::vector<AllocationContext> acs) :
-    info(info), size(size), arrays(arrays), acs(acs) {
+    info(info), size(size), arrays(arrays), addrs(addrs), acs(acs) {
 
   }
 
