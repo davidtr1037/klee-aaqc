@@ -211,6 +211,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
 
 bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
                            ref<Expr> p, ResolutionList &rl,
+                           std::vector<AllocationContext> &contexts,
                            unsigned maxResolutions, time::Span timeout) const {
   p = unfold(state, p, solver);
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(p)) {
@@ -257,6 +258,10 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
       if (timeout && timeout < timer.check())
         return true;
 
+      if (canSkip(mo, oi->second, contexts)) {
+        continue;
+      }
+
       int incomplete =
           checkPointerInObject(state, solver, p, *oi, rl, maxResolutions);
       if (incomplete != 2)
@@ -276,6 +281,10 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
 
       if (timeout && timeout < timer.check())
         return true;
+
+      if (canSkip(mo, oi->second, contexts)) {
+        continue;
+      }
 
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, UltExpr::create(p, mo->getBaseExpr()),
@@ -446,6 +455,25 @@ ObjectState *AddressSpace::bindCopyWithArray(const MemoryObject *mo, ObjectState
   ObjectState *copy = new ObjectState(mo, os->updates.root);
   bindObject(mo, copy);
   return copy;
+}
+
+bool AddressSpace::canSkip(const MemoryObject *mo,
+                           ObjectState *os,
+                           std::vector<AllocationContext> &contexts) const {
+  if (contexts.empty()) {
+    return false;
+  }
+
+  if (os->isSegment()) {
+    return false;
+  }
+
+  for (AllocationContext &ac : contexts) {
+    if (ac == mo->ac) {
+      return false;
+    }
+  }
+  return true;
 }
 
 /***/

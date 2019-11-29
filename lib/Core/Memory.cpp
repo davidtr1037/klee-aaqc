@@ -644,3 +644,7 @@ void ObjectState::getArrays(std::set<const Array *> &arrays) const {
     arrays.insert(local.begin(), local.end());
   }
 }
+
+bool ObjectState::isSegment() const {
+  return !subSegments.empty();
+}
