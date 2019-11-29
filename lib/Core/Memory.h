@@ -298,6 +298,8 @@ public:
 
   void getArrays(std::set<const Array *> &arrays) const;
 
+  bool isSegment() const;
+
 private:
   const UpdateList &getUpdates() const;
 

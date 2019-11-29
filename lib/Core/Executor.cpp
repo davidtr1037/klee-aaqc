@@ -422,6 +422,8 @@ cl::opt<bool> ExtendSegments("extend-segments", cl::init(false), cl::desc("...")
 
 cl::opt<unsigned> ReserveSize("reserve-size", cl::init(200), cl::desc("..."));
 
+cl::opt<unsigned> UseContextResolve("use-context-resolve", cl::init(false), cl::desc("..."));
+
 cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("..."));
 
 cl::opt<bool> SplitObjects("split-objects", cl::init(false), cl::desc("..."));
@@ -3597,8 +3599,9 @@ void Executor::resolveExact(ExecutionState &state,
                             const std::string &name) {
   p = optimizer.optimizeExpr(p, true);
   // XXX we may want to be capping this?
+  std::vector<AllocationContext> contexts;
   ResolutionList rl;
-  state.addressSpace.resolve(state, solver, p, rl);
+  state.addressSpace.resolve(state, solver, p, rl, contexts);
   
   ExecutionState *unbound = &state;
   for (ResolutionList::iterator it = rl.begin(), ie = rl.end(); 
@@ -3755,11 +3758,16 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
 
   if (rl.empty()) {
+    std::vector<AllocationContext> contexts;
+    if (UseContextResolve) {
+      getResolvedContexts(state, contexts);
+    }
     address = optimizer.optimizeExpr(address, true);
     solver->setTimeout(coreSolverTimeout);
-    incomplete = state.addressSpace.resolve(state, solver, address, rl, 0, coreSolverTimeout);
+    incomplete = state.addressSpace.resolve(state, solver, address, rl, contexts, 0, coreSolverTimeout);
     solver->setTimeout(time::Span());
     klee_message("multiple resolution (solver): %lu", rl.size());
+    updateResolveCache(state, rl);
   }
 
   if (RebaseReachable) {
@@ -4552,9 +4560,10 @@ void Executor::traverseMO(ExecutionState &state,
       ref<Expr> e = os->read(i, Expr::Int64);
       e = optimizer.optimizeExpr(e, true);
 
+      std::vector<AllocationContext> contexts;
       ResolutionList rl;
       solver->setTimeout(coreSolverTimeout);
-      state.addressSpace.resolve(state, solver, e, rl, 0, coreSolverTimeout);
+      state.addressSpace.resolve(state, solver, e, rl, contexts, 0, coreSolverTimeout);
       solver->setTimeout(time::Span());
 
       for (ObjectPair &rop : rl) {
@@ -4654,6 +4663,34 @@ bool Executor::splitMO(ExecutionState &state, ObjectPair op) {
   state.updateRewrittenObjects();
   state.computeRewrittenConstraints();
   return true;
+}
+
+void Executor::updateResolveCache(ExecutionState &state,
+                                  std::vector<ObjectPair> &rl) {
+  unsigned int id = state.prevPC->info->id;
+  std::vector<AllocationContext> &contexts = resolveCache[id];
+  for (ObjectPair op : rl) {
+    const ObjectState *os = op.second;
+    if (os->isSegment()) {
+      continue;
+    }
+
+    if (std::find(contexts.begin(), contexts.end(), op.first->ac) == contexts.end()) {
+      contexts.push_back(op.first->ac);
+      klee_message("updating resolve cache for instruction %u (hash = %lu)", id, op.first->ac.hash);
+    }
+  }
+}
+
+void Executor::getResolvedContexts(ExecutionState &state,
+                                   std::vector<AllocationContext> &contexts) {
+  unsigned int id = state.prevPC->info->id;
+  auto i = resolveCache.find(id);
+  if (i != resolveCache.end()) {
+    for (auto ac : i->second) {
+      contexts.push_back(ac);
+    }
+  }
 }
 
 void Executor::prepareForEarlyExit() {

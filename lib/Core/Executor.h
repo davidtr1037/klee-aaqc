@@ -241,6 +241,8 @@ private:
 
   std::map<uint64_t, ref<Expr>> addressExpresssions;
 
+  std::map<uint64_t, std::vector<AllocationContext>> resolveCache;
+
   llvm::Function* getTargetFunction(llvm::Value *calledVal,
                                     ExecutionState &state);
   
@@ -603,6 +605,10 @@ public:
                    ref<Expr> offset);
 
   bool splitMO(ExecutionState &state, ObjectPair op);
+
+  void updateResolveCache(ExecutionState &state, std::vector<ObjectPair> &rl);
+
+  void getResolvedContexts(ExecutionState &state, std::vector<AllocationContext> &contexts);
 };
   
 } // End klee namespace

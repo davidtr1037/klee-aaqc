@@ -106,6 +106,7 @@ namespace klee {
                  TimingSolver *solver,
                  ref<Expr> p,
                  ResolutionList &rl, 
+                 std::vector<AllocationContext> &contexts,
                  unsigned maxResolutions=0,
                  time::Span timeout=time::Span()) const;
 
@@ -170,6 +171,11 @@ namespace klee {
     void addRewrittenObject(const MemoryObject *mo, ObjectState *os);
 
     ObjectState *bindCopyWithArray(const MemoryObject *mo, ObjectState *os);
+
+    bool canSkip(const MemoryObject *mo,
+                 ObjectState *os,
+                 std::vector<AllocationContext> &contexts) const;
+
   };
 } // End klee namespace
 
