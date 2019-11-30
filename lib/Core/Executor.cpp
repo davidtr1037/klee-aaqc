@@ -424,6 +424,8 @@ cl::opt<unsigned> ReserveSize("reserve-size", cl::init(200), cl::desc("..."));
 
 cl::opt<unsigned> UseContextResolve("use-context-resolve", cl::init(false), cl::desc("..."));
 
+cl::opt<bool> UseBatchRebase("use-batch-rebase", cl::init(false), cl::desc("..."));
+
 cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("..."));
 
 cl::opt<bool> SplitObjects("split-objects", cl::init(false), cl::desc("..."));
@@ -4279,6 +4281,17 @@ void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
 
 /* TODO: remove code duplication */
 bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops) {
+  if (UseBatchRebase) {
+    std::vector<ObjectPair> rebasedOps;
+    getRebasedObjects(state, rebasedOps);
+    for (ObjectPair op : rebasedOps) {
+      klee_message("adding additional object: %lu", op.first->address);
+      if (std::find(ops.begin(), ops.end(), op) == ops.end()) {
+        ops.push_back(op);
+      }
+    }
+  }
+
   if (SortObjects) {
     std::sort(
       ops.begin(),
@@ -4435,6 +4448,9 @@ void Executor::fillSegment(ExecutionState &state,
     const MemoryObject *mo = op.first;
     const ObjectState *os = op.second;
     unsigned offset = offsets[i];
+
+    /* TODO: ... */
+    addRebasedAddress(mo->address);
 
     uint64_t to_copy = os->getSubObjects().size() == 1 ? mo->size : os->getEffectiveSize();
     for (unsigned j = 0; j < to_copy; j++) {
@@ -4690,6 +4706,21 @@ void Executor::getResolvedContexts(ExecutionState &state,
     for (auto ac : i->second) {
       contexts.push_back(ac);
     }
+  }
+}
+
+void Executor::addRebasedAddress(uint64_t address) {
+  rebasedAddresses.insert(address);
+}
+
+void Executor::getRebasedObjects(ExecutionState &state, std::vector<ObjectPair> &ops) {
+  for (uint64_t address : rebasedAddresses) {
+    ref<ConstantExpr> e = ConstantExpr::create(address, Expr::Int64);
+    ObjectPair op;
+    if (!state.addressSpace.resolveOne(e, op)) {
+      continue;
+    }
+    ops.push_back(op);
   }
 }
 

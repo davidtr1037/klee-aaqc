@@ -243,6 +243,8 @@ private:
 
   std::map<uint64_t, std::vector<AllocationContext>> resolveCache;
 
+  std::set<uint64_t> rebasedAddresses;
+
   llvm::Function* getTargetFunction(llvm::Value *calledVal,
                                     ExecutionState &state);
   
@@ -609,6 +611,10 @@ public:
   void updateResolveCache(ExecutionState &state, std::vector<ObjectPair> &rl);
 
   void getResolvedContexts(ExecutionState &state, std::vector<AllocationContext> &contexts);
+
+  void addRebasedAddress(uint64_t address);
+
+  void getRebasedObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
 };
   
 } // End klee namespace
