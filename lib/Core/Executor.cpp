@@ -758,7 +758,8 @@ void Executor::initializeGlobals(ExecutionState &state) {
 
       MemoryObject *mo = memory->allocate(size, /*isLocal=*/false,
                                           /*isGlobal=*/true, /*allocSite=*/v,
-                                          /*alignment=*/globalObjectAlignment);
+                                          /*alignment=*/globalObjectAlignment,
+                                          &state.local_next_slot);
       ObjectState *os = bindObjectInState(state, mo, false);
       globalObjects.insert(std::make_pair(v, mo));
       /* TODO: ... */
@@ -789,7 +790,8 @@ void Executor::initializeGlobals(ExecutionState &state) {
       uint64_t size = kmodule->targetData->getTypeStoreSize(ty);
       MemoryObject *mo = memory->allocate(size, /*isLocal=*/false,
                                           /*isGlobal=*/true, /*allocSite=*/v,
-                                          /*alignment=*/globalObjectAlignment);
+                                          /*alignment=*/globalObjectAlignment,
+                                          &state.local_next_slot);
       if (!mo)
         llvm::report_fatal_error("out of memory");
       ObjectState *os = bindObjectInState(state, mo, false);
@@ -1510,7 +1512,8 @@ void Executor::executeCall(ExecutionState &state,
 
       MemoryObject *mo = sf.varargs =
           memory->allocate(size, true, false, state.prevPC->inst,
-                           (requires16ByteAlignment ? 16 : 8));
+                           (requires16ByteAlignment ? 16 : 8),
+                           &state.local_next_slot);
       if (!mo && size) {
         terminateStateOnExecError(state, "out of memory (varargs)");
         return;
@@ -3425,7 +3428,7 @@ void Executor::executeAlloc(ExecutionState &state,
 
     MemoryObject *mo =
         memory->allocate(CE->getZExtValue(), isLocal, /*isGlobal=*/false,
-                         allocSite, allocationAlignment);
+                         allocSite, allocationAlignment, &state.local_next_slot);
     mo->ac = state.getAC();
 
     if (!mo) {
@@ -3923,6 +3926,8 @@ void Executor::runFunctionAsMain(Function *f,
 				 char **envp) {
   std::vector<ref<Expr> > arguments;
 
+  ExecutionState *state = new ExecutionState(kmodule->functionMap[f], memory);
+
   // force deterministic initialization of memory objects
   srand(1);
   srandom(1);
@@ -3948,7 +3953,7 @@ void Executor::runFunctionAsMain(Function *f,
       argvMO =
           memory->allocate((argc + 1 + envc + 1 + 1) * NumPtrBytes,
                            /*isLocal=*/false, /*isGlobal=*/true,
-                           /*allocSite=*/first, /*alignment=*/8);
+                           /*allocSite=*/first, /*alignment=*/8, &state->local_next_slot);
 
       if (!argvMO)
         klee_error("Could not allocate memory for function arguments");
@@ -3965,7 +3970,7 @@ void Executor::runFunctionAsMain(Function *f,
     }
   }
 
-  ExecutionState *state = new ExecutionState(kmodule->functionMap[f], memory);
+  //ExecutionState *state = new ExecutionState(kmodule->functionMap[f], memory);
   
   if (pathWriter) 
     state->pathOS = pathWriter->open();
@@ -3993,7 +3998,7 @@ void Executor::runFunctionAsMain(Function *f,
 
         MemoryObject *arg =
             memory->allocate(len + 1, /*isLocal=*/false, /*isGlobal=*/true,
-                             /*allocSite=*/state->pc->inst, /*alignment=*/8);
+                             /*allocSite=*/state->pc->inst, /*alignment=*/8, &state->local_next_slot);
         if (!arg)
           klee_error("Could not allocate memory for function arguments");
         ObjectState *os = bindObjectInState(*state, arg, false);
@@ -4369,8 +4374,13 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   } else {
     if (!segmentOS) {
       uint32_t reserved = ExtendSegments ? ReserveSize : 0;
-      segmentMO = memory->allocate(total_size + reserved, false, false, nullptr, 8);
-      segmentOS = bindObjectInState(state, segmentMO, false);
+      segmentMO = memory->allocate(total_size + reserved, false, false, nullptr, 8,
+                                   &state.local_next_slot);
+      const Array *array = nullptr;
+      if (state.local_next_slot) {
+        array = findUsedArray(state, segmentMO);
+      }
+      segmentOS = bindObjectInState(state, segmentMO, false, array);
       klee_message("%p: creating new segment: %lu (size = %u)",
                    &state, segmentMO->address, segmentOS->size);
       SymbolicAddressInfo info;
@@ -4648,7 +4658,8 @@ bool Executor::splitMO(ExecutionState &state, ObjectPair op) {
   getPartition(mo, os, partition);
 
   std::vector<const MemoryObject *> objects;
-  memory->allocateWithPartition(partition, false, false, nullptr, 16, objects);
+  memory->allocateWithPartition(partition, false, false, nullptr, 16,
+                                &state.local_next_slot, objects);
   klee_message("splitting object %lu to %lu objects", mo->address, objects.size());
 
   uint64_t offset = 0;
@@ -4721,6 +4732,16 @@ void Executor::getRebasedObjects(ExecutionState &state, std::vector<ObjectPair> 
     }
     ops.push_back(op);
   }
+}
+
+const Array *Executor::findUsedArray(ExecutionState &state, const MemoryObject *mo) {
+  for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
+    if (ri.mo->address == mo->address && ri.mo->size == mo->size) {
+      ObjectState *os = ri.oh;
+      return os->getArray();
+    }
+  }
+  return nullptr;
 }
 
 void Executor::prepareForEarlyExit() {

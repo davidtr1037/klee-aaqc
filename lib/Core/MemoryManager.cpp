@@ -55,6 +55,11 @@ llvm::cl::opt<unsigned long long> DeterministicStartAddress(
     llvm::cl::desc("Start address for deterministic allocation. Has to be page "
                    "aligned (default=0x7ff30000000)"),
     llvm::cl::init(0x7ff30000000), llvm::cl::cat(MemoryCat));
+
+llvm::cl::opt<bool> LocalAddressSpace("local-address-space",
+                                      llvm::cl::desc(""),
+                                      llvm::cl::init(false));
+
 } // namespace
 
 /***/
@@ -98,7 +103,8 @@ MemoryManager::~MemoryManager() {
 MemoryObject *MemoryManager::allocate(uint64_t size, bool isLocal,
                                       bool isGlobal,
                                       const llvm::Value *allocSite,
-                                      size_t alignment) {
+                                      size_t alignment,
+                                      char **local_next_slot) {
   if (size > 10 * 1024 * 1024)
     klee_warning_once(0, "Large alloc: %" PRIu64
                          " bytes.  KLEE may run out of memory.",
@@ -114,19 +120,23 @@ MemoryObject *MemoryManager::allocate(uint64_t size, bool isLocal,
   }
 
   uint64_t address = 0;
+  char *next = LocalAddressSpace ? *local_next_slot : nextFreeSlot;
+  if (!next) {
+    next = deterministicSpace;
+  }
+
   if (DeterministicAllocation) {
 #if LLVM_VERSION_CODE >= LLVM_VERSION(3, 9)
-    address = llvm::alignTo((uint64_t)nextFreeSlot + alignment - 1, alignment);
+    address = llvm::alignTo((uint64_t)(next) + alignment - 1, alignment);
 #else
-    address = llvm::RoundUpToAlignment((uint64_t)nextFreeSlot + alignment - 1,
-                                       alignment);
+    address = llvm::RoundUpToAlignment((uint64_t)(next) + alignment - 1, alignment);
 #endif
 
     // Handle the case of 0-sized allocations as 1-byte allocations.
     // This way, we make sure we have this allocation between its own red zones
     size_t alloc_size = std::max(size, (uint64_t)1);
-    if ((char *)address + alloc_size < deterministicSpace + spaceSize) {
-      nextFreeSlot = (char *)address + alloc_size + RedzoneSize;
+    if ((char *)(address) + alloc_size < deterministicSpace + spaceSize) {
+      next = (char *)(address) + alloc_size + RedzoneSize;
     } else {
       klee_warning_once(0, "Couldn't allocate %" PRIu64
                            " bytes. Not enough deterministic space left.",
@@ -144,6 +154,12 @@ MemoryObject *MemoryManager::allocate(uint64_t size, bool isLocal,
         address = 0;
       }
     }
+  }
+
+  if (LocalAddressSpace) {
+    *local_next_slot = next;
+  } else {
+    nextFreeSlot = next;
   }
 
   if (!address)
@@ -179,6 +195,7 @@ bool MemoryManager::allocateWithPartition(std::vector<uint64_t> partition,
                                           bool isGlobal,
                                           const llvm::Value *allocSite,
                                           size_t alignment,
+                                          char **local_next_slot,
                                           std::vector<const MemoryObject *> &result) {
   uint64_t total_size = 0;
   for (uint64_t mo_size : partition) {
@@ -199,17 +216,19 @@ bool MemoryManager::allocateWithPartition(std::vector<uint64_t> partition,
   }
 
   uint64_t address = 0;
+  char *next = LocalAddressSpace ? *local_next_slot : nextFreeSlot;
+
   if (DeterministicAllocation) {
 #if LLVM_VERSION_CODE >= LLVM_VERSION(3, 9)
-    address = llvm::alignTo((uint64_t)(nextFreeSlot) + alignment - 1, alignment);
+    address = llvm::alignTo((uint64_t)(next) + alignment - 1, alignment);
 #else
-    address = llvm::RoundUpToAlignment((uint64_t)(nextFreeSlot) + alignment - 1,
+    address = llvm::RoundUpToAlignment((uint64_t)(next) + alignment - 1,
                                        alignment);
 #endif
 
     size_t alloc_size = std::max(total_size, (uint64_t)(1));
     if ((char *)(address) + alloc_size < deterministicSpace + spaceSize) {
-      nextFreeSlot = (char *)(address) + alloc_size + RedzoneSize;
+      next = (char *)(address) + alloc_size + RedzoneSize;
     } else {
       klee_warning_once(0, "Couldn't allocate %" PRIu64 " bytes. Not enough deterministic space left.", total_size);
       address = 0;
@@ -217,6 +236,12 @@ bool MemoryManager::allocateWithPartition(std::vector<uint64_t> partition,
   } else {
     /* not supported yet... */
     assert(0);
+  }
+
+  if (LocalAddressSpace) {
+    *local_next_slot = next;
+  } else {
+    nextFreeSlot = next;
   }
 
   if (!address) {

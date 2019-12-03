@@ -279,6 +279,9 @@ public:
   /* TODO: add docs */
   ConstraintManager rewrittenConstraints;
 
+  /* TODO: add docs */
+  char *local_next_slot;
+
 private:
   ExecutionState() : ptreeNode(0) {}
 

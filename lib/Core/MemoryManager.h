@@ -41,7 +41,7 @@ public:
    * memory.
    */
   MemoryObject *allocate(uint64_t size, bool isLocal, bool isGlobal,
-                         const llvm::Value *allocSite, size_t alignment);
+                         const llvm::Value *allocSite, size_t alignment, char **local_next_slot);
   MemoryObject *allocateFixed(uint64_t address, uint64_t size,
                               const llvm::Value *allocSite);
   bool allocateWithPartition(std::vector<uint64_t> partition,
@@ -49,6 +49,7 @@ public:
                              bool isGlobal,
                              const llvm::Value *allocSite,
                              size_t alignment,
+                             char **local_next_slot,
                              std::vector<const MemoryObject *> &result);
 
   void deallocate(const MemoryObject *mo);
