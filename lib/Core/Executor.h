@@ -615,6 +615,8 @@ public:
   void addRebasedAddress(uint64_t address);
 
   void getRebasedObjects(ExecutionState &state, std::vector<ObjectPair> &ops);
+
+  const Array *findUsedArray(ExecutionState &state, const MemoryObject *mo);
 };
   
 } // End klee namespace

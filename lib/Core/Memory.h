@@ -300,6 +300,10 @@ public:
 
   bool isSegment() const;
 
+  const Array *getArray() {
+    return updates.root;
+  }
+
 private:
   const UpdateList &getUpdates() const;
 

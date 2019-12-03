@@ -177,13 +177,14 @@ ExecutionState::ExecutionState(KFunction *kf, MemoryManager *memory) :
     coveredNew(false),
     forkDisabled(false),
     ptreeNode(0),
-    steppedInstructions(0){
+    steppedInstructions(0),
+    local_next_slot(0) {
   pushFrame(0, kf);
 }
 
 /* TODO: add rewritten constraints? */
 ExecutionState::ExecutionState(const std::vector<ref<Expr> > &assumptions)
-    : arrayID(0), constraints(assumptions), ptreeNode(0) {}
+    : arrayID(0), constraints(assumptions), ptreeNode(0), local_next_slot(0) {}
 
 ExecutionState::~ExecutionState() {
   for (unsigned int i=0; i<symbolics.size(); i++)
@@ -235,7 +236,8 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     arrayNames(state.arrayNames),
     openMergeStack(state.openMergeStack),
     steppedInstructions(state.steppedInstructions),
-    rewrittenConstraints(state.rewrittenConstraints)
+    rewrittenConstraints(state.rewrittenConstraints),
+    local_next_slot(state.local_next_slot)
 {
   for (unsigned int i=0; i<symbolics.size(); i++)
     symbolics[i].first->refCount++;
