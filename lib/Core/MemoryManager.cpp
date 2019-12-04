@@ -178,8 +178,12 @@ MemoryObject *MemoryManager::allocateFixed(uint64_t address, uint64_t size,
   for (objects_ty::iterator it = objects.begin(), ie = objects.end(); it != ie;
        ++it) {
     MemoryObject *mo = *it;
-    if (address + size > mo->address && address < mo->address + mo->size)
+    if (mo->address == address && mo->size == size) {
+      continue;
+    }
+    if (address + size > mo->address && address < mo->address + mo->size) {
       klee_error("Trying to allocate an overlapping object");
+    }
   }
 #endif
 

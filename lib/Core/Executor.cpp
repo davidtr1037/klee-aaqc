@@ -4354,8 +4354,9 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
   if (ReuseSegments && seen) {
     klee_message("%p: was already rebased at %u", &state, state.prevPC->info->id);
 
-    segmentMO = ri.mo;
+    segmentMO = memory->allocateFixed(ri.mo->address, ri.mo->size, nullptr);
 
+    /* TODO: do we need these checks? */
     ref<ConstantExpr> address = ConstantExpr::create(segmentMO->address, Expr::Int64);
     ObjectPair op;
     if (state.addressSpace.resolveOne(address, op)) {
@@ -4365,23 +4366,21 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       assert(0);
     }
 
-    /* TODO: check subObjects */
-    segmentOS = state.addressSpace.bindCopyWithArray(segmentMO, ri.oh);
+    ObjectState *os = ri.oh;
+    segmentOS = bindObjectInState(state, segmentMO, false, os->getArray());
     assert(segmentOS->size == total_size);
 
-    state.addAddressConstraint(segmentMO->sainfo.arrayID,
-                               segmentMO->address,
-                               segmentMO->sainfo.address);
+    klee_message("%p: reusing allocated address: %lu (size = %u)",
+                 &state, segmentMO->address, segmentOS->size);
+    SymbolicAddressInfo info;
+    symbolizeMO(state, segmentMO, info);
+    segmentOS->addSubSegment(0, total_size, info);
   } else {
     if (!segmentOS) {
       uint32_t reserved = ExtendSegments ? ReserveSize : 0;
       segmentMO = memory->allocate(total_size + reserved, false, false, nullptr, 8,
                                    &state.local_next_slot);
-      const Array *array = nullptr;
-      if (state.local_next_slot) {
-        array = findUsedArray(state, segmentMO);
-      }
-      segmentOS = bindObjectInState(state, segmentMO, false, array);
+      segmentOS = bindObjectInState(state, segmentMO, false);
       klee_message("%p: creating new segment: %lu (size = %u)",
                    &state, segmentMO->address, segmentOS->size);
       SymbolicAddressInfo info;
