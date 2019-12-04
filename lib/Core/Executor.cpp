@@ -404,8 +404,6 @@ cl::opt<bool> UseSymAddr("use-sym-addr", cl::init(false), cl::desc("..."));
 
 cl::opt<bool> UseRebase("use-rebase", cl::init(false), cl::desc("..."));
 
-cl::opt<bool> UseStaticResolve("use-static-resolve", cl::init(false), cl::desc("..."));
-
 cl::opt<bool> SortObjects("sort-objects", cl::init(true), cl::desc("..."));
 
 cl::opt<bool> ReuseSegments("reuse-segments", cl::init(false), cl::desc("..."));
