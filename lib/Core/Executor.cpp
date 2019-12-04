@@ -424,6 +424,8 @@ cl::opt<unsigned> UseContextResolve("use-context-resolve", cl::init(false), cl::
 
 cl::opt<bool> UseBatchRebase("use-batch-rebase", cl::init(false), cl::desc("..."));
 
+cl::opt<bool> UseAheadRebase("use-ahead-rebase", cl::init(false), cl::desc("..."));
+
 cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("..."));
 
 cl::opt<bool> SplitObjects("split-objects", cl::init(false), cl::desc("..."));
@@ -3745,6 +3747,12 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     klee_error("Unexpected multiple resolution...");
   }
 
+  if (UseAheadRebase && !forceSolver) {
+    rebaseObjectsAhead(state);
+    executeMemoryOperation(state, isWrite, originalAddress, value, target, false, true);
+    return;
+  }
+
   ResolutionList rl;
   bool incomplete = false;
 
@@ -4740,6 +4748,32 @@ const Array *Executor::findUsedArray(ExecutionState &state, const MemoryObject *
     }
   }
   return nullptr;
+}
+
+void Executor::rebaseObjectsAhead(ExecutionState &state) {
+  for (RebaseInfo &ri : RebaseCache::getRebaseCache()->rebased) {
+    if (ri.rid.info->id == state.prevPC->info->id) {
+      std::vector<ObjectPair> ops;
+      if (getMatchingOps(state, ri.rid, ops)) {
+        klee_message("rebasing ahead %lu objects", ops.size());
+        rebaseObjects(state, ops);
+      }
+    }
+  }
+}
+
+bool Executor::getMatchingOps(ExecutionState &state,
+                              RebaseID &rid,
+                              std::vector<ObjectPair> &ops) {
+  for (uint64_t addr : rid.addrs) {
+    ObjectPair op;
+    if (!state.addressSpace.resolveOne(ConstantExpr::create(addr, Expr::Int64), op)) {
+      return false;
+    }
+    ops.push_back(op);
+  }
+
+  return true;
 }
 
 void Executor::prepareForEarlyExit() {
