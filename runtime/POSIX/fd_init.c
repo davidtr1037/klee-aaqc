@@ -123,10 +123,9 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
   for (k=0; k < n_files; k++) {
     name[0] = 'A' + k;
     if (k == 0) {
-      char buffer[500];
+      char buffer[PATH_MAX];
       int filedesc = open(INPUT_PATH, O_RDONLY);
-      printf("file desc %d\n", filedesc);
-      file_length = read(filedesc, buffer, 500);
+      file_length = read(filedesc, buffer, PATH_MAX);
       buffer[file_length + 1] = 0;
       printf("Populating %s %u\n", name, file_length);
       __create_new_dfile(&__exe_fs.sym_files[k], file_length, name, &s);
@@ -147,24 +146,21 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
   
   /* setting symbolic stdin */
   if (stdin_length) {
-    char *fileName = stdin_length > 100000 ? (char *)stdin_length : 0;
-
-    char buffer[500];
+    char *fileName = stdin_length > 100000 ? (char *)(stdin_length) : NULL;
+    char buffer[PATH_MAX] = {0,};
     printf("Filename %p\n", fileName);
     if (fileName) {
       printf("Opening %s\n", fileName);
       int filedesc = open(fileName, O_RDONLY);
-      stdin_length = read(filedesc, buffer, 500);
+      stdin_length = read(filedesc, buffer, PATH_MAX);
       printf("Populating stdin with %llu\n", stdin_length);
     }
     __exe_fs.sym_stdin = malloc(sizeof(*__exe_fs.sym_stdin));
     __create_new_dfile(__exe_fs.sym_stdin, stdin_length, "stdin", &s);
     if (fileName) {
-      printf("Cocnrfetiyng back stdin\n");
       unsigned long long i;
       for (i = 0; i < stdin_length; i++) {
         if (buffer[i] == '?') {
-          klee_assume((__exe_fs.sym_stdin->contents[i] >= 'A') & (__exe_fs.sym_stdin->contents[i] <= 'z'));
           printf("Skipping %llu\n", i);
           continue;
         }
