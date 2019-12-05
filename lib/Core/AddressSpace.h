@@ -163,15 +163,6 @@ namespace klee {
     bool copyInConcrete(const MemoryObject *mo, const ObjectState *os,
                         uint64_t src_address);
 
-    ref<Expr> unfold(const ExecutionState &state,
-                     const ref<Expr> address,
-                     TimingSolver *solver = nullptr) const;
-
-    /* TODO: add docs */
-    void addRewrittenObject(const MemoryObject *mo, ObjectState *os);
-
-    ObjectState *bindCopyWithArray(const MemoryObject *mo, ObjectState *os);
-
     bool canSkip(const MemoryObject *mo,
                  ObjectState *os,
                  std::vector<AllocationContext> &contexts) const;

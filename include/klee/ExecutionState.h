@@ -338,6 +338,8 @@ public:
 
   void computeRewrittenConstraints();
 
+  ref<Expr> unfold(const ref<Expr> address) const;
+
   UpdateList rewriteUL(const UpdateList &ul, const Array *array) const;
 
   UpdateList initializeRewrittenUL(ObjectState *os, const UpdateList &ul) const;
