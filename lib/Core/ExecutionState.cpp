@@ -48,7 +48,7 @@ cl::opt<bool> klee::UseLocalSymAddr("use-local-sym-addr", cl::init(false), cl::d
 
 cl::opt<bool> klee::ReuseArrays("reuse-arrays", cl::init(true), cl::desc("..."));
 
-cl::opt<bool> klee::UseKContext("use-kcontext", cl::init(false), cl::desc("..."));
+cl::opt<unsigned> klee::UseKContext("use-kcontext", cl::init(0), cl::desc("..."));
 
 cl::opt<bool> klee::UseGlobalID("use-global-id", cl::init(false), cl::desc("..."));
 
@@ -874,12 +874,7 @@ void ExecutionState::updateRewrittenArray(const Array *array,
 }
 
 AllocationContext ExecutionState::getAC() const {
-  if (!UseKContext) {
-    return AllocationContext(prevPC->info->id);
-  }
-
   uint64_t h = 0;
-  unsigned int k = 2;
   unsigned int j = 0;
 
   if (stack.size() <= 2) {
@@ -888,11 +883,15 @@ AllocationContext ExecutionState::getAC() const {
   }
 
   for (auto i = stack.rbegin(); i != stack.rend(); i++) {
-    if (j == k) {
+    if (j == UseKContext) {
       break;
     }
 
     const StackFrame &sf = *i;
+    if (!sf.caller) {
+      break;
+    }
+
     h += sf.caller->info->id;
     j++;
   }

@@ -41,7 +41,7 @@ struct InstructionInfo;
 
 extern llvm::cl::opt<bool> UseLocalSymAddr;
 extern llvm::cl::opt<bool> ReuseArrays;
-extern llvm::cl::opt<bool> UseKContext;
+extern llvm::cl::opt<unsigned> UseKContext;
 extern llvm::cl::opt<bool> UseGlobalID;
 extern llvm::cl::opt<bool> UseGlobalRewriteCache;
 
