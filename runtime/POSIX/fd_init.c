@@ -161,6 +161,7 @@ void klee_init_fds(unsigned n_files, unsigned file_length,
       unsigned long long i;
       for (i = 0; i < stdin_length; i++) {
         if (buffer[i] == '?') {
+          klee_assume((__exe_fs.sym_stdin->contents[i] >= 'A') & (__exe_fs.sym_stdin->contents[i] <= 'z'));
           printf("Skipping %llu\n", i);
           continue;
         }
