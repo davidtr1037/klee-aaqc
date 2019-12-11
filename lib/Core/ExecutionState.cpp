@@ -932,6 +932,17 @@ AllocationContext ExecutionState::getAC() const {
 //  return Action::doChildren();
 //}
 
+ExprVisitor::Action AddressUnfolder::visitConcat(const ConcatExpr &e) {
+  ref<ReadExpr> re = dyn_cast<ReadExpr>(e.getLeft());
+  if (!re.isNull() && re->updates.root->isAddressArray) {
+    assert(isa<ConstantExpr>(re->index));
+    ref<AddressRecord> ar = state.getAddressConstraint(re->updates.root->id);
+    return Action::changeTo(ar->address);
+  }
+
+  return Action::doChildren();
+}
+
 ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   if (!e.flag) {
     return Action::skipChildren();
