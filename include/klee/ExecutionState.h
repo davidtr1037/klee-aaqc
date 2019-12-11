@@ -374,6 +374,8 @@ protected:
 
   ExprVisitor::Action visitRead(const ReadExpr &e);
 
+  ExprVisitor::Action visitConcat(const ConcatExpr &e);
+
 public:
 
   AddressUnfolder(const ExecutionState &state) : state(state) {
