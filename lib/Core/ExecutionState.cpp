@@ -290,7 +290,7 @@ void ExecutionState::addConstraint(ref<Expr> e) {
     /* TODO: something better than copy? */
     rewrittenConstraints = constraints;
   } else {
-    ref<Expr> rewritten = addressSpace.unfold(*this, e);
+    ref<Expr> rewritten = unfold(e);
     rewrittenConstraints.addConstraint(rewritten);
   }
 }
@@ -618,9 +618,25 @@ void ExecutionState::dumpAddressConstraints() const {
 void ExecutionState::computeRewrittenConstraints() {
   rewrittenConstraints.clear();
   for (ref<Expr> e : constraints) {
-    ref<Expr> rewritten = addressSpace.unfold(*this, e);
+    ref<Expr> rewritten = unfold(e);
     rewrittenConstraints.addConstraint(rewritten);
   }
+}
+
+ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
+  if (!address->flag) {
+    /* may not contain address expressions */
+    return address;
+  }
+
+  AddressUnfolder unfolder(*this);
+  ref<Expr> unfolded = unfolder.visit(address);
+
+  ReadExprOptimizer optimizer(*this, unfolder.arrays);
+  ref<Expr> optimized = optimizer.visit(unfolded);
+
+  assert(!optimized->flag);
+  return optimized;
 }
 
 UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) const {

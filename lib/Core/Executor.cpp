@@ -3670,7 +3670,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   }
 
   /* TODO: move before the simplification? */
-  address = state.addressSpace.unfold(state, address, solver);
+  address = state.unfold(address);
   address = optimizer.optimizeExpr(address, true);
 
   // fast path: single in-bounds resolution
@@ -3693,7 +3693,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     //ref<Expr> offset = mo->getOffsetExpr(address);
     ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
     /* TODO: remove unfolds? */
-    check = state.addressSpace.unfold(state, check, solver);
+    check = state.unfold(check);
     check = optimizer.optimizeExpr(check, true);
 
     bool inBounds;
@@ -3708,7 +3708,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
 
     if (inBounds) {
       ref<Expr> offset = mo->getOffsetExpr(originalAddress);
-      ref<Expr> rewrittenOffset = state.addressSpace.unfold(state, offset);
+      ref<Expr> rewrittenOffset = state.unfold(offset);
       if (isa<ConstantExpr>(rewrittenOffset)) {
         offset = rewrittenOffset;
       }
@@ -3819,11 +3819,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                 ReadOnly);
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-          ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
+          ref<Expr> offset = bound->unfold(mo->getOffsetExpr(address));
           wos->write(offset, value);
         }
       } else {
-        ref<Expr> offset = bound->addressSpace.unfold(*bound, mo->getOffsetExpr(address), solver);
+        ref<Expr> offset = bound->unfold(mo->getOffsetExpr(address));
         if (shouldSplit(state, mo, os, offset)) {
           splitMO(*bound, ObjectPair(mo, os));
           executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);
