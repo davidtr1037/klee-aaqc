@@ -103,6 +103,10 @@ ref<Expr> ConstraintManager::simplifyExpr(ref<Expr> e) const {
   if (isa<ConstantExpr>(e))
     return e;
 
+  if (isAddressExpr(e)) {
+    return e;
+  }
+
   std::map< ref<Expr>, ref<Expr> > equalities;
   
   for (ConstraintManager::constraints_ty::const_iterator 
@@ -167,4 +171,32 @@ void ConstraintManager::addConstraintInternal(ref<Expr> e) {
 void ConstraintManager::addConstraint(ref<Expr> e) {
   e = simplifyExpr(e);
   addConstraintInternal(e);
+}
+
+bool ConstraintManager::isAddressExpr(ref<Expr> e) const {
+  if (isa<ConcatExpr>(e)) {
+    ConcatExpr* concat = dyn_cast<ConcatExpr>(e);
+    if (concat) {
+      ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+      if (re && re->updates.root->isAddressArray) {
+        return true;
+      }
+    }
+  }
+
+  if (isa<AddExpr>(e)) {
+    AddExpr *add = dyn_cast<AddExpr>(e);
+    ConstantExpr *leftCE = dyn_cast<ConstantExpr>(add->left);
+    if (leftCE) {
+      ConcatExpr *concat = dyn_cast<ConcatExpr>(add->right);
+      if (concat) {
+        ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+        if (re && re->updates.root->isAddressArray) {
+          return true;
+        }
+      }
+    }
+  }
+
+  return false;
 }

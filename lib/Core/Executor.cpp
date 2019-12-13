@@ -3447,7 +3447,7 @@ void Executor::executeAlloc(ExecutionState &state,
         symbolizeMO(state, mo, info);
         /* TODO: the number of bytes can be less thatn the aligned size */
         os->addSubObject(0, getAlignedSize(mo->size), info);
-        bindLocal(target, state, info.address);
+        bindLocal(target, state, mo->getBaseExpr());
       } else {
         bindLocal(target, state, mo->getBaseExpr());
       }
@@ -3691,6 +3691,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
     
     //ref<Expr> offset = mo->getOffsetExpr(address);
+    /* TODO: optimize if unfolded address is constant? */
     ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
     /* TODO: remove unfolds? */
     check = state.unfold(check);
@@ -3707,6 +3708,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
 
     if (inBounds) {
+      /* TODO: optimize if unfolded address is constant? */
       ref<Expr> offset = mo->getOffsetExpr(originalAddress);
       ref<Expr> rewrittenOffset = state.unfold(offset);
       if (isa<ConstantExpr>(rewrittenOffset)) {

@@ -87,6 +87,8 @@ public:
     return false;
   }
 
+  bool isAddressExpr(ref<Expr> e) const;
+
 private:
   std::vector< ref<Expr> > constraints;
 
