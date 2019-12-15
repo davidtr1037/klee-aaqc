@@ -788,7 +788,11 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
 }
 
 UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
-  assert(ul.root && ul.head);
+  assert(ul.root);
+  if (!ul.head) {
+    /* if the list is empty, nothing to rewrite... */
+    return ul;
+  }
 
   const Array *rewritten = getRewrittenArray(ul.root);
   if (!rewritten) {
