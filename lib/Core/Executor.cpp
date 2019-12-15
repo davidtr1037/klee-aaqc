@@ -3690,10 +3690,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       address = toConstant(state, address, "max-sym-array-size");
     }
     
-    //ref<Expr> offset = mo->getOffsetExpr(address);
     /* TODO: optimize if unfolded address is constant? */
     ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
-    /* TODO: remove unfolds? */
     check = state.unfold(check);
     check = optimizer.optimizeExpr(check, true);
 
