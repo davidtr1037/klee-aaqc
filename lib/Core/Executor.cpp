@@ -3400,6 +3400,20 @@ ObjectState *Executor::bindObjectInState(ExecutionState &state,
                                          bool isLocal,
                                          const Array *array) {
   ObjectState *os = array ? new ObjectState(mo, array) : new ObjectState(mo);
+
+  /* copy stuff from existing object */
+  std::vector<SubObject> subObjects;
+  std::vector<SubObject> subSegments;
+  const ObjectState *prevOS = state.addressSpace.findObject(mo);
+  if (prevOS) {
+    for (SubObject o : prevOS->getSubObjects()) {
+      os->addSubObject(o.offset, o.size, o.info);
+    }
+    for (SubObject s : prevOS->getSubSegments()) {
+      os->addSubSegment(s.offset, s.size, s.info);
+    }
+  }
+
   state.addressSpace.bindObject(mo, os);
 
   // Its possible that multiple bindings of the same mo in the state
