@@ -629,6 +629,48 @@ ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
     return address;
   }
 
+  /* a common case where the address is just (A) */
+  if (isa<ConcatExpr>(address)) {
+    ConcatExpr *concat = dyn_cast<ConcatExpr>(address);
+    ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+    if (re && re->updates.root->isAddressArray) {
+      ref<AddressRecord> ar = getAddressConstraint(re->updates.root->id);
+      return ar->address;
+    }
+  }
+
+  /* a common case where the address is (A + C) */
+  if (isa<AddExpr>(address)) {
+    AddExpr *add = dyn_cast<AddExpr>(address);
+    ConstantExpr *leftCE = dyn_cast<ConstantExpr>(add->left);
+    if (leftCE) {
+      if (isa<ConcatExpr>(add->right)) {
+        ConcatExpr *concat = dyn_cast<ConcatExpr>(add->right);
+        ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+        if (re && re->updates.root->isAddressArray) {
+          ref<AddressRecord> ar = getAddressConstraint(re->updates.root->id);
+          /* TODO: use directly ConstantExpr? */
+          return AddExpr::create(ar->address, leftCE);
+        }
+      }
+    }
+  }
+
+  /* a common case where we have (A == 0) */
+  if (isa<EqExpr>(address)) {
+    EqExpr *eq = dyn_cast<EqExpr>(address);
+    ConstantExpr *leftCE = dyn_cast<ConstantExpr>(eq->left);
+    if (leftCE && leftCE->getZExtValue() == 0) {
+      if (isa<ConcatExpr>(eq->right)) {
+        ConcatExpr *concat = dyn_cast<ConcatExpr>(eq->right);
+        ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+        if (re && re->updates.root->isAddressArray) {
+          return ConstantExpr::alloc(0, Expr::Bool);
+        }
+      }
+    }
+  }
+
   AddressUnfolder unfolder(*this);
   ref<Expr> unfolded = unfolder.visit(address);
 

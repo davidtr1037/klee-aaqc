@@ -3400,6 +3400,20 @@ ObjectState *Executor::bindObjectInState(ExecutionState &state,
                                          bool isLocal,
                                          const Array *array) {
   ObjectState *os = array ? new ObjectState(mo, array) : new ObjectState(mo);
+
+  /* copy stuff from existing object */
+  std::vector<SubObject> subObjects;
+  std::vector<SubObject> subSegments;
+  const ObjectState *prevOS = state.addressSpace.findObject(mo);
+  if (prevOS) {
+    for (SubObject o : prevOS->getSubObjects()) {
+      os->addSubObject(o.offset, o.size, o.info);
+    }
+    for (SubObject s : prevOS->getSubSegments()) {
+      os->addSubSegment(s.offset, s.size, s.info);
+    }
+  }
+
   state.addressSpace.bindObject(mo, os);
 
   // Its possible that multiple bindings of the same mo in the state
@@ -3447,7 +3461,7 @@ void Executor::executeAlloc(ExecutionState &state,
         symbolizeMO(state, mo, info);
         /* TODO: the number of bytes can be less thatn the aligned size */
         os->addSubObject(0, getAlignedSize(mo->size), info);
-        bindLocal(target, state, info.address);
+        bindLocal(target, state, mo->getBaseExpr());
       } else {
         bindLocal(target, state, mo->getBaseExpr());
       }
@@ -3690,9 +3704,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
       address = toConstant(state, address, "max-sym-array-size");
     }
     
-    //ref<Expr> offset = mo->getOffsetExpr(address);
+    /* TODO: optimize if unfolded address is constant? */
     ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
-    /* TODO: remove unfolds? */
     check = state.unfold(check);
     check = optimizer.optimizeExpr(check, true);
 
@@ -3707,6 +3720,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
 
     if (inBounds) {
+      /* TODO: optimize if unfolded address is constant? */
       ref<Expr> offset = mo->getOffsetExpr(originalAddress);
       ref<Expr> rewrittenOffset = state.unfold(offset);
       if (isa<ConstantExpr>(rewrittenOffset)) {
