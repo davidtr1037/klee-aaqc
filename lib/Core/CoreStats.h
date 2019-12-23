@@ -46,6 +46,7 @@ namespace stats {
   /// Instruction level statistic tracking the minimum intraprocedural
   /// distance to a function return.
   extern Statistic minDistToReturn;
+  extern Statistic resolveQueries;
 
 }
 }
