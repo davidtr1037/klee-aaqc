@@ -184,6 +184,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
   // to add I just want to have a nice symbolic test case first.
   const MemoryObject *mo = op.first;
   ref<Expr> inBounds = mo->getBoundsCheckPointer(p);
+  stats::resolveQueries += 1;
   bool mayBeTrue;
   if (!solver->mayBeTrue(state, inBounds, mayBeTrue)) {
     return 1;
@@ -195,6 +196,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
     // fast path check
     auto size = rl.size();
     if (size == 1) {
+      stats::resolveQueries += 1;
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, inBounds, mustBeTrue))
         return 1;
@@ -267,6 +269,7 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
       if (incomplete != 2)
         return incomplete ? true : false;
 
+      stats::resolveQueries += 1;
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, UgeExpr::create(p, mo->getBaseExpr()),
                               mustBeTrue))
@@ -286,6 +289,7 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
         continue;
       }
 
+      stats::resolveQueries += 1;
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, UltExpr::create(p, mo->getBaseExpr()),
                               mustBeTrue))

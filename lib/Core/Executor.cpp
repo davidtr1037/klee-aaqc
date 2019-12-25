@@ -4044,6 +4044,8 @@ void Executor::runFunctionAsMain(Function *f,
   delete memory;
   memory = new MemoryManager(NULL);
 
+  klee_message("Resolve queries: %lu", (uint64_t)(stats::resolveQueries));
+
   //delete addressMemory;
   //addressMemory = new MemoryManager(NULL);
 
