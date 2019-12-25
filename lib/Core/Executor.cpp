@@ -4680,7 +4680,7 @@ bool Executor::splitMO(ExecutionState &state, ObjectPair op) {
   std::vector<const MemoryObject *> objects;
   memory->allocateWithPartition(partition, false, false, nullptr, 16,
                                 &state.local_next_slot, objects);
-  klee_message("splitting object %lu to %lu objects", mo->address, objects.size());
+  klee_message("splitting object %lu (size = %lu) to %lu objects", mo->address, mo->size, objects.size());
 
   uint64_t offset = 0;
   for (const MemoryObject *newMO : objects) {
