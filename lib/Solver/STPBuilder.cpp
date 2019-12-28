@@ -48,6 +48,9 @@ namespace {
                    llvm::cl::desc("Use hash-consing during STP query construction (default=true)"),
                    llvm::cl::init(true),
                    llvm::cl::cat(klee::ExprCat));
+  llvm::cl::opt<bool> UseNodeCache("use-node-cache-stp",
+                                   llvm::cl::desc("..."),
+                                   llvm::cl::init(false));
 }
 
 ///
@@ -485,7 +488,9 @@ ExprHandle STPBuilder::getInitialRead(const Array *root, unsigned index) {
                                construct(un->index, 0),
                                construct(un->value, 0));
 	
-	_arr_hash.hashUpdateNodeExpr(un, un_expr);
+	if (UseNodeCache) {
+	  _arr_hash.hashUpdateNodeExpr(un, un_expr);
+	}
       }
       
       return(un_expr);

@@ -478,11 +478,14 @@ bool ExecutionState::merge(const ExecutionState &b) {
     }
   }
 
+  /* export some API for clearing constraints? */
   constraints = ConstraintManager();
+  rewrittenConstraints = ConstraintManager();
   for (std::set< ref<Expr> >::iterator it = commonConstraints.begin(), 
-         ie = commonConstraints.end(); it != ie; ++it)
-    constraints.addConstraint(*it);
-  constraints.addConstraint(OrExpr::create(inA, inB));
+         ie = commonConstraints.end(); it != ie; ++it) {
+    addConstraint(*it);
+  }
+  addConstraint(OrExpr::create(inA, inB));
 
   return true;
 }
