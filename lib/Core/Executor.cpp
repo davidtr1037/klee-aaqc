@@ -4649,7 +4649,7 @@ bool Executor::shouldSplit(ExecutionState &state,
                            const MemoryObject *mo,
                            const ObjectState *os,
                            ref<Expr> offset) {
-  if (SplitObjects && !isa<ConstantExpr>(offset) && mo->size > SplitThreshold) {
+  if (SplitObjects && !isa<ConstantExpr>(offset) && mo->size > SplitThreshold && PartitionSize < mo->size) {
     klee_warning("symbolic read from array of size %u", mo->size);
     if (os->getSubObjects().empty()) {
       klee_warning("can't split fixed object");
