@@ -83,6 +83,8 @@ public:
   /* TODO: ... */
   mutable AllocationContext ac;
 
+  int canFree;
+
   // DO NOT IMPLEMENT
   MemoryObject(const MemoryObject &b);
   MemoryObject &operator=(const MemoryObject &b);
@@ -97,11 +99,12 @@ public:
       size(0),
       isFixed(true),
       parent(NULL),
-      allocSite(0) {
+      allocSite(0),
+      canFree(false) {
   }
 
   MemoryObject(uint64_t _address, unsigned _size, 
-               bool _isLocal, bool _isGlobal, bool _isFixed,
+               bool _isLocal, bool _isGlobal, bool _isFixed, bool canFree,
                const llvm::Value *_allocSite,
                MemoryManager *_parent)
     : refCount(0), 
@@ -114,7 +117,8 @@ public:
       isFixed(_isFixed),
       isUserSpecified(false),
       parent(_parent), 
-      allocSite(_allocSite) {
+      allocSite(_allocSite),
+      canFree(canFree) {
   }
 
   ~MemoryObject();

@@ -166,7 +166,7 @@ MemoryObject *MemoryManager::allocate(uint64_t size, bool isLocal,
     return 0;
 
   ++stats::allocations;
-  MemoryObject *res = new MemoryObject(address, size, isLocal, isGlobal, false,
+  MemoryObject *res = new MemoryObject(address, size, isLocal, isGlobal, false, true,
                                        allocSite, this);
   objects.insert(res);
   return res;
@@ -189,7 +189,7 @@ MemoryObject *MemoryManager::allocateFixed(uint64_t address, uint64_t size,
 
   ++stats::allocations;
   MemoryObject *res =
-      new MemoryObject(address, size, false, true, true, allocSite, this);
+      new MemoryObject(address, size, false, true, true, true, allocSite, this);
   objects.insert(res);
   return res;
 }
@@ -238,8 +238,15 @@ bool MemoryManager::allocateWithPartition(std::vector<uint64_t> partition,
       address = 0;
     }
   } else {
-    /* not supported yet... */
-    assert(0);
+    if (alignment <= 8) {
+      address = (uint64_t)(malloc(total_size));
+    } else {
+      int res = posix_memalign((void **)(&address), alignment, total_size);
+      if (res < 0) {
+        klee_warning("Allocating aligned memory failed.");
+        address = 0;
+      }
+    }
   }
 
   if (LocalAddressSpace) {
@@ -255,10 +262,12 @@ bool MemoryManager::allocateWithPartition(std::vector<uint64_t> partition,
   uint64_t offset = 0;
   for (size_t mo_size : partition) {
     ++stats::allocations;
+    /* TODO: first object can be free'd */
     MemoryObject *mo = new MemoryObject(address + offset,
                                         mo_size,
                                         isLocal,
                                         isGlobal,
+                                        false,
                                         false,
                                         allocSite,
                                         this);
@@ -274,7 +283,7 @@ void MemoryManager::deallocate(const MemoryObject *mo) { assert(0); }
 
 void MemoryManager::markFreed(MemoryObject *mo) {
   if (objects.find(mo) != objects.end()) {
-    if (!mo->isFixed && !DeterministicAllocation)
+    if (!mo->isFixed && mo->canFree && !DeterministicAllocation)
       free((void *)mo->address);
     objects.erase(mo);
   }
