@@ -4493,8 +4493,7 @@ void Executor::fillSegment(ExecutionState &state,
       }
       ref<Expr> old = segmentOS->read8(offset + j);
       ref<Expr> n = os->read8(j);
-      /* TODO: hash check? */
-      if (!seen || old->hash() != n->hash()) {
+      if (!seen || (old->compare(*n.get()) != 0)) {
         segmentOS->write(offset + j, n);
       }
     }
