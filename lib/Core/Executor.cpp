@@ -4390,6 +4390,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
 
     ObjectState *os = ri.oh;
     segmentOS = bindObjectInState(state, segmentMO, false, os->getArray());
+    segmentOS->initializeToZero();
     assert(segmentOS->size == total_size);
 
     klee_message("%p: reusing allocated address: %lu (size = %u)",
@@ -4403,6 +4404,7 @@ bool Executor::rebaseObjects(ExecutionState &state, std::vector<ObjectPair> ops)
       segmentMO = memory->allocate(total_size + reserved, false, false, nullptr, 8,
                                    &state.local_next_slot);
       segmentOS = bindObjectInState(state, segmentMO, false);
+      segmentOS->initializeToZero();
       klee_message("%p: creating new segment: %lu (size = %u)",
                    &state, segmentMO->address, segmentOS->size);
       SymbolicAddressInfo info;
