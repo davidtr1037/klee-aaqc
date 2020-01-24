@@ -4483,6 +4483,7 @@ void Executor::fillSegment(ExecutionState &state,
     /* TODO: ... */
     addRebasedAddress(mo->address);
 
+    /* TODO: remove getEffectiveSize */
     uint64_t to_copy = os->getSubObjects().size() == 1 ? mo->size : os->getEffectiveSize();
     for (unsigned j = 0; j < to_copy; j++) {
       if (offset + j >= segmentOS->size) {
