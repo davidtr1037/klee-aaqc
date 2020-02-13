@@ -3,6 +3,7 @@
 
 #include "klee/Expr.h"
 #include "klee/Solver.h"
+#include "klee/SolverImpl.h"
 
 #include <vector>
 
@@ -10,16 +11,14 @@ namespace klee {
   class ExecutionState;
   class Solver;  
 
-  class SubstitutionSolver {
+  class SubstitutionSolver : public SolverImpl {
   public:
 
     Solver *solver;
-    bool simplifyExprs;
 
   public:
 
-    SubstitutionSolver(Solver *_solver, bool _simplifyExprs = true) 
-      : solver(_solver), simplifyExprs(_simplifyExprs) {
+    SubstitutionSolver(Solver *solver) : solver(solver) {
 
     }
 
@@ -27,12 +26,31 @@ namespace klee {
       delete solver;
     }
 
-    void setTimeout(time::Span t) {
-      solver->setCoreSolverTimeout(t);
+    bool computeTruth(const Query &query, bool &isValid) {
+      return solver->impl->computeTruth(query, isValid);
     }
-    
+
+    bool computeValue(const Query& query, ref<Expr> &result) {
+      return solver->impl->computeValue(query, result);
+    }
+
+    bool computeInitialValues(const Query& query,
+                              const std::vector<const Array*> &objects,
+                              std::vector< std::vector<unsigned char> > &values,
+                              bool &hasSolution) {
+      return solver->impl->computeInitialValues(query, objects, values, hasSolution);
+    }
+
+    SolverRunStatus getOperationStatusCode() {
+      return solver->impl->getOperationStatusCode();
+    }
+
     char *getConstraintLog(const Query& query) {
       return solver->getConstraintLog(query);
+    }
+
+    void setCoreSolverTimeout(time::Span timeout) {
+      solver->impl->setCoreSolverTimeout(timeout);
     }
 
     bool evaluate(const ExecutionState&, ref<Expr>, Solver::Validity &result);
