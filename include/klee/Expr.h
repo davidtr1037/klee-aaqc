@@ -288,6 +288,12 @@ public:
 
   static bool classof(const Expr *) { return true; }
 
+  virtual bool isIsomorphic(const Expr &b) const;
+
+  virtual bool compareContentsIsomorphism(const Expr &b) const {
+    return compareContents(b) == 0;
+  }
+
 private:
   typedef llvm::DenseSet<std::pair<const Expr *, const Expr *> > ExprEquivSet;
   int compare(const Expr &b, ExprEquivSet &equivs) const;
@@ -479,6 +485,7 @@ public:
 
   int compare(const UpdateNode &b) const;  
   unsigned hash() const { return hashValue; }
+  bool isIsomorphic(const UpdateNode &b) const;
 
 private:
   UpdateNode() : refCount(0) {}
@@ -571,6 +578,7 @@ public:
 
   int compare(const UpdateList &b) const;
   unsigned hash() const;
+  bool isIsomorphic(const UpdateList &b) const;
 private:
   void tryFreeNodes();
 };
@@ -602,6 +610,8 @@ public:
   ref<Expr> getKid(unsigned i) const { return !i ? index : 0; }
   
   int compareContents(const Expr &b) const;
+
+  bool compareContentsIsomorphism(const Expr &b) const;
 
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
     return create(updates, kids[0]);

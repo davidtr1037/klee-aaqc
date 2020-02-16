@@ -170,6 +170,28 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
     }
 }
 
+bool Expr::isIsomorphic(const Expr &b) const {
+  if (this == &b) {
+    return true;
+  }
+
+  if (getKind() != b.getKind()) {
+    return false;
+  }
+
+  if (!compareContentsIsomorphism(b)) {
+    return false;
+  }
+
+  unsigned aN = getNumKids();
+  for (unsigned i = 0; i < aN; i++) {
+    if (!getKid(i)->isIsomorphic(*b.getKid(i))) {
+      return false;
+    }
+  }
+
+  return true;
+}
 ////////
 //
 // Simple hash functions for various kinds of Exprs
@@ -588,6 +610,10 @@ ref<Expr> ReadExpr::create(const UpdateList &ul, ref<Expr> index) {
 
 int ReadExpr::compareContents(const Expr &b) const { 
   return updates.compare(static_cast<const ReadExpr&>(b).updates);
+}
+
+bool ReadExpr::compareContentsIsomorphism(const Expr &b) const {
+  return updates.isIsomorphic(static_cast<const ReadExpr&>(b).updates);
 }
 
 ref<Expr> SelectExpr::create(ref<Expr> c, ref<Expr> t, ref<Expr> f) {
