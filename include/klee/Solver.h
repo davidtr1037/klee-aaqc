@@ -45,6 +45,10 @@ namespace klee {
       return withExpr(Expr::createIsZero(expr));
     }
 
+    bool isEqual(const Query &other) const;
+
+    bool isIsomorphic(const Query &other) const;
+
     /// Dump query
     void dump() const ;
   };

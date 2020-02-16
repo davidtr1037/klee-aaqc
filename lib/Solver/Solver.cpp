@@ -220,6 +220,29 @@ std::pair< ref<Expr>, ref<Expr> > Solver::getRange(const Query& query) {
                         ConstantExpr::create(max, width));
 }
 
+bool Query::isIsomorphic(const Query &other) const {
+  if (constraints.size() != other.constraints.size()) {
+    return false;
+  }
+
+  if (!expr->isIsomorphic(*other.expr)) {
+    return false;
+  }
+
+  auto iter1 = constraints.begin();
+  auto iter2 = other.constraints.begin();
+  while (iter1 != constraints.end()) {
+    ref<Expr> e1 = *iter1;
+    ref<Expr> e2 = *iter2;
+    if (!e1->isIsomorphic(*e2)) {
+      return false;
+    }
+
+    iter1++; iter2++;
+  }
+  return true;
+}
+
 void Query::dump() const {
   llvm::errs() << "Constraints [\n";
   for (ConstraintManager::const_iterator i = constraints.begin();
