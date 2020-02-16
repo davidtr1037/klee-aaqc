@@ -89,6 +89,11 @@ Todo: Shouldn't bool \c Xor just be written as not equal?
 
 */
 
+struct ArrayMapping {
+  std::map<uint64_t, uint64_t> map;
+  bool add(const Array *from, const Array *to);
+};
+
 class Expr {
 public:
   static unsigned count;
@@ -290,7 +295,9 @@ public:
 
   virtual bool isIsomorphic(const Expr &b) const;
 
-  virtual bool compareContentsIsomorphism(const Expr &b) const {
+  virtual bool isIsomorphic(const Expr &b, ArrayMapping &map) const;
+
+  virtual bool compareContentsIsomorphism(const Expr &b, ArrayMapping &map) const {
     return compareContents(b) == 0;
   }
 
@@ -485,7 +492,7 @@ public:
 
   int compare(const UpdateNode &b) const;  
   unsigned hash() const { return hashValue; }
-  bool isIsomorphic(const UpdateNode &b) const;
+  bool isIsomorphic(const UpdateNode &b, ArrayMapping &map) const;
 
 private:
   UpdateNode() : refCount(0) {}
@@ -578,7 +585,7 @@ public:
 
   int compare(const UpdateList &b) const;
   unsigned hash() const;
-  bool isIsomorphic(const UpdateList &b) const;
+  bool isIsomorphic(const UpdateList &b, ArrayMapping &map) const;
 private:
   void tryFreeNodes();
 };
@@ -611,7 +618,7 @@ public:
   
   int compareContents(const Expr &b) const;
 
-  bool compareContentsIsomorphism(const Expr &b) const;
+  bool compareContentsIsomorphism(const Expr &b, ArrayMapping &map) const;
 
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const {
     return create(updates, kids[0]);

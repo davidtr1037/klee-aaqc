@@ -59,8 +59,8 @@ unsigned UpdateNode::computeHash() {
   return hashValue;
 }
 
-bool UpdateNode::isIsomorphic(const UpdateNode &b) const {
-  return index->isIsomorphic(*b.index) && value->isIsomorphic(*b.value);
+bool UpdateNode::isIsomorphic(const UpdateNode &b, ArrayMapping &map) const {
+  return index->isIsomorphic(*b.index, map) && value->isIsomorphic(*b.value, map);
 }
 
 ///
@@ -195,7 +195,7 @@ unsigned UpdateList::hash() const {
   return res;
 }
 
-bool UpdateList::isIsomorphic(const UpdateList &b) const {
+bool UpdateList::isIsomorphic(const UpdateList &b, ArrayMapping &map) const {
   if (getSize() != b.getSize()) {
     return false;
   }
@@ -214,15 +214,12 @@ bool UpdateList::isIsomorphic(const UpdateList &b) const {
 
   const UpdateNode *an = head, *bn = b.head;
   for (; an && bn; an = an->next, bn = bn->next) {
-    if (an == bn) { // exploit shared list structure
-      return true;
-    } else {
-      if (!an->isIsomorphic(*bn)) {
+    /* TODO: exploit shared list structure? */
+    if (!an->isIsomorphic(*bn, map)) {
         return false;
-      }
     }
   }
 
   assert(!an && !bn);
-  return true;
+  return map.add(root, b.root);
 }

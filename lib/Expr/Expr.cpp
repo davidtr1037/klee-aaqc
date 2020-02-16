@@ -41,6 +41,15 @@ cl::opt<bool> ConstArrayOpt(
 
 /***/
 
+bool ArrayMapping::add(const Array *from, const Array *to) {
+  auto i = map.find(from->id);
+  if (i != map.end()) {
+    return i->second == to->id;
+  }
+  map[from->id] = to->id;
+  return true;
+}
+
 unsigned Expr::count = 0;
 
 ref<Expr> Expr::createTempRead(const Array *array, Expr::Width w) {
@@ -171,21 +180,26 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
 }
 
 bool Expr::isIsomorphic(const Expr &b) const {
-  if (this == &b) {
-    return true;
-  }
+  ArrayMapping map;
+  return isIsomorphic(b, map);
+}
+
+bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
+  //if (this == &b) {
+  //  return true;
+  //}
 
   if (getKind() != b.getKind()) {
     return false;
   }
 
-  if (!compareContentsIsomorphism(b)) {
+  if (!compareContentsIsomorphism(b, map)) {
     return false;
   }
 
   unsigned aN = getNumKids();
   for (unsigned i = 0; i < aN; i++) {
-    if (!getKid(i)->isIsomorphic(*b.getKid(i))) {
+    if (!getKid(i)->isIsomorphic(*b.getKid(i), map)) {
       return false;
     }
   }
@@ -612,8 +626,8 @@ int ReadExpr::compareContents(const Expr &b) const {
   return updates.compare(static_cast<const ReadExpr&>(b).updates);
 }
 
-bool ReadExpr::compareContentsIsomorphism(const Expr &b) const {
-  return updates.isIsomorphic(static_cast<const ReadExpr&>(b).updates);
+bool ReadExpr::compareContentsIsomorphism(const Expr &b, ArrayMapping &map) const {
+  return updates.isIsomorphic(static_cast<const ReadExpr&>(b).updates, map);
 }
 
 ref<Expr> SelectExpr::create(ref<Expr> c, ref<Expr> t, ref<Expr> f) {
