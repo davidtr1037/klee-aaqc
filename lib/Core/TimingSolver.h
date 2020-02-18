@@ -20,12 +20,33 @@ namespace klee {
   class ExecutionState;
   class Solver;  
 
+  /* TODO: remove */
+  struct SolverQuery {
+
+  public:
+    std::vector<ref<Expr>> constraints;
+    ref<Expr> expr;
+
+    SolverQuery(std::vector<ref<Expr>> &constraints, ref<Expr> expr)
+      : constraints(constraints), expr(expr) {
+    }
+
+    bool isEqual(const SolverQuery &other) const;
+
+    bool isIsomorphic(const SolverQuery &other) const;
+
+    void dump() const;
+  };
+
   /// TimingSolver - A simple class which wraps a solver and handles
   /// tracking the statistics that we care about.
   class TimingSolver {
   public:
     Solver *solver;
     bool simplifyExprs;
+    /* TODO: remove */
+    //std::vector<Query> queries;
+    std::vector<SolverQuery> queries;
 
   public:
     /// TimingSolver - Construct a new timing solver.
@@ -70,6 +91,8 @@ namespace klee {
     void fillConstraints(const ExecutionState &state,
                          ConstraintManager &cm,
                          ref<Expr> q);
+
+    void handleExpr(const ExecutionState &state, ref<Expr> expr);
   };
 
 }
