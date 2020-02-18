@@ -383,6 +383,9 @@ IndependentElementSet getIndependentConstraints(const Query& query,
   return eltsClosure;
 }
 
+void klee::sliceConstraints(const Query& query, std::vector<ref<Expr>> &result) {
+  getIndependentConstraints(query, result);
+}
 
 // Extracts which arrays are referenced from a particular independent set.  Examines both
 // the actual known array accesses arr[1] plus the undetermined accesses arr[x].

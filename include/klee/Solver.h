@@ -53,6 +53,9 @@ namespace klee {
     void dump() const ;
   };
 
+  /* TODO: remove */
+  void sliceConstraints(const Query& query, std::vector<ref<Expr>> &result);
+
   class Solver {
     // DO NOT IMPLEMENT.
     Solver(const Solver&);
