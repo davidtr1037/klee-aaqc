@@ -166,3 +166,43 @@ void TimingSolver::fillConstraints(const ExecutionState &state,
   //extra = state.build(conditions);
   //cm.addConstraint(extra);
 }
+
+void TimingSolver::handleExpr(const ExecutionState &state, ref<Expr> expr) {
+  if (!expr->flag) {
+    return;
+  }
+
+  ref<Expr> u = state.unfold(expr);
+  if (isa<ConstantExpr>(u)) {
+    return;
+  }
+
+  std::vector<ref<Expr>> pc(state.constraints.begin(), state.constraints.end());
+  SolverQuery q(pc, expr);
+  queries_count++;
+  //q.dump();
+
+  bool found;
+
+  found = false;
+  for (SolverQuery other : queries) {
+    if (q.isEqual(other)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    queries.push_back(q);
+  }
+
+  found = false;
+  for (SolverQuery other : equivalent) {
+    if (q.isIsomorphic(other)) {
+      found = true;
+      break;
+    }
+  }
+  if (!found) {
+    equivalent.push_back(q);
+  }
+}

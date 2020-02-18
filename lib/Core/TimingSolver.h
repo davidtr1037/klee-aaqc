@@ -45,8 +45,9 @@ namespace klee {
     Solver *solver;
     bool simplifyExprs;
     /* TODO: remove */
-    //std::vector<Query> queries;
     std::vector<SolverQuery> queries;
+    std::vector<SolverQuery> equivalent;
+    uint64_t queries_count = 0;
 
   public:
     /// TimingSolver - Construct a new timing solver.
