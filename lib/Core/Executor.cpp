@@ -3691,7 +3691,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   ObjectPair op;
   bool success;
   solver->setTimeout(coreSolverTimeout);
-  if (!state.addressSpace.resolveOne(state, solver, address, op, success)) {
+  if (!state.addressSpace.resolveOne(state, solver, originalAddress, op, success)) {
     address = toConstant(state, address, "resolveOne failure");
     success = state.addressSpace.resolveOne(cast<ConstantExpr>(address), op);
   }
@@ -3789,7 +3789,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
     address = optimizer.optimizeExpr(address, true);
     solver->setTimeout(coreSolverTimeout);
-    incomplete = state.addressSpace.resolve(state, solver, address, rl, contexts, 0, coreSolverTimeout);
+    incomplete = state.addressSpace.resolve(state, solver, originalAddress, rl, contexts, 0, coreSolverTimeout);
     solver->setTimeout(time::Span());
     klee_message("multiple resolution (solver): %lu", rl.size());
     updateResolveCache(state, rl);

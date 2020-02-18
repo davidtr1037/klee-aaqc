@@ -89,8 +89,8 @@ bool AddressSpace::resolveOne(ExecutionState &state,
                               ref<Expr> address,
                               ObjectPair &result,
                               bool &success) const {
-  address = state.unfold(address);
-  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(address)) {
+  ref<Expr> unfolded = state.unfold(address);
+  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(unfolded)) {
     success = resolveOne(CE, result);
     return true;
   } else {
@@ -215,8 +215,8 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
                            ref<Expr> p, ResolutionList &rl,
                            std::vector<AllocationContext> &contexts,
                            unsigned maxResolutions, time::Span timeout) const {
-  p = state.unfold(p);
-  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(p)) {
+  ref<Expr> unfolded = state.unfold(p);
+  if (ConstantExpr *CE = dyn_cast<ConstantExpr>(unfolded)) {
     ObjectPair res;
     if (resolveOne(CE, res))
       rl.push_back(res);
