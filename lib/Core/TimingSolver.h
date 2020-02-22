@@ -38,6 +38,91 @@ namespace klee {
     void dump() const;
   };
 
+  struct CacheResult {
+    bool _isTrue;
+    bool _isFalse;
+    bool _isUnknown;
+
+    CacheResult(): _isTrue(false), _isFalse(false), _isUnknown(false) {
+
+    }
+
+    CacheResult(bool isTrue, bool isFalse, bool isUnknown) :
+      _isTrue(isTrue), _isFalse(isFalse), _isUnknown(isUnknown) {
+      assert(!(isTrue && isFalse));
+    }
+
+    CacheResult(Solver::Validity validity) {
+      setValue(validity);
+    }
+
+    bool mustBeTrue() {
+      return _isTrue && !_isUnknown;
+    }
+
+    bool mustBeFalse() {
+      return _isFalse && !_isUnknown;
+    }
+
+    bool mayBeTrue() {
+      return _isTrue && _isUnknown;
+    }
+
+    bool mayBeFalse() {
+      return _isFalse && _isUnknown;
+    }
+
+    bool isUnknown() {
+      return _isUnknown && !_isTrue && !_isFalse;
+    }
+
+    void setMustBeTrue() {
+      _isTrue = true; _isFalse = false; _isUnknown = false;
+    }
+
+    void setMustBeFalse() {
+      _isTrue = false; _isFalse = true; _isUnknown = false;
+    }
+
+    void setMayBeTrue() {
+      _isTrue = true; _isFalse = false; _isUnknown = true;
+    }
+
+    void setMayBeFalse() {
+      _isTrue = false; _isFalse = true; _isUnknown = true;
+    }
+
+    void setUnknown() {
+      _isTrue = false; _isFalse = false; _isUnknown = true;
+    }
+
+    void setValue(Solver::Validity validity) {
+      switch (validity) {
+      case Solver::True:
+        setMustBeTrue();
+        break;
+      case Solver::False:
+        setMustBeFalse();
+        break;
+      case Solver::Unknown:
+        setUnknown();
+        break;
+      default:
+        assert(false);
+        break;
+      }
+    }
+  };
+
+  struct CacheEntry {
+    SolverQuery q;
+    CacheResult result;
+
+    CacheEntry(SolverQuery &q, CacheResult &result) : q(q), result(result) {
+
+    }
+  };
+
   /// TimingSolver - A simple class which wraps a solver and handles
   /// tracking the statistics that we care about.
   class TimingSolver {
@@ -48,6 +133,9 @@ namespace klee {
     std::vector<SolverQuery> queries;
     std::vector<SolverQuery> equivalent;
     uint64_t queries_count = 0;
+
+    typedef std::vector<CacheEntry> Cache;
+    Cache cache;
 
   public:
     /// TimingSolver - Construct a new timing solver.
@@ -93,7 +181,13 @@ namespace klee {
                          ConstraintManager &cm,
                          ref<Expr> q);
 
-    void handleExpr(const ExecutionState &state, ref<Expr> expr);
+    void collectStats(const ExecutionState &state, ref<Expr> expr);
+
+    bool shouldCacheQuery(ref<Expr> expr);
+
+    CacheResult *lookupQuery(const ExecutionState &state, SolverQuery &query);
+
+    void insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result);
   };
 
 }
