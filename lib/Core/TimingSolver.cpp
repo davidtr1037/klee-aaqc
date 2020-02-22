@@ -20,7 +20,8 @@
 using namespace klee;
 using namespace llvm;
 
-cl::opt<bool> CollectQueryStats("collect-query-stats", cl::init(true), cl::desc("..."));
+cl::opt<bool> CollectQueryStats("collect-query-stats", cl::init(false), cl::desc("..."));
+cl::opt<bool> UseIsomorphismCache("use-iso-cache", cl::init(false), cl::desc("..."));
 
 /***/
 
@@ -83,7 +84,11 @@ void SolverQuery::dump() const {
 }
 bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
                             Solver::Validity &result) {
-  handleExpr(state, expr);
+  if (CollectQueryStats) {
+    collectStats(state, expr);
+  }
+
+  ref<Expr> ade = expr;
   expr = state.unfold(expr);
   // Fast path, to avoid timer and OS overhead.
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(expr)) {
@@ -96,11 +101,41 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  //ConstraintManager cm;
-  //fillConstraints(state, cm, expr);
-  //bool success = solver->evaluate(Query(cm, expr), result);
-  bool success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
-  //bool success = solver->evaluate(Query(state.constraints, expr), result);
+  bool success = false;
+  if (shouldCacheQuery(ade)) {
+    Query query(state.constraints, ade);
+    std::vector<ref<Expr>> required;
+    sliceConstraints(query, required);
+    SolverQuery q(required, ade);
+    CacheResult *cachedResult = lookupQuery(state, q);
+    if (cachedResult) {
+      if (cachedResult->mustBeTrue()) {
+        result = Solver::True;
+        success = true;
+      } else if (cachedResult->mustBeFalse()) {
+        result = Solver::False;
+        success = true;
+      } else if (cachedResult->isUnknown()) {
+        result = Solver::Unknown;
+        success = true;
+      } else {
+        assert(0);
+        assert(cachedResult->mayBeFalse());
+        success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+        cachedResult->setValue(result);
+      }
+    } else {
+      success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+      if (success) {
+        CacheResult newResult(result);
+        insertQuery(state, q, newResult);
+      }
+    }
+  } else {
+    success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+  }
+
+  //bool success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
 
   state.queryCost += timer.check();
 
@@ -109,7 +144,11 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
 bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr, 
                               bool &result) {
-  handleExpr(state, expr);
+  if (CollectQueryStats) {
+    collectStats(state, expr);
+  }
+
+  ref<Expr> ade = expr;
   expr = state.unfold(expr);
   // Fast path, to avoid timer and OS overhead.
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(expr)) {
@@ -122,11 +161,31 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  //ConstraintManager cm;
-  //fillConstraints(state, cm, expr);
-  //bool success = solver->mustBeTrue(Query(cm, expr), result);
-  bool success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
-  //bool success = solver->mustBeTrue(Query(state.constraints, expr), result);
+  bool success = false;
+  if (false && shouldCacheQuery(ade)) {
+    Query query(state.constraints, ade);
+    std::vector<ref<Expr>> required;
+    sliceConstraints(query, required);
+    SolverQuery q(required, ade);
+    CacheResult *cachedResult = lookupQuery(state, q);
+    if (cachedResult) {
+      result = cachedResult->mustBeTrue();
+      success = true;
+    } else {
+      success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+      CacheResult newResult;
+      if (result) {
+        newResult.setMustBeTrue();
+      } else {
+        newResult.setMayBeFalse();
+      }
+      insertQuery(state, q, newResult);
+    }
+  } else {
+    success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+  }
+
+  //bool success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
 
   state.queryCost += timer.check();
 
@@ -158,7 +217,6 @@ bool TimingSolver::mayBeFalse(const ExecutionState& state, ref<Expr> expr,
 
 bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr, 
                             ref<ConstantExpr> &result) {
-  handleExpr(state, expr);
   expr = state.unfold(expr);
   // Fast path, to avoid timer and OS overhead.
   if (ConstantExpr *CE = dyn_cast<ConstantExpr>(expr)) {
@@ -229,11 +287,7 @@ void TimingSolver::fillConstraints(const ExecutionState &state,
   //cm.addConstraint(extra);
 }
 
-void TimingSolver::handleExpr(const ExecutionState &state, ref<Expr> expr) {
-  if (!CollectQueryStats) {
-    return;
-  }
-
+void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
   if (!expr->flag) {
     return;
   }
@@ -247,9 +301,6 @@ void TimingSolver::handleExpr(const ExecutionState &state, ref<Expr> expr) {
   Query query(state.constraints, expr);
   std::vector<ref<Expr>> required;
   sliceConstraints(query, required);
-
-  //std::vector<ref<Expr>> pc(state.constraints.begin(), state.constraints.end());
-  //SolverQuery q(pc, expr);
   SolverQuery q(required, expr);
   queries_count++;
 
@@ -276,4 +327,21 @@ void TimingSolver::handleExpr(const ExecutionState &state, ref<Expr> expr) {
   if (!found) {
     equivalent.push_back(q);
   }
+}
+
+bool TimingSolver::shouldCacheQuery(ref<Expr> expr) {
+  return UseIsomorphismCache & expr->flag;
+}
+
+CacheResult *TimingSolver::lookupQuery(const ExecutionState &state, SolverQuery &query) {
+  for (CacheEntry &e : cache) {
+    if (query.isIsomorphic(e.q)) {
+      return &e.result;
+    }
+  }
+  return nullptr;
+}
+
+void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result) {
+  cache.push_back(CacheEntry(query, result));
 }
