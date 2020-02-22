@@ -41,12 +41,17 @@ cl::opt<bool> ConstArrayOpt(
 
 /***/
 
+/* TODO: use map? */
 bool ArrayMapping::add(const Array *from, const Array *to) {
-  auto i = map.find(from->id);
-  if (i != map.end()) {
-    return i->second == to->id;
+  for (auto &p : map) {
+    if (p.first == from->id) {
+      return p.second == to->id;
+    }
+    if (p.first == to->id) {
+      return p.second == from->id;
+    }
   }
-  map[from->id] = to->id;
+  map.push_back(std::make_pair(from->id, to->id));
   return true;
 }
 
