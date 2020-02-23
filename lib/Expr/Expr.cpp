@@ -42,6 +42,7 @@ cl::opt<bool> ConstArrayOpt(
 /***/
 
 /* TODO: use map? */
+/* TODO: map only symbolic address arrays? */
 bool ArrayMapping::add(const Array *from, const Array *to) {
   for (auto &p : map) {
     if (p.first == from->id) {
@@ -50,9 +51,22 @@ bool ArrayMapping::add(const Array *from, const Array *to) {
     if (p.first == to->id) {
       return p.second == from->id;
     }
+    if (p.second == from->id) {
+      return p.first == to->id;
+    }
+    if (p.second == to->id) {
+      return p.first == from->id;
+    }
   }
   map.push_back(std::make_pair(from->id, to->id));
   return true;
+}
+
+void ArrayMapping::dump() const {
+  errs() << "Array mapping:\n";
+  for (auto &i : map) {
+    errs() << i.first << " -- " << i.second << "\n";
+  }
 }
 
 unsigned Expr::count = 0;

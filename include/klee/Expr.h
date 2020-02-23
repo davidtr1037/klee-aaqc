@@ -92,6 +92,7 @@ Todo: Shouldn't bool \c Xor just be written as not equal?
 struct ArrayMapping {
   std::vector<std::pair<uint64_t, uint64_t>> map;
   bool add(const Array *from, const Array *to);
+  void dump() const;
 };
 
 class Expr {
