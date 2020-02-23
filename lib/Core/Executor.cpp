@@ -3833,11 +3833,19 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                 ReadOnly);
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-          ref<Expr> offset = bound->unfold(mo->getOffsetExpr(address));
+          ref<Expr> offset = mo->getOffsetExpr(originalAddress);
+          ref<Expr> rewrittenOffset = bound->unfold(offset);
+          if (isa<ConstantExpr>(rewrittenOffset)) {
+            offset = rewrittenOffset;
+          }
           wos->write(offset, value);
         }
       } else {
-        ref<Expr> offset = bound->unfold(mo->getOffsetExpr(address));
+        ref<Expr> offset = mo->getOffsetExpr(originalAddress);
+        ref<Expr> rewrittenOffset = bound->unfold(offset);
+        if (isa<ConstantExpr>(rewrittenOffset)) {
+          offset = rewrittenOffset;
+        }
         if (shouldSplit(state, mo, os, offset)) {
           splitMO(*bound, ObjectPair(mo, os));
           executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);
