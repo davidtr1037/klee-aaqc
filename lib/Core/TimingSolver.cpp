@@ -53,7 +53,9 @@ bool SolverQuery::isIsomorphic(const SolverQuery &other) const {
     return false;
   }
 
-  if (!expr->isIsomorphic(*other.expr)) {
+  /* we must preserve the same mapping for all constraints (pc and expr) */
+  ArrayMapping map;
+  if (!expr->isIsomorphic(*other.expr, map)) {
     return false;
   }
 
@@ -62,7 +64,7 @@ bool SolverQuery::isIsomorphic(const SolverQuery &other) const {
   while (iter1 != constraints.end()) {
     ref<Expr> e1 = *iter1;
     ref<Expr> e2 = *iter2;
-    if (!e1->isIsomorphic(*e2)) {
+    if (!e1->isIsomorphic(*e2, map)) {
       return false;
     }
 
@@ -82,6 +84,7 @@ void SolverQuery::dump() const {
   expr->dump();
   llvm::errs() << "]\n";
 }
+
 bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
                             Solver::Validity &result) {
   if (CollectQueryStats) {
