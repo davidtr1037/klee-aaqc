@@ -57,23 +57,23 @@ namespace klee {
     }
 
     bool mustBeTrue() {
-      return _isTrue && !_isUnknown;
+      return _isTrue && !_isFalse && !_isUnknown;
     }
 
     bool mustBeFalse() {
-      return _isFalse && !_isUnknown;
+      return !_isTrue && _isFalse && !_isUnknown;
     }
 
     bool mayBeTrue() {
-      return _isTrue && _isUnknown;
+      return _isTrue && !_isFalse && _isUnknown;
     }
 
     bool mayBeFalse() {
-      return _isFalse && _isUnknown;
+      return !_isTrue && _isFalse && _isUnknown;
     }
 
     bool isUnknown() {
-      return _isUnknown && !_isTrue && !_isFalse;
+      return !_isTrue && !_isFalse && _isUnknown;
     }
 
     void setMustBeTrue() {
