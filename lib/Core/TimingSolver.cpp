@@ -22,6 +22,7 @@ using namespace llvm;
 
 cl::opt<bool> CollectQueryStats("collect-query-stats", cl::init(false), cl::desc("..."));
 cl::opt<bool> UseIsomorphismCache("use-iso-cache", cl::init(false), cl::desc("..."));
+cl::opt<bool> ValidateCaching("validate-caching", cl::init(false), cl::desc("..."));
 
 /***/
 
@@ -110,6 +111,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
     std::vector<ref<Expr>> required;
     sliceConstraints(query, required);
     SolverQuery q(required, ade);
+
     CacheResult *cachedResult = lookupQuery(state, q);
     if (cachedResult) {
       if (cachedResult->mustBeTrue()) {
@@ -126,6 +128,11 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
         assert(cachedResult->mayBeFalse());
         success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
         cachedResult->setValue(result);
+      }
+      if (ValidateCaching) {
+        Solver::Validity test;
+        success = solver->evaluate(Query(state.rewrittenConstraints, expr), test);
+        assert(result == test);
       }
     } else {
       success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
