@@ -181,6 +181,11 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     if (cachedResult) {
       result = cachedResult->mustBeTrue();
       success = true;
+      if (ValidateCaching) {
+        bool test;
+        success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), test);
+        assert(result == test);
+      }
     } else {
       success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
       CacheResult newResult;
