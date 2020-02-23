@@ -122,7 +122,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
         result = Solver::Unknown;
         success = true;
       } else {
-        assert(0);
+        /* must be false or unknown... */
         assert(cachedResult->mayBeFalse());
         success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
         cachedResult->setValue(result);
@@ -165,7 +165,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   bool success = false;
-  if (false && shouldCacheQuery(ade)) {
+  if (shouldCacheQuery(ade)) {
     Query query(state.constraints, ade);
     std::vector<ref<Expr>> required;
     sliceConstraints(query, required);
