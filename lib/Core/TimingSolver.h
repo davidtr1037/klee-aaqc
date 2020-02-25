@@ -159,7 +159,7 @@ namespace klee {
 
     bool evaluate(const ExecutionState&, ref<Expr>, Solver::Validity &result);
 
-    bool mustBeTrue(const ExecutionState&, ref<Expr>, bool &result);
+    bool mustBeTrue(const ExecutionState&, ref<Expr>, bool &result, bool useCache = true);
 
     bool mustBeFalse(const ExecutionState&, ref<Expr>, bool &result);
 

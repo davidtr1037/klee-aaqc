@@ -24,6 +24,8 @@ using namespace llvm;
 
 ///
 
+cl::opt<bool> UseResolveOpt("use-resolve-opt", cl::init(true), cl::desc("..."));
+
 void AddressSpace::bindObject(const MemoryObject *mo, ObjectState *os) {
   assert(os->copyOnWriteOwner==0 && "object already has owner");
   os->copyOnWriteOwner = cowKey;
@@ -137,7 +139,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
         bool mustBeTrue;
         if (!solver->mustBeTrue(state, 
                                 UgeExpr::create(address, mo->getBaseExpr()),
-                                mustBeTrue))
+                                mustBeTrue, false))
           return false;
         if (mustBeTrue)
           break;
@@ -151,7 +153,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, 
                               UltExpr::create(address, mo->getBaseExpr()),
-                              mustBeTrue))
+                              mustBeTrue, false))
         return false;
       if (mustBeTrue) {
         break;
@@ -269,13 +271,15 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
       if (incomplete != 2)
         return incomplete ? true : false;
 
-      stats::resolveQueries += 1;
-      bool mustBeTrue;
-      if (!solver->mustBeTrue(state, UgeExpr::create(p, mo->getBaseExpr()),
-                              mustBeTrue))
-        return true;
-      if (mustBeTrue)
-        break;
+      if (UseResolveOpt) {
+        stats::resolveQueries += 1;
+        bool mustBeTrue;
+        if (!solver->mustBeTrue(state, UgeExpr::create(p, mo->getBaseExpr()),
+                                mustBeTrue, false))
+          return true;
+        if (mustBeTrue)
+          break;
+      }
     }
 
     // search forwards
@@ -289,13 +293,15 @@ bool AddressSpace::resolve(ExecutionState &state, TimingSolver *solver,
         continue;
       }
 
-      stats::resolveQueries += 1;
-      bool mustBeTrue;
-      if (!solver->mustBeTrue(state, UltExpr::create(p, mo->getBaseExpr()),
-                              mustBeTrue))
-        return true;
-      if (mustBeTrue)
-        break;
+      if (UseResolveOpt) {
+        stats::resolveQueries += 1;
+        bool mustBeTrue;
+        if (!solver->mustBeTrue(state, UltExpr::create(p, mo->getBaseExpr()),
+                                mustBeTrue, false))
+          return true;
+        if (mustBeTrue)
+          break;
+      }
 
       int incomplete =
           checkPointerInObject(state, solver, p, *oi, rl, maxResolutions);

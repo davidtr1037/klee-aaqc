@@ -153,8 +153,8 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 }
 
 bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr, 
-                              bool &result) {
-  if (CollectQueryStats) {
+                              bool &result, bool useCache) {
+  if (useCache && CollectQueryStats) {
     collectStats(state, expr);
   }
 
@@ -172,7 +172,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   bool success = false;
-  if (shouldCacheQuery(ade)) {
+  if (useCache && shouldCacheQuery(ade)) {
     Query query(state.constraints, ade);
     std::vector<ref<Expr>> required;
     sliceConstraints(query, required);
