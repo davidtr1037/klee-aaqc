@@ -88,10 +88,6 @@ void SolverQuery::dump() const {
 
 bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
                             Solver::Validity &result) {
-  if (CollectQueryStats) {
-    collectStats(state, expr);
-  }
-
   ref<Expr> ade = expr;
   expr = state.unfold(expr);
   // Fast path, to avoid timer and OS overhead.
@@ -104,6 +100,10 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
+
+  if (CollectQueryStats) {
+    collectStats(state, expr);
+  }
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
@@ -154,10 +154,6 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
 bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr, 
                               bool &result, bool useCache) {
-  if (useCache && CollectQueryStats) {
-    collectStats(state, expr);
-  }
-
   ref<Expr> ade = expr;
   expr = state.unfold(expr);
   // Fast path, to avoid timer and OS overhead.
@@ -170,6 +166,10 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
+
+  if (useCache && CollectQueryStats) {
+    collectStats(state, expr);
+  }
 
   bool success = false;
   if (useCache && shouldCacheQuery(ade)) {
@@ -302,6 +302,18 @@ void TimingSolver::fillConstraints(const ExecutionState &state,
   //cm.addConstraint(extra);
 }
 
+ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> query,
+                                          bool &negationUsed) {
+  ref<Expr> negated = Expr::createIsZero(query);
+  if (query.compare(negated) < 0) {
+    negationUsed = false;
+    return query;
+  } else {
+    negationUsed = true;
+    return negated;
+  }
+}
+
 void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
   if (!expr->flag) {
     return;
@@ -311,6 +323,9 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
   if (isa<ConstantExpr>(u)) {
     return;
   }
+
+  bool wasNegated;
+  expr = canonicalizeQuery(expr, wasNegated);
 
   /* slice the path constraints */
   Query query(state.constraints, expr);

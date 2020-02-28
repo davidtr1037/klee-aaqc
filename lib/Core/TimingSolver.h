@@ -181,6 +181,8 @@ namespace klee {
                          ConstraintManager &cm,
                          ref<Expr> q);
 
+    ref<Expr> canonicalizeQuery(ref<Expr> query, bool &negationUsed);
+
     void collectStats(const ExecutionState &state, ref<Expr> expr);
 
     bool shouldCacheQuery(ref<Expr> expr);
