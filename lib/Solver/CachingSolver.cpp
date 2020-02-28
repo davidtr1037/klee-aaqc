@@ -16,6 +16,7 @@
 #include "klee/SolverImpl.h"
 
 #include "klee/SolverStats.h"
+#include "klee/Internal/Support/ErrorHandling.h"
 
 #include <ciso646>
 #ifdef _LIBCPP_VERSION
