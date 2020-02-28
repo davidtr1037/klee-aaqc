@@ -75,7 +75,10 @@ private:
 
 public:
   CachingSolver(Solver *s) : solver(s) {}
-  ~CachingSolver() { cache.clear(); delete solver; }
+  ~CachingSolver() {
+    klee_message("Query cache size: %lu", cache.size());
+    cache.clear(); delete solver;
+  }
 
   bool computeValidity(const Query&, Solver::Validity &result);
   bool computeTruth(const Query&, bool &isValid);
