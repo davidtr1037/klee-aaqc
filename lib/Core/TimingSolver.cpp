@@ -116,25 +116,25 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
 
-    bool negated;
-    SolverQuery q = buildQuery(state, ade, negated);
-    CacheResult *cachedResult = lookupQuery(state, q);
-    if (cachedResult) {
-      if (cachedResult->mustBeTrue()) {
+    SolverQuery q = buildQuery(state, ade);
+    CacheResult cachedResult;
+    bool found = lookupQuery(state, q, cachedResult);
+    if (found) {
+      success = true;
+      if (cachedResult.mustBeTrue()) {
         result = Solver::True;
-        success = true;
-      } else if (cachedResult->mustBeFalse()) {
+      } else if (cachedResult.mustBeFalse()) {
         result = Solver::False;
-        success = true;
-      } else if (cachedResult->isUnknown()) {
+      } else if (cachedResult.isUnknown()) {
         result = Solver::Unknown;
-        success = true;
       } else {
-        /* must be false or unknown... */
-        assert(cachedResult->mayBeFalse());
+        /* may be false or may be true... */
+        assert(cachedResult.mayBeFalse());
         success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
-        cachedResult->setValue(result);
+        CacheResult newResult(result);
+        insertQuery(state, q, newResult);
       }
+
       if (ValidateCaching) {
         Solver::Validity test;
         success = solver->evaluate(Query(state.rewrittenConstraints, expr), test);
@@ -173,7 +173,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  if (useCache && CollectQueryStats) {
+  if (CollectQueryStats) {
     collectStats(state, ade);
   }
 
@@ -187,12 +187,26 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
 
-    bool negated;
-    SolverQuery q = buildQuery(state, ade, negated);
-    CacheResult *cachedResult = lookupQuery(state, q);
-    if (cachedResult) {
-      result = cachedResult->mustBeTrue();
-      success = true;
+    SolverQuery q = buildQuery(state, ade);
+    CacheResult cachedResult;
+    bool found = lookupQuery(state, q, cachedResult);
+    if (found) {
+      if (cachedResult.mayBeTrue()) {
+        CacheResult newResult;
+        success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+        if (result) {
+          /* mayByTrue and mustBeTrue --> mustBeTrue */
+          newResult.setMustBeTrue();
+        } else {
+          /* mayByTrue and mayBeFalse --> unknown */
+          newResult.setUnknown();
+        }
+        insertQuery(state, q, newResult);
+      } else {
+        success = true;
+        result = cachedResult.mustBeTrue();
+      }
+
       if (ValidateCaching) {
         bool test;
         success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), test);
@@ -326,13 +340,21 @@ ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> query,
   }
 }
 
+SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
+                                     ref<Expr> expr) {
+  assert(!isa<ConstantExpr>(expr));
+  Query query(state.constraints, expr);
+  std::vector<ref<Expr>> required;
+  sliceConstraints(query, required);
+  return SolverQuery(required, expr);
+}
+
 void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
-  if (!expr->flag) {
-    return;
+  if (simplifyExprs) {
+    expr = state.constraints.simplifyExpr(expr);
   }
 
-  ref<Expr> u = state.unfold(expr);
-  if (isa<ConstantExpr>(u)) {
+  if (isa<ConstantExpr>(expr)) {
     return;
   }
 
@@ -375,17 +397,33 @@ bool TimingSolver::shouldCacheQuery(ref<Expr> expr) {
   return UseIsomorphismCache & expr->flag;
 }
 
-CacheResult *TimingSolver::lookupQuery(const ExecutionState &state, SolverQuery &query) {
+bool TimingSolver::lookupQuery(const ExecutionState &state,
+                               SolverQuery &query,
+                               CacheResult &result) {
+  bool negated;
+  ref<Expr> expr = canonicalizeQuery(query.expr, negated);
+  SolverQuery canonicalQuery(query.constraints, expr);
   for (CacheEntry &e : cache) {
-    if (query.isIsomorphic(e.q)) {
-      return &e.result;
+    if (canonicalQuery.isIsomorphic(e.q)) {
+      if (negated) {
+        result = e.result.negate();
+      } else {
+        result = e.result;
+      }
+      return true;
     }
   }
-  return nullptr;
+  return false;
 }
 
 void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result) {
-  cache.push_back(CacheEntry(query, result));
+  bool negated;
+  query.expr = canonicalizeQuery(query.expr, negated);
+  if (negated) {
+    cache.push_back(CacheEntry(query, result.negate()));
+  } else {
+    cache.push_back(CacheEntry(query, result));
+  }
 }
 
 void TimingSolver::dump() const {

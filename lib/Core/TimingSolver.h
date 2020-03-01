@@ -112,13 +112,39 @@ namespace klee {
         break;
       }
     }
+
+    CacheResult negate() {
+      CacheResult result;
+      if (mustBeTrue()) {
+        result.setMustBeFalse();
+      }
+      else if (mustBeFalse()) {
+        result.setMustBeTrue();
+      }
+      else if (mayBeFalse()) {
+        result.setMayBeTrue();
+      }
+      else if (mayBeTrue()) {
+        result.setMayBeFalse();
+      }
+      else if (isUnknown()) {
+        result.setUnknown();
+      } else {
+        assert(false);
+      }
+      return result;
+    }
+
+    void dump() const {
+      llvm::errs() << _isTrue << _isFalse << _isUnknown << "\n";
+    }
   };
 
   struct CacheEntry {
     SolverQuery q;
     CacheResult result;
 
-    CacheEntry(SolverQuery &q, CacheResult &result) : q(q), result(result) {
+    CacheEntry(SolverQuery &q, CacheResult result) : q(q), result(result) {
 
     }
   };
@@ -184,14 +210,15 @@ namespace klee {
     ref<Expr> canonicalizeQuery(ref<Expr> query, bool &negationUsed);
 
     SolverQuery buildQuery(const ExecutionState &state,
-                           ref<Expr> expr,
-                           bool &wasNegated);
+                           ref<Expr> expr);
 
     void collectStats(const ExecutionState &state, ref<Expr> expr);
 
     bool shouldCacheQuery(ref<Expr> expr);
 
-    CacheResult *lookupQuery(const ExecutionState &state, SolverQuery &query);
+    bool lookupQuery(const ExecutionState &state,
+                     SolverQuery &query,
+                     CacheResult &result);
 
     void insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result);
 
