@@ -4053,9 +4053,7 @@ void Executor::runFunctionAsMain(Function *f,
   memory = new MemoryManager(NULL);
 
   klee_message("Resolve queries: %lu", (uint64_t)(stats::resolveQueries));
-  klee_message("All queries: %lu", solver->queries_count);
-  klee_message("Equal queries: %lu", solver->queries.size());
-  klee_message("Isomorphic queries: %lu", solver->equivalent.size());
+  solver->dump();
 
   //delete addressMemory;
   //addressMemory = new MemoryManager(NULL);

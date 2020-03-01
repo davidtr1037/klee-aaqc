@@ -190,8 +190,9 @@ namespace klee {
     CacheResult *lookupQuery(const ExecutionState &state, SolverQuery &query);
 
     void insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result);
-  };
 
+    void dump() const;
+  };
 }
 
 #endif

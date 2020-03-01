@@ -14,6 +14,7 @@
 #include "klee/Solver.h"
 #include "klee/Statistics.h"
 #include "klee/TimerStatIncrementer.h"
+#include "klee/Internal/Support/ErrorHandling.h"
 
 #include "CoreStats.h"
 
@@ -374,4 +375,12 @@ CacheResult *TimingSolver::lookupQuery(const ExecutionState &state, SolverQuery 
 
 void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result) {
   cache.push_back(CacheEntry(query, result));
+}
+
+void TimingSolver::dump() const {
+  klee_message("Statistics: %lu", queries_count);
+  klee_message("- All queries: %lu", queries_count);
+  klee_message("- Equal queries: %lu", queries.size());
+  klee_message("- Isomorphic queries: %lu", equivalent.size());
+  klee_message("- Cache: %lu", cache.size());
 }
