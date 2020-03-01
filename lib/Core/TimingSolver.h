@@ -183,6 +183,10 @@ namespace klee {
 
     ref<Expr> canonicalizeQuery(ref<Expr> query, bool &negationUsed);
 
+    SolverQuery buildQuery(const ExecutionState &state,
+                           ref<Expr> expr,
+                           bool &wasNegated);
+
     void collectStats(const ExecutionState &state, ref<Expr> expr);
 
     bool shouldCacheQuery(ref<Expr> expr);

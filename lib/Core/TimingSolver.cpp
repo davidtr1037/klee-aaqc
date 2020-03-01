@@ -103,16 +103,21 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   if (CollectQueryStats) {
-    collectStats(state, expr);
+    collectStats(state, ade);
   }
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    Query query(state.constraints, ade);
-    std::vector<ref<Expr>> required;
-    sliceConstraints(query, required);
-    SolverQuery q(required, ade);
+    if (simplifyExprs) {
+      ade = state.constraints.simplifyExpr(ade);
+    }
+    if (isa<ConstantExpr>(ade)) {
+      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? Solver::True : Solver::False;
+      return true;
+    }
 
+    bool negated;
+    SolverQuery q = buildQuery(state, ade, negated);
     CacheResult *cachedResult = lookupQuery(state, q);
     if (cachedResult) {
       if (cachedResult->mustBeTrue()) {
@@ -169,15 +174,21 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   if (useCache && CollectQueryStats) {
-    collectStats(state, expr);
+    collectStats(state, ade);
   }
 
   bool success = false;
   if (useCache && shouldCacheQuery(ade)) {
-    Query query(state.constraints, ade);
-    std::vector<ref<Expr>> required;
-    sliceConstraints(query, required);
-    SolverQuery q(required, ade);
+    if (simplifyExprs) {
+      ade = state.constraints.simplifyExpr(ade);
+    }
+    if (isa<ConstantExpr>(ade)) {
+      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? Solver::True : Solver::False;
+      return true;
+    }
+
+    bool negated;
+    SolverQuery q = buildQuery(state, ade, negated);
     CacheResult *cachedResult = lookupQuery(state, q);
     if (cachedResult) {
       result = cachedResult->mustBeTrue();
