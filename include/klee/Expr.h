@@ -182,6 +182,8 @@ public:
 
   /* TODO: may contain an address expression */
   bool flag;
+  /* TODO: may contain a symbolic expression (excluding address expressions) */
+  bool isSymbolic;
 
   unsigned refCount;
 
@@ -213,7 +215,7 @@ protected:
   virtual int compareContents(const Expr &b) const = 0;
 
 public:
-  Expr() : refCount(0) { Expr::count++; flag = false; }
+  Expr() : refCount(0) { Expr::count++; flag = false; isSymbolic = false; }
   virtual ~Expr() { Expr::count--; } 
 
   virtual Kind getKind() const = 0;
@@ -399,6 +401,7 @@ public:
 protected:
   BinaryExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     flag = left->flag || right->flag;
+    isSymbolic = left->isSymbolic || right->isSymbolic;
   }
 
 public:
@@ -452,6 +455,7 @@ public:
 private:
   NotOptimizedExpr(const ref<Expr> &_src) : src(_src) {
     flag = src->flag;
+    isSymbolic = src->isSymbolic;
   }
 
 protected:
@@ -635,12 +639,27 @@ private:
     if (index->flag) {
       flag = true;
     }
-    if (updates.root->isAddressArray) {
-      flag = true;
+    if (index->isSymbolic) {
+      isSymbolic = true;
     }
+
+    if (updates.root->isSymbolicArray()) {
+      if (updates.root->isAddressArray) {
+        assert(isa<ConstantExpr>(index) && updates.head == nullptr);
+        flag = true;
+        isSymbolic = false;
+      } else {
+        isSymbolic = true;
+      }
+    }
+
     for (const UpdateNode *un = updates.head; un; un = un->next) {
       if (un->index->flag || un->value->flag) {
         ulflag = flag = true;
+        break;
+      }
+      if (un->index->isSymbolic || un->value->isSymbolic) {
+        isSymbolic = true;
         break;
       }
     }
@@ -701,6 +720,7 @@ private:
   SelectExpr(const ref<Expr> &c, const ref<Expr> &t, const ref<Expr> &f) 
     : cond(c), trueExpr(t), falseExpr(f) {
     flag = cond->flag || trueExpr->flag || falseExpr->flag;
+    isSymbolic = cond->isSymbolic || trueExpr->isSymbolic || falseExpr->isSymbolic;
   }
 
 public:
@@ -765,6 +785,7 @@ private:
   ConcatExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     width = l->getWidth() + r->getWidth();
     flag = left->flag || right->flag;
+    isSymbolic = left->isSymbolic || right->isSymbolic;
   }
 
 public:
@@ -830,6 +851,7 @@ private:
   ExtractExpr(const ref<Expr> &e, unsigned b, Width w) 
     : expr(e),offset(b),width(w) {
     flag = expr->flag;
+    isSymbolic = expr->isSymbolic;
   }
 
 public:
@@ -880,6 +902,7 @@ public:
 private:
   NotExpr(const ref<Expr> &e) : expr(e) {
     flag = expr->flag;
+    isSymbolic = expr->isSymbolic;
   }
 
 protected:
@@ -901,6 +924,7 @@ public:
 public:
   CastExpr(const ref<Expr> &e, Width w) : src(e), width(w) {
     flag = src->flag;
+    isSymbolic = src->isSymbolic;
   }
 
   Width getWidth() const { return width; }

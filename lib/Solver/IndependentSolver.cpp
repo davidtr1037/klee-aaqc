@@ -119,6 +119,11 @@ public:
       ReadExpr *re = reads[i].get();
       const Array *array = re->updates.root;
       
+      /* symbolic address arrays are like constants */
+      if (array->isAddressArray) {
+        continue;
+      }
+
       // Reads of a constant array don't alias.
       if (re->updates.root->isConstantArray() &&
           !re->updates.head)
@@ -128,7 +133,9 @@ public:
       if (re->updates.root->isConstantArray() && re->updates.head) {
         bool isOK = true;
         for (const UpdateNode *un = re->updates.head; un != nullptr; un = un->next) {
-          if (!isa<ConstantExpr>(un->index) || !isa<ConstantExpr>(un->value)) {
+          //if (!isa<ConstantExpr>(un->index) || !isa<ConstantExpr>(un->value)) {
+          /* TODO: check correctness... */
+          if (un->index->isSymbolic || un->value->isSymbolic) {
             isOK = false;
             break;
           }
