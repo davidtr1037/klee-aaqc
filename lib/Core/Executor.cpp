@@ -129,6 +129,7 @@ cl::opt<bool> EmitAllErrors(
              "(default=false, i.e. one per (error,instruction) pair)"),
     cl::cat(TestGenCat));
 
+cl::opt<bool> GenerateTestCases("output-states", cl::init(true), cl::desc(""));
 
 /* Constraint solving options */
 
@@ -3116,16 +3117,22 @@ void Executor::terminateState(ExecutionState &state) {
 void Executor::terminateStateEarly(ExecutionState &state, 
                                    const Twine &message) {
   if (!OnlyOutputStatesCoveringNew || state.coveredNew ||
-      (AlwaysOutputSeeds && seedMap.count(&state)))
-    interpreterHandler->processTestCase(state, (message + "\n").str().c_str(),
-                                        "early");
+      (AlwaysOutputSeeds && seedMap.count(&state))) {
+    if (GenerateTestCases) {
+      interpreterHandler->processTestCase(state, (message + "\n").str().c_str(),
+                                          "early");
+    }
+  }
   terminateState(state);
 }
 
 void Executor::terminateStateOnExit(ExecutionState &state) {
   if (!OnlyOutputStatesCoveringNew || state.coveredNew || 
-      (AlwaysOutputSeeds && seedMap.count(&state)))
-    interpreterHandler->processTestCase(state, 0, 0);
+      (AlwaysOutputSeeds && seedMap.count(&state))) {
+    if (GenerateTestCases) {
+      interpreterHandler->processTestCase(state, 0, 0);
+    }
+  }
   terminateState(state);
 }
 
