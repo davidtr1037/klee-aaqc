@@ -98,6 +98,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   }
 
   TimerStatIncrementer timer(stats::solverTime);
+  allQueriesCount++;
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
@@ -169,6 +170,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   }
 
   TimerStatIncrementer timer(stats::solverTime);
+  allQueriesCount++;
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
@@ -266,6 +268,7 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
   }
   
   TimerStatIncrementer timer(stats::solverTime);
+  allQueriesCount++;
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
@@ -291,6 +294,7 @@ TimingSolver::getInitialValues(const ExecutionState& state,
     return true;
 
   TimerStatIncrementer timer(stats::solverTime);
+  allQueriesCount++;
 
   //ConstraintManager cm;
   //fillConstraints(state, cm, nullptr);

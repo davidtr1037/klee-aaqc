@@ -159,6 +159,8 @@ namespace klee {
     std::vector<SolverQuery> queries;
     std::vector<SolverQuery> equivalent;
     uint64_t queries_count = 0;
+    uint64_t allQueriesCount = 0;
+    uint64_t addressDependentQueries = 0;
 
     typedef std::vector<CacheEntry> Cache;
     Cache cache;
