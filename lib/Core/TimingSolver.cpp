@@ -332,16 +332,19 @@ void TimingSolver::fillConstraints(const ExecutionState &state,
   //cm.addConstraint(extra);
 }
 
-ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> query,
+ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> expr,
                                           bool &negationUsed) {
-  ref<Expr> negated = Expr::createIsZero(query);
-  if (query.compare(negated) < 0) {
-    negationUsed = false;
-    return query;
-  } else {
-    negationUsed = true;
-    return negated;
+  ref<EqExpr> eq = dyn_cast<EqExpr>(expr);
+  if (!eq.isNull()) {
+    ref<ConstantExpr> c = dyn_cast<ConstantExpr>(eq->left);
+    if (!c.isNull() && c->isFalse()) {
+      negationUsed = true;
+      return eq->right;
+    }
   }
+
+  negationUsed = false;
+  return expr;
 }
 
 SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
@@ -362,14 +365,15 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
     return;
   }
 
+  if (expr->flag) {
+    addressDependentQueries++;
+  }
+
   bool wasNegated;
   expr = canonicalizeQuery(expr, wasNegated);
 
   /* slice the path constraints */
-  Query query(state.constraints, expr);
-  std::vector<ref<Expr>> required;
-  sliceConstraints(query, required);
-  SolverQuery q(required, expr);
+  SolverQuery q = buildQuery(state, expr);
   queries_count++;
 
   bool found;
@@ -432,7 +436,9 @@ void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, 
 
 void TimingSolver::dump() const {
   klee_message("Statistics: %lu", queries_count);
-  klee_message("- All queries: %lu", queries_count);
+  klee_message("- All queries: %lu", allQueriesCount);
+  klee_message("- Relevant queries: %lu", queries_count);
+  klee_message("- Relevant address dependent queries: %lu", addressDependentQueries);
   klee_message("- Equal queries: %lu", queries.size());
   klee_message("- Isomorphic queries: %lu", equivalent.size());
   klee_message("- Cache: %lu", cache.size());
