@@ -3712,8 +3712,9 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     }
     
     /* TODO: optimize if unfolded address is constant? */
-    ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
-    check = state.unfold(check);
+    //ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(address), bytes);
+    //check = state.unfold(check);
+    ref<Expr> check = mo->getBoundsCheckOffset(mo->getOffsetExpr(originalAddress), bytes);
     check = optimizer.optimizeExpr(check, true);
 
     bool inBounds;
