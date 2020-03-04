@@ -4075,6 +4075,8 @@ void Executor::runFunctionAsMain(Function *f,
 
   double t = (double)(stats::resolveTime) / (double)(statsTracker->elapsed().toMicroseconds());
   klee_message("Resolve time: %f%%", 100 * t);
+  t = (double)(stats::cachingTime) / (double)(statsTracker->elapsed().toMicroseconds());
+  klee_message("Caching time: %f%%", 100 * t);
 }
 
 unsigned Executor::getPathStreamID(const ExecutionState &state) {

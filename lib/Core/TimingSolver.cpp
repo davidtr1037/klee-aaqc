@@ -110,6 +110,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   bool success = false;
   if (shouldCacheQuery(ade)) {
     if (simplifyExprs) {
+      TimerStatIncrementer timer(stats::cachingTime);
       ade = state.constraints.simplifyExpr(ade);
     }
     if (isa<ConstantExpr>(ade)) {
@@ -182,6 +183,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   bool success = false;
   if (useCache && shouldCacheQuery(ade)) {
     if (simplifyExprs) {
+      TimerStatIncrementer timer(stats::cachingTime);
       ade = state.constraints.simplifyExpr(ade);
     }
     if (isa<ConstantExpr>(ade)) {
@@ -349,6 +351,7 @@ ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> expr,
 
 SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
                                      ref<Expr> expr) {
+  TimerStatIncrementer timer(stats::cachingTime);
   assert(!isa<ConstantExpr>(expr));
   Query query(state.constraints, expr);
   std::vector<ref<Expr>> required;
@@ -408,6 +411,7 @@ bool TimingSolver::shouldCacheQuery(ref<Expr> expr) {
 bool TimingSolver::lookupQuery(const ExecutionState &state,
                                SolverQuery &query,
                                CacheResult &result) {
+  TimerStatIncrementer timer(stats::cachingTime);
   bool negated;
   ref<Expr> expr = canonicalizeQuery(query.expr, negated);
   SolverQuery canonicalQuery(query.constraints, expr);
@@ -425,6 +429,7 @@ bool TimingSolver::lookupQuery(const ExecutionState &state,
 }
 
 void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result) {
+  TimerStatIncrementer timer(stats::cachingTime);
   bool negated;
   query.expr = canonicalizeQuery(query.expr, negated);
   if (negated) {

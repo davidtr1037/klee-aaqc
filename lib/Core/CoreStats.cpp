@@ -28,3 +28,4 @@ Statistic stats::states("States", "States");
 Statistic stats::trueBranches("TrueBranches", "Bt");
 Statistic stats::uncoveredInstructions("UncoveredInstructions", "Iuncov");
 Statistic stats::resolveQueries("ResolveQueries", "RQ");
+Statistic stats::cachingTime("CachingTime", "CT");
