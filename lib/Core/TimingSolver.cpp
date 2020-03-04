@@ -130,7 +130,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
         result = Solver::Unknown;
       } else {
         /* may be false or may be true... */
-        assert(cachedResult.mayBeFalse());
+        assert(cachedResult.mayBeFalse() || cachedResult.mayBeTrue());
         success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
         CacheResult newResult(result);
         insertQuery(state, q, newResult);
