@@ -405,7 +405,8 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
 }
 
 bool TimingSolver::shouldCacheQuery(ref<Expr> expr) {
-  return UseIsomorphismCache & expr->flag;
+  /* TODO: handle only address dependent expressions? */
+  return UseIsomorphismCache;
 }
 
 bool TimingSolver::lookupQuery(const ExecutionState &state,
