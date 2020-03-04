@@ -781,6 +781,8 @@ public:
   
   virtual ref<Expr> rebuild(ref<Expr> kids[]) const { return create(kids[0], kids[1]); }
 
+  virtual bool isIsomorphic(const Expr &b, ArrayMapping &map) const;
+
 private:
   ConcatExpr(const ref<Expr> &l, const ref<Expr> &r) : left(l), right(r) {
     width = l->getWidth() + r->getWidth();

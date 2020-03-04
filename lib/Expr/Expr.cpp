@@ -730,6 +730,21 @@ ref<Expr> ConcatExpr::create8(const ref<Expr> &kid1, const ref<Expr> &kid2,
 			      ConcatExpr::create(kid4, ConcatExpr::create4(kid5, kid6, kid7, kid8)))));
 }
 
+bool ConcatExpr::isIsomorphic(const Expr &other, ArrayMapping &map) const {
+  ReadExpr *re = dyn_cast<ReadExpr>(getLeft());
+  if (re && re->updates.root->isAddressArray) {
+    const ConcatExpr *concat = dyn_cast<ConcatExpr>(&other);
+    assert(concat);
+    ReadExpr *otherRE = dyn_cast<ReadExpr>(concat->getLeft());
+    if (otherRE && otherRE->updates.root->isAddressArray) {
+      return map.add(re->updates.root, otherRE->updates.root);
+    } else {
+      return false;
+    }
+  }
+  return Expr::isIsomorphic(other, map);
+}
+
 /***/
 
 ref<Expr> ExtractExpr::create(ref<Expr> expr, unsigned off, Width w) {
