@@ -175,7 +175,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  if (CollectQueryStats) {
+  if (useCache && CollectQueryStats) {
     collectStats(state, ade);
   }
 
