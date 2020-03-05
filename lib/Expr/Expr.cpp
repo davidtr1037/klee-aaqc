@@ -29,8 +29,8 @@ namespace klee {
 llvm::cl::OptionCategory
     ExprCat("Expression building and printing options",
             "These options impact the way expressions are build and printed.");
-cl::opt<bool> ComputeExprChecksum("compute-expr-checksum", cl::init(false), cl::desc(""));
-cl::opt<bool> UseExprChecksum("use-expr-checksum", cl::init(true), cl::desc(""));
+llvm::cl::opt<bool> ComputeExprChecksum("compute-expr-checksum", cl::init(false), cl::desc(""));
+llvm::cl::opt<bool> UseExprChecksum("use-expr-checksum", cl::init(true), cl::desc(""));
 }
 
 namespace {
