@@ -234,7 +234,7 @@ public:
 
   /// (Re)computes the hash of the current expression.
   /// Returns the hash value. 
-  virtual unsigned computeHash();
+  virtual void computeHash();
   
   /// Compares `b` to `this` Expr for structural equivalence.
   ///
@@ -503,7 +503,7 @@ private:
   UpdateNode() : refCount(0) {}
   ~UpdateNode();
 
-  unsigned computeHash();
+  void computeHash();
 };
 
 class Array {
@@ -561,7 +561,7 @@ public:
   Expr::Width getRange() const { return range; }
 
   /// ComputeHash must take into account the name, the size, the domain, and the range
-  unsigned computeHash();
+  void computeHash();
   unsigned hash() const { return hashValue; }
   friend class ArrayCache;
 };
@@ -629,7 +629,7 @@ public:
     return create(updates, kids[0]);
   }
 
-  virtual unsigned computeHash();
+  virtual void computeHash();
 
 private:
   ReadExpr(const UpdateList &_updates, const ref<Expr> &_index) : 
@@ -847,7 +847,7 @@ public:
     return create(kids[0], offset, width);
   }
 
-  virtual unsigned computeHash();
+  virtual void computeHash();
 
 private:
   ExtractExpr(const ref<Expr> &e, unsigned b, Width w) 
@@ -893,7 +893,7 @@ public:
     return create(kids[0]);
   }
 
-  virtual unsigned computeHash();
+  virtual void computeHash();
 
 public:
   static bool classof(const Expr *E) {
@@ -942,7 +942,7 @@ public:
     return 0;
   }
 
-  virtual unsigned computeHash();
+  virtual void computeHash();
 
   static bool classof(const Expr *E) {
     Expr::Kind k = E->getKind();
@@ -1140,7 +1140,7 @@ public:
     return const_cast<ConstantExpr *>(this);
   }
 
-  virtual unsigned computeHash();
+  virtual void computeHash();
 
   static ref<Expr> fromMemory(void *address, Width w);
   void toMemory(void *address);

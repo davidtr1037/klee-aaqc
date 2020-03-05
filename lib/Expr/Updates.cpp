@@ -52,11 +52,11 @@ int UpdateNode::compare(const UpdateNode &b) const {
   return value.compare(b.value);
 }
 
-unsigned UpdateNode::computeHash() {
+void UpdateNode::computeHash() {
   hashValue = index->hash() ^ value->hash();
   if (next)
     hashValue ^= next->hash();
-  return hashValue;
+  //return hashValue;
 }
 
 bool UpdateNode::isIsomorphic(const UpdateNode &b, ArrayMapping &map) const {

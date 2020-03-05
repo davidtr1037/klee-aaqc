@@ -231,7 +231,7 @@ bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
 //
 ///////
 
-unsigned Expr::computeHash() {
+void Expr::computeHash() {
   unsigned res = getKind() * Expr::MAGIC_HASH_CONSTANT;
 
   int n = getNumKids();
@@ -241,42 +241,42 @@ unsigned Expr::computeHash() {
   }
   
   hashValue = res;
-  return hashValue;
+  //return hashValue;
 }
 
-unsigned ConstantExpr::computeHash() {
+void ConstantExpr::computeHash() {
   Expr::Width w = getWidth();
   if (w <= 64)
     hashValue = value.getLimitedValue() ^ (w * MAGIC_HASH_CONSTANT);
   else
     hashValue = hash_value(value) ^ (w * MAGIC_HASH_CONSTANT);
 
-  return hashValue;
+  //return hashValue;
 }
 
-unsigned CastExpr::computeHash() {
+void CastExpr::computeHash() {
   unsigned res = getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ src->hash() * Expr::MAGIC_HASH_CONSTANT;
-  return hashValue;
+  //return hashValue;
 }
 
-unsigned ExtractExpr::computeHash() {
+void ExtractExpr::computeHash() {
   unsigned res = offset * Expr::MAGIC_HASH_CONSTANT;
   res ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ expr->hash() * Expr::MAGIC_HASH_CONSTANT;
-  return hashValue;
+  //return hashValue;
 }
 
-unsigned ReadExpr::computeHash() {
+void ReadExpr::computeHash() {
   unsigned res = index->hash() * Expr::MAGIC_HASH_CONSTANT;
   res ^= updates.hash();
   hashValue = res;
-  return hashValue;
+  //return hashValue;
 }
 
-unsigned NotExpr::computeHash() {
+void NotExpr::computeHash() {
   hashValue = expr->hash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
-  return hashValue;
+  //return hashValue;
 }
 
 ref<Expr> Expr::createFromKind(Kind k, std::vector<CreateArg> args) {
@@ -580,13 +580,13 @@ Array::Array(const std::string &_name, uint64_t _size,
 Array::~Array() {
 }
 
-unsigned Array::computeHash() {
+void Array::computeHash() {
   unsigned res = 0;
   for (unsigned i = 0, e = name.size(); i != e; ++i)
     res = (res * Expr::MAGIC_HASH_CONSTANT) + name[i];
   res = (res * Expr::MAGIC_HASH_CONSTANT) + size;
   hashValue = res;
-  return hashValue; 
+  //return hashValue; 
 }
 /***/
 
