@@ -54,8 +54,11 @@ int UpdateNode::compare(const UpdateNode &b) const {
 
 void UpdateNode::computeHash() {
   hashValue = index->hash() ^ value->hash();
-  if (next)
+  checksum = index->getChecksum() ^ value->getChecksum();
+  if (next) {
     hashValue ^= next->hash();
+    checksum ^= next->getChecksum();
+  }
   //return hashValue;
 }
 
@@ -193,6 +196,10 @@ unsigned UpdateList::hash() const {
   if (head)
     res ^= head->hash();
   return res;
+}
+
+unsigned UpdateList::getChecksum() const {
+  return 1337;
 }
 
 bool UpdateList::isIsomorphic(const UpdateList &b, ArrayMapping &map) const {

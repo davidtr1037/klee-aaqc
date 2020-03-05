@@ -190,6 +190,9 @@ public:
 protected:  
   unsigned hashValue;
 
+  /* TODO: add docs */
+  unsigned checksum;
+
   /// Compares `b` to `this` Expr and determines how they are ordered
   /// (ignoring their kid expressions - i.e. those returned by `getKid()`).
   ///
@@ -236,6 +239,9 @@ public:
   /// Returns the hash value. 
   virtual void computeHash();
   
+  /* TODO: add docs */
+  virtual unsigned getChecksum() const { return checksum; }
+
   /// Compares `b` to `this` Expr for structural equivalence.
   ///
   /// This method effectively defines a total order over all Expr.
@@ -479,6 +485,7 @@ class UpdateNode {
   mutable unsigned refCount;
   // cache instead of recalc
   unsigned hashValue;
+  unsigned checksum;
 
 public:
   const UpdateNode *next;
@@ -497,6 +504,7 @@ public:
 
   int compare(const UpdateNode &b) const;  
   unsigned hash() const { return hashValue; }
+  unsigned getChecksum() const { return checksum; }
   bool isIsomorphic(const UpdateNode &b, ArrayMapping &map) const;
 
 private:
@@ -530,6 +538,7 @@ public:
 
 private:
   unsigned hashValue;
+  unsigned checksum;
 
   // FIXME: Make =delete when we switch to C++11
   Array(const Array& array);
@@ -590,6 +599,7 @@ public:
 
   int compare(const UpdateList &b) const;
   unsigned hash() const;
+  unsigned getChecksum() const;
   bool isIsomorphic(const UpdateList &b, ArrayMapping &map) const;
 private:
   void tryFreeNodes();

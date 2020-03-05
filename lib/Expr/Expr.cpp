@@ -29,6 +29,8 @@ namespace klee {
 llvm::cl::OptionCategory
     ExprCat("Expression building and printing options",
             "These options impact the way expressions are build and printed.");
+cl::opt<bool> ComputeExprChecksum("compute-expr-checksum", cl::init(false), cl::desc(""));
+cl::opt<bool> UseExprChecksum("use-expr-checksum", cl::init(true), cl::desc(""));
 }
 
 namespace {
@@ -212,6 +214,10 @@ bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
     return false;
   }
 
+  if (UseExprChecksum && checksum != b.checksum) {
+    return false;
+  }
+
   if (!compareContentsIsomorphism(b, map)) {
     return false;
   }
@@ -233,14 +239,18 @@ bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
 
 void Expr::computeHash() {
   unsigned res = getKind() * Expr::MAGIC_HASH_CONSTANT;
+  unsigned c = res;
 
   int n = getNumKids();
   for (int i = 0; i < n; i++) {
     res <<= 1;
     res ^= getKid(i)->hash() * Expr::MAGIC_HASH_CONSTANT;
+    c <<= 1;
+    c ^= getKid(i)->getChecksum() * Expr::MAGIC_HASH_CONSTANT;
   }
   
   hashValue = res;
+  checksum = c;
   //return hashValue;
 }
 
@@ -251,12 +261,14 @@ void ConstantExpr::computeHash() {
   else
     hashValue = hash_value(value) ^ (w * MAGIC_HASH_CONSTANT);
 
+  checksum = hashValue;
   //return hashValue;
 }
 
 void CastExpr::computeHash() {
   unsigned res = getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ src->hash() * Expr::MAGIC_HASH_CONSTANT;
+  checksum = res ^ src->getChecksum() * Expr::MAGIC_HASH_CONSTANT;
   //return hashValue;
 }
 
@@ -264,6 +276,7 @@ void ExtractExpr::computeHash() {
   unsigned res = offset * Expr::MAGIC_HASH_CONSTANT;
   res ^= getWidth() * Expr::MAGIC_HASH_CONSTANT;
   hashValue = res ^ expr->hash() * Expr::MAGIC_HASH_CONSTANT;
+  checksum = res ^ expr->getChecksum() * Expr::MAGIC_HASH_CONSTANT;
   //return hashValue;
 }
 
@@ -271,11 +284,16 @@ void ReadExpr::computeHash() {
   unsigned res = index->hash() * Expr::MAGIC_HASH_CONSTANT;
   res ^= updates.hash();
   hashValue = res;
+
+  unsigned c = index->getChecksum() * Expr::MAGIC_HASH_CONSTANT;
+  c ^= updates.getChecksum();
+  checksum = c;
   //return hashValue;
 }
 
 void NotExpr::computeHash() {
   hashValue = expr->hash() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
+  checksum = expr->getChecksum() * Expr::MAGIC_HASH_CONSTANT * Expr::Not;
   //return hashValue;
 }
 
@@ -586,6 +604,10 @@ void Array::computeHash() {
     res = (res * Expr::MAGIC_HASH_CONSTANT) + name[i];
   res = (res * Expr::MAGIC_HASH_CONSTANT) + size;
   hashValue = res;
+
+  /* TODO: is it important for expression comparison? */
+  checksum = 7777;
+
   //return hashValue; 
 }
 /***/
