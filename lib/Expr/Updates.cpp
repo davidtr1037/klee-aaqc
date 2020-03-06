@@ -219,11 +219,30 @@ bool UpdateList::isIsomorphic(const UpdateList &b, ArrayMapping &map) const {
     }
   }
 
+  unsigned index = 0;
+  bool canSkip = false;
+
   const UpdateNode *an = head, *bn = b.head;
   for (; an && bn; an = an->next, bn = bn->next) {
+    if (canSkip && index < 8) {
+      index++;
+      continue;
+    } else {
+      canSkip = false;
+    }
+
     /* TODO: exploit shared list structure? */
     if (!an->isIsomorphic(*bn, map)) {
         return false;
+    }
+    ref<ReadExpr> v = dyn_cast<ReadExpr>(an->value);
+    if (!v.isNull() && v->isAddressValue()) {
+      //an->value->dump();
+      //an->index->dump();
+      if (!canSkip) {
+        canSkip = true;
+        index = 1;
+      }
     }
   }
 

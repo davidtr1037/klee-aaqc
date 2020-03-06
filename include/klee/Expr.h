@@ -642,6 +642,8 @@ public:
 
   virtual void computeHash();
 
+  bool isAddressValue() const;
+
 private:
   ReadExpr(const UpdateList &_updates, const ref<Expr> &_index) : 
     updates(_updates), index(_index) {

@@ -701,6 +701,10 @@ bool ReadExpr::compareContentsIsomorphism(const Expr &b, ArrayMapping &map) cons
   return updates.isIsomorphic(static_cast<const ReadExpr&>(b).updates, map);
 }
 
+bool ReadExpr::isAddressValue() const {
+  return updates.root && updates.root->isAddressArray;
+}
+
 ref<Expr> SelectExpr::create(ref<Expr> c, ref<Expr> t, ref<Expr> f) {
   Expr::Width kt = t->getWidth();
 
