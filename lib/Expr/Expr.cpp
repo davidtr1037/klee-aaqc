@@ -43,25 +43,55 @@ cl::opt<bool> ConstArrayOpt(
 
 /***/
 
-/* TODO: use map? */
 /* TODO: map only symbolic address arrays? */
 bool ArrayMapping::add(const Array *from, const Array *to) {
-  for (auto &p : map) {
-    if (p.first == from->id) {
-      return p.second == to->id;
-    }
-    if (p.first == to->id) {
-      return p.second == from->id;
-    }
-    if (p.second == from->id) {
-      return p.first == to->id;
-    }
-    if (p.second == to->id) {
-      return p.first == from->id;
-    }
+  uint64_t a = from->id;
+  uint64_t b = to->id;
+  if (a > b) {
+    uint64_t t;
+    t = a;
+    a = b;
+    b = t;
   }
-  map.push_back(std::make_pair(from->id, to->id));
+
+  auto i = map.find(a);
+  if (i != map.end()) {
+    /* 'a' is match, so must bt matched to 'b' */
+    return i->second == b;
+  }
+
+  if (a == b) {
+    /* 'a' and 'b' were not encountered before */
+    map[a] = b;
+    return true;
+  }
+
+  /* 'a' != 'b' and 'a' is not found */
+  i = map.find(b);
+  if (i != map.end()) {
+    /* 'b' is already mapped to another value */
+    return false;
+  }
+
+  map[a] = b;
   return true;
+
+  //for (auto &p : map) {
+  //  if (p.first == from->id) {
+  //    return p.second == to->id;
+  //  }
+  //  if (p.first == to->id) {
+  //    return p.second == from->id;
+  //  }
+  //  if (p.second == from->id) {
+  //    return p.first == to->id;
+  //  }
+  //  if (p.second == to->id) {
+  //    return p.first == from->id;
+  //  }
+  //}
+  //map.push_back(std::make_pair(from->id, to->id));
+  //return true;
 }
 
 void ArrayMapping::dump() const {
