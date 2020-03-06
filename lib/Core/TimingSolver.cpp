@@ -360,6 +360,7 @@ SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
 }
 
 void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
+  TimerStatIncrementer timer(stats::cachingTime);
   if (simplifyExprs) {
     expr = state.constraints.simplifyExpr(expr);
   }
