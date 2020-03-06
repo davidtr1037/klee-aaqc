@@ -236,9 +236,9 @@ bool Expr::isIsomorphic(const Expr &b) const {
 }
 
 bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
-  //if (this == &b) {
-  //  return true;
-  //}
+  if (this == &b && isa<ConstantExpr>(this)) {
+    return true;
+  }
 
   if (getKind() != b.getKind()) {
     return false;
