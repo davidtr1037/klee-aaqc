@@ -212,9 +212,9 @@ bool UpdateList::isIsomorphic(const UpdateList &b, ArrayMapping &map) const {
   }
 
   for (unsigned int i = 0; i < root->constantValues.size(); i++) {
-    ref<Expr> e1 = root->constantValues[i];
-    ref<Expr> e2 = b.root->constantValues[i];
-    if (e1.compare(e2) != 0) {
+    ref<ConstantExpr> e1 = root->constantValues[i];
+    ref<ConstantExpr> e2 = b.root->constantValues[i];
+    if (e1->compareContents(*e2) != 0) {
       return false;
     }
   }
