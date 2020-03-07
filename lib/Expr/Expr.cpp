@@ -101,6 +101,28 @@ void ArrayMapping::dump() const {
   }
 }
 
+/* TODO: swap if needed? */
+void ArrayMapping::addPair(const Expr *e1, const Expr *e2) {
+  //if (e1 > e2) {
+  //  const Expr *e;
+  //  e = e1;
+  //  e1 = e2;
+  //  e2 = e;
+  //}
+  checked.insert(std::make_pair(e1, e2));
+}
+
+/* TODO: swap if needed? */
+bool ArrayMapping::hasPair(const Expr *e1, const Expr *e2) {
+  //if (e1 > e2) {
+  //  const Expr *e;
+  //  e = e1;
+  //  e1 = e2;
+  //  e2 = e;
+  //}
+  return checked.find(std::make_pair(e1, e2)) != checked.end();
+}
+
 unsigned Expr::count = 0;
 
 ref<Expr> Expr::createTempRead(const Array *array, Expr::Width w) {
@@ -248,6 +270,10 @@ bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
     return false;
   }
 
+  if (map.hasPair(this, &b)) {
+    return true;
+  }
+
   if (!compareContentsIsomorphism(b, map)) {
     return false;
   }
@@ -259,6 +285,9 @@ bool Expr::isIsomorphic(const Expr &b, ArrayMapping &map) const {
     }
   }
 
+  if (!isa<ConstantExpr>(this)) {
+    map.addPair(this, &b);
+  }
   return true;
 }
 ////////
@@ -697,7 +726,8 @@ int ReadExpr::compareContents(const Expr &b) const {
   return updates.compare(static_cast<const ReadExpr&>(b).updates);
 }
 
-bool ReadExpr::compareContentsIsomorphism(const Expr &b, ArrayMapping &map) const {
+bool ReadExpr::compareContentsIsomorphism(const Expr &b,
+                                          ArrayMapping &map) const {
   return updates.isIsomorphic(static_cast<const ReadExpr&>(b).updates, map);
 }
 

@@ -62,7 +62,8 @@ void UpdateNode::computeHash() {
   //return hashValue;
 }
 
-bool UpdateNode::isIsomorphic(const UpdateNode &b, ArrayMapping &map) const {
+bool UpdateNode::isIsomorphic(const UpdateNode &b,
+                              ArrayMapping &map) const {
   return index->isIsomorphic(*b.index, map) && value->isIsomorphic(*b.value, map);
 }
 

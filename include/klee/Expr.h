@@ -33,6 +33,7 @@ namespace llvm {
 namespace klee {
 
 class Array;
+class Expr;
 class ArrayCache;
 class ConstantExpr;
 class ObjectState;
@@ -92,7 +93,11 @@ Todo: Shouldn't bool \c Xor just be written as not equal?
 struct ArrayMapping {
   //std::vector<std::pair<uint64_t, uint64_t>> map;
   std::map<uint64_t, uint64_t> map;
+  llvm::DenseSet<std::pair<const Expr *, const Expr *>> checked;
+
   bool add(const Array *from, const Array *to);
+  void addPair(const Expr *e1, const Expr *e2);
+  bool hasPair(const Expr *e1, const Expr *e2);
   void dump() const;
 };
 
