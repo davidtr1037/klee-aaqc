@@ -15,6 +15,7 @@
 #include "klee/Internal/System/Time.h"
 
 #include <vector>
+#include <unordered_map>
 
 namespace klee {
   class ExecutionState;
@@ -31,8 +32,9 @@ namespace klee {
       : constraints(constraints), expr(expr) {
     }
 
+    /* TODO: a bit hacky... */
     bool operator==(const SolverQuery &other) const {
-      return constraints == other.constraints && *expr.get() == *other.expr.get();
+      return isIsomorphic(other);
     }
 
     bool isEqual(const SolverQuery &other) const;
@@ -156,18 +158,34 @@ namespace klee {
   /// TimingSolver - A simple class which wraps a solver and handles
   /// tracking the statistics that we care about.
   class TimingSolver {
+
+  private:
+    struct CacheKeyHash {
+      unsigned operator()(const SolverQuery &q) const {
+        unsigned result = q.expr->getChecksum();
+        for (ref<Expr> e : q.constraints) {
+          result ^= e->getChecksum();
+        }
+        return result;
+      }
+    };
+
   public:
     Solver *solver;
     bool simplifyExprs;
     /* TODO: remove */
     std::vector<SolverQuery> queries;
     std::vector<SolverQuery> equivalent;
-    uint64_t queries_count = 0;
+
+    uint64_t relevantQueries = 0;
     uint64_t allQueriesCount = 0;
     uint64_t addressDependentQueries = 0;
+    uint64_t unhandledQueries = 0;
 
-    typedef std::vector<CacheEntry> Cache;
-    Cache cache;
+    /* TODO: remove... */
+    std::vector<CacheEntry> queryList;
+    /* TODO: use this one */
+    std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> queryMap;
 
   public:
     /// TimingSolver - Construct a new timing solver.

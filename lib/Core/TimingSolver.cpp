@@ -24,6 +24,7 @@ using namespace llvm;
 cl::opt<bool> CollectQueryStats("collect-query-stats", cl::init(false), cl::desc("..."));
 cl::opt<bool> UseIsomorphismCache("use-iso-cache", cl::init(false), cl::desc("..."));
 cl::opt<bool> ValidateCaching("validate-caching", cl::init(false), cl::desc("..."));
+cl::opt<bool> UseMapCache("use-map-cache", cl::init(true), cl::desc("..."));
 
 /***/
 
@@ -176,8 +177,12 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
-  if (useCache && CollectQueryStats) {
-    collectStats(state, ade);
+  if (CollectQueryStats) {
+    if (useCache) {
+      collectStats(state, ade);
+    } else {
+      unhandledQueries++;
+    }
   }
 
   bool success = false;
@@ -378,7 +383,7 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
 
   /* slice the path constraints */
   SolverQuery q = buildQuery(state, expr);
-  queries_count++;
+  relevantQueries++;
 
   bool found;
 
@@ -417,17 +422,31 @@ bool TimingSolver::lookupQuery(const ExecutionState &state,
   bool negated;
   ref<Expr> expr = canonicalizeQuery(query.expr, negated);
   SolverQuery canonicalQuery(query.constraints, expr);
-  for (CacheEntry &e : cache) {
-    if (canonicalQuery.isIsomorphic(e.q)) {
+
+  if (UseMapCache) {
+    auto i = queryMap.find(canonicalQuery);
+    if (i != queryMap.end()) {
       if (negated) {
-        result = e.result.negate();
+        result = i->second.negate();
       } else {
-        result = e.result;
+        result = i->second;
       }
       return true;
     }
+    return false;
+  } else {
+    for (CacheEntry &e : queryList) {
+      if (canonicalQuery.isIsomorphic(e.q)) {
+        if (negated) {
+          result = e.result.negate();
+        } else {
+          result = e.result;
+        }
+        return true;
+      }
+    }
+    return false;
   }
-  return false;
 }
 
 void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, CacheResult &result) {
@@ -435,18 +454,31 @@ void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, 
   bool negated;
   query.expr = canonicalizeQuery(query.expr, negated);
   if (negated) {
-    cache.push_back(CacheEntry(query, result.negate()));
+    if (UseMapCache) {
+      queryMap.insert(std::make_pair(query, result.negate()));
+    } else {
+      queryList.push_back(CacheEntry(query, result.negate()));
+    }
   } else {
-    cache.push_back(CacheEntry(query, result));
+    if (UseMapCache) {
+      queryMap.insert(std::make_pair(query, result));
+    } else {
+      queryList.push_back(CacheEntry(query, result));
+    }
   }
 }
 
 void TimingSolver::dump() const {
-  klee_message("Statistics: %lu", queries_count);
+  klee_message("Statistics");
   klee_message("- All queries: %lu", allQueriesCount);
-  klee_message("- Relevant queries: %lu", queries_count);
+  klee_message("- Unhandled queries: %lu", unhandledQueries);
+  klee_message("- Relevant queries: %lu", relevantQueries);
   klee_message("- Relevant address dependent queries: %lu", addressDependentQueries);
   klee_message("- Equal queries: %lu", queries.size());
   klee_message("- Isomorphic queries: %lu", equivalent.size());
-  klee_message("- Cache: %lu", cache.size());
+  if (UseMapCache) {
+    klee_message("- Cache: %lu", queryMap.size());
+  } else {
+    klee_message("- Cache: %lu", queryList.size());
+  }
 }
