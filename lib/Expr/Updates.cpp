@@ -212,6 +212,10 @@ bool UpdateList::isIsomorphic(const UpdateList &b, ArrayMapping &map) const {
     return false;
   }
 
+  if (root->constantValues.size() != b.root->constantValues.size()) {
+    return false;
+  }
+
   for (unsigned int i = 0; i < root->constantValues.size(); i++) {
     ref<ConstantExpr> e1 = root->constantValues[i];
     ref<ConstantExpr> e2 = b.root->constantValues[i];
