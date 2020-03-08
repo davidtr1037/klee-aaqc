@@ -31,6 +31,10 @@ namespace klee {
       : constraints(constraints), expr(expr) {
     }
 
+    bool operator==(const SolverQuery &other) const {
+      return constraints == other.constraints && *expr.get() == *other.expr.get();
+    }
+
     bool isEqual(const SolverQuery &other) const;
 
     bool isIsomorphic(const SolverQuery &other) const;
