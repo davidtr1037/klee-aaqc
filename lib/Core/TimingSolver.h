@@ -211,9 +211,9 @@ namespace klee {
 
     bool mustBeTrue(const ExecutionState&, ref<Expr>, bool &result, bool useCache = true);
 
-    bool mustBeFalse(const ExecutionState&, ref<Expr>, bool &result);
+    bool mustBeFalse(const ExecutionState&, ref<Expr>, bool &result, bool useCache = true);
 
-    bool mayBeTrue(const ExecutionState&, ref<Expr>, bool &result);
+    bool mayBeTrue(const ExecutionState&, ref<Expr>, bool &result, bool useCache = true);
 
     bool mayBeFalse(const ExecutionState&, ref<Expr>, bool &result);
 

@@ -243,14 +243,14 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 }
 
 bool TimingSolver::mustBeFalse(const ExecutionState& state, ref<Expr> expr,
-                               bool &result) {
-  return mustBeTrue(state, Expr::createIsZero(expr), result);
+                               bool &result, bool useCache) {
+  return mustBeTrue(state, Expr::createIsZero(expr), result, useCache);
 }
 
 bool TimingSolver::mayBeTrue(const ExecutionState& state, ref<Expr> expr, 
-                             bool &result) {
+                             bool &result, bool useCache) {
   bool res;
-  if (!mustBeFalse(state, expr, res))
+  if (!mustBeFalse(state, expr, res, useCache))
     return false;
   result = !res;
   return true;
