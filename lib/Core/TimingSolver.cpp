@@ -192,7 +192,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
       ade = state.constraints.simplifyExpr(ade);
     }
     if (isa<ConstantExpr>(ade)) {
-      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? Solver::True : Solver::False;
+      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? true : false;
       return true;
     }
 
