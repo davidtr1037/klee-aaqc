@@ -186,7 +186,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   }
 
   bool success = false;
-  if (useCache && shouldCacheQuery(ade)) {
+  if (shouldCacheQuery(ade)) {
     if (simplifyExprs) {
       TimerStatIncrementer timer(stats::cachingTime);
       ade = state.constraints.simplifyExpr(ade);
@@ -196,7 +196,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
 
-    SolverQuery q = buildQuery(state, ade);
+    SolverQuery q = buildQuery(state, ade, useCache);
     CacheResult cachedResult;
     bool found = lookupQuery(state, q, cachedResult);
     if (found) {
@@ -355,13 +355,14 @@ ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> expr,
 }
 
 SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
-                                     ref<Expr> expr) {
+                                     ref<Expr> expr,
+                                     bool canHandle) {
   TimerStatIncrementer timer(stats::cachingTime);
   assert(!isa<ConstantExpr>(expr));
   Query query(state.constraints, expr);
   std::vector<ref<Expr>> required;
   sliceConstraints(query, required);
-  return SolverQuery(required, expr);
+  return SolverQuery(required, expr, canHandle);
 }
 
 void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
@@ -420,7 +421,20 @@ bool TimingSolver::lookupQuery(const ExecutionState &state,
   TimerStatIncrementer timer(stats::cachingTime);
   bool negated;
   ref<Expr> expr = canonicalizeQuery(query.expr, negated);
-  SolverQuery canonicalQuery(query.constraints, expr);
+  SolverQuery canonicalQuery(query.constraints, expr, query.canHandle);
+
+  if (!canonicalQuery.canHandle) {
+    auto i = equalityCache.find(canonicalQuery);
+    if (i != equalityCache.end()) {
+      if (negated) {
+        result = i->second.negate();
+      } else {
+        result = i->second;
+      }
+      return true;
+    }
+    return false;
+  }
 
   if (UseMapCache) {
     auto i = queryMap.find(canonicalQuery);
@@ -452,17 +466,15 @@ void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, 
   TimerStatIncrementer timer(stats::cachingTime);
   bool negated;
   query.expr = canonicalizeQuery(query.expr, negated);
-  if (negated) {
-    if (UseMapCache) {
-      queryMap.insert(std::make_pair(query, result.negate()));
-    } else {
-      queryList.push_back(CacheEntry(query, result.negate()));
-    }
+  CacheResult canonicalResult = negated ? result.negate() : result;
+
+  if (!query.canHandle) {
+    equalityCache.insert(std::make_pair(query, canonicalResult));
   } else {
     if (UseMapCache) {
-      queryMap.insert(std::make_pair(query, result));
+      queryMap.insert(std::make_pair(query, canonicalResult));
     } else {
-      queryList.push_back(CacheEntry(query, result));
+      queryList.push_back(CacheEntry(query, canonicalResult));
     }
   }
 }
@@ -475,9 +487,9 @@ void TimingSolver::dump() const {
   klee_message("- Relevant address dependent queries: %lu", addressDependentQueries);
   klee_message("- Equal queries: %lu", queries.size());
   klee_message("- Isomorphic queries: %lu", equivalent.size());
-  if (UseMapCache) {
-    klee_message("- Cache: %lu", queryMap.size());
-  } else {
-    klee_message("- Cache: %lu", queryList.size());
-  }
+
+  size_t isoCacheSize = UseMapCache ? queryMap.size() : queryList.size();
+  klee_message("- Isomorphism cache: %lu", isoCacheSize);
+  klee_message("- Equality cache: %lu", equalityCache.size());
+  klee_message("- Total cache: %lu", isoCacheSize + equalityCache.size());
 }

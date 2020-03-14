@@ -28,9 +28,10 @@ namespace klee {
     std::vector<ref<Expr>> constraints;
     ref<Expr> expr;
     bool isAddressDependent;
+    bool canHandle;
 
-    SolverQuery(std::vector<ref<Expr>> &constraints, ref<Expr> expr)
-      : constraints(constraints), expr(expr) {
+    SolverQuery(std::vector<ref<Expr>> &constraints, ref<Expr> expr, bool canHandle)
+      : constraints(constraints), expr(expr), canHandle(canHandle) {
       if (expr->flag) {
         isAddressDependent = true;
       } else {
@@ -45,7 +46,12 @@ namespace klee {
 
     /* TODO: a bit hacky... */
     bool operator==(const SolverQuery &other) const {
-      return isIsomorphic(other);
+      assert(canHandle == other.canHandle);
+      if (canHandle) {
+        return isIsomorphic(other);
+      } else {
+        return isEqual(other);
+      }
     }
 
     bool isEqual(const SolverQuery &other) const;
@@ -197,6 +203,7 @@ namespace klee {
     std::vector<CacheEntry> queryList;
     /* TODO: use this one */
     std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> queryMap;
+    std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> equalityCache;
 
   public:
     /// TimingSolver - Construct a new timing solver.
@@ -245,7 +252,8 @@ namespace klee {
     ref<Expr> canonicalizeQuery(ref<Expr> query, bool &negationUsed);
 
     SolverQuery buildQuery(const ExecutionState &state,
-                           ref<Expr> expr);
+                           ref<Expr> expr,
+                           bool canHandle = true);
 
     void collectStats(const ExecutionState &state, ref<Expr> expr);
 
