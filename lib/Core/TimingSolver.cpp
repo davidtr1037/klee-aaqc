@@ -374,16 +374,15 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
     return;
   }
 
-  if (expr->flag) {
-    addressDependentQueries++;
-  }
-
   bool wasNegated;
   expr = canonicalizeQuery(expr, wasNegated);
 
   /* slice the path constraints */
   SolverQuery q = buildQuery(state, expr);
   relevantQueries++;
+  if (q.isAddressDependent) {
+    addressDependentQueries++;
+  }
 
   bool found;
 
