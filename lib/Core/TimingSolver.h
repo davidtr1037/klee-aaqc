@@ -32,6 +32,7 @@ namespace klee {
 
     SolverQuery(std::vector<ref<Expr>> &constraints, ref<Expr> expr, bool canHandle)
       : constraints(constraints), expr(expr), canHandle(canHandle) {
+      isAddressDependent = false;
       if (expr->flag) {
         isAddressDependent = true;
       } else {
