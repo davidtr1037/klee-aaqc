@@ -252,6 +252,57 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
     }
 }
 
+//bool Expr::visitAddressValues(ref<Expr> e, ArrayMapping &map) {
+//  std::vector<ref<Expr>> stack;
+//  ExprHashSet visited;
+//
+//  if (!isa<ConstantExpr>(e)) {
+//    visited.insert(e);
+//    stack.push_back(e);
+//  }
+//
+//  while (!stack.empty()) {
+//    ref<Expr> top = stack.back();
+//    stack.pop_back();
+//
+//    ReadExpr *re = dyn_cast<ReadExpr>(top);
+//    if (re) {
+//      if (re->updates.root && re->updates.root->isSymbolicArray()) {
+//        //errs() << re->updates.root->getName() << "\n";
+//        if (!map.add(re->updates.root, re->updates.root)) {
+//          return false;
+//        }
+//      }
+//
+//      if (!isa<ConstantExpr>(re->index)) {
+//        if (visited.insert(re->index).second) {
+//          stack.push_back(re->index);
+//        }
+//      }
+//      for (const UpdateNode *un = re->updates.head; un; un = un->next) {
+//        if (!isa<ConstantExpr>(un->index)) {
+//          if (visited.insert(un->index).second) {
+//            stack.push_back(un->index);
+//          }
+//        }
+//        if (!isa<ConstantExpr>(un->value)) {
+//          if (visited.insert(un->value).second) {
+//            stack.push_back(un->value);
+//          }
+//        }
+//      }
+//    } else if (!isa<ConstantExpr>(top)) {
+//      for (unsigned i = 0; i < top->getNumKids(); i++) {
+//        ref<Expr> k = top->getKid(i);
+//        if (!isa<ConstantExpr>(k) && visited.insert(k).second) {
+//          stack.push_back(k);
+//        }
+//      }
+//    }
+//  }
+//  return true;
+//}
+
 bool Expr::isIsomorphic(const Expr &b) const {
   ArrayMapping map;
   return isIsomorphic(b, map);
