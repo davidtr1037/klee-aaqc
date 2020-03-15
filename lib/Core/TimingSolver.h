@@ -189,16 +189,19 @@ namespace klee {
     };
 
   public:
+
+    struct QueryStatistics {
+      std::vector<SolverQuery> queries;
+      std::vector<SolverQuery> equivalent;
+      uint64_t relevantQueries = 0;
+      uint64_t allQueriesCount = 0;
+      uint64_t addressDependentQueries = 0;
+      uint64_t unhandledQueries = 0;
+    };
+
     Solver *solver;
     bool simplifyExprs;
-    /* TODO: remove */
-    std::vector<SolverQuery> queries;
-    std::vector<SolverQuery> equivalent;
-
-    uint64_t relevantQueries = 0;
-    uint64_t allQueriesCount = 0;
-    uint64_t addressDependentQueries = 0;
-    uint64_t unhandledQueries = 0;
+    QueryStatistics stats;
 
     /* TODO: remove... */
     std::vector<CacheEntry> queryList;

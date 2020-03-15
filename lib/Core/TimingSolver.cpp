@@ -99,7 +99,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   }
 
   TimerStatIncrementer timer(stats::solverTime);
-  allQueriesCount++;
+  stats.allQueriesCount++;
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
@@ -172,7 +172,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   }
 
   TimerStatIncrementer timer(stats::solverTime);
-  allQueriesCount++;
+  stats.allQueriesCount++;
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
@@ -181,7 +181,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     if (useCache) {
       collectStats(state, ade);
     } else {
-      unhandledQueries++;
+      stats.unhandledQueries++;
     }
   }
 
@@ -275,7 +275,7 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
   }
   
   TimerStatIncrementer timer(stats::solverTime);
-  allQueriesCount++;
+  stats.allQueriesCount++;
 
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
@@ -301,7 +301,7 @@ TimingSolver::getInitialValues(const ExecutionState& state,
     return true;
 
   TimerStatIncrementer timer(stats::solverTime);
-  allQueriesCount++;
+  stats.allQueriesCount++;
 
   //ConstraintManager cm;
   //fillConstraints(state, cm, nullptr);
@@ -382,33 +382,34 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
 
   /* slice the path constraints */
   SolverQuery q = buildQuery(state, expr);
-  relevantQueries++;
+  stats.relevantQueries++;
   if (q.isAddressDependent) {
-    addressDependentQueries++;
+    stats.addressDependentQueries++;
+    //q.dump();
   }
 
   bool found;
 
   found = false;
-  for (SolverQuery other : queries) {
+  for (SolverQuery other : stats.queries) {
     if (q.isEqual(other)) {
       found = true;
       break;
     }
   }
   if (!found) {
-    queries.push_back(q);
+    stats.queries.push_back(q);
   }
 
   found = false;
-  for (SolverQuery other : equivalent) {
+  for (SolverQuery other : stats.equivalent) {
     if (q.isIsomorphic(other)) {
       found = true;
       break;
     }
   }
   if (!found) {
-    equivalent.push_back(q);
+    stats.equivalent.push_back(q);
   }
 }
 
@@ -483,12 +484,12 @@ void TimingSolver::insertQuery(const ExecutionState &state, SolverQuery &query, 
 
 void TimingSolver::dump() const {
   klee_message("Statistics");
-  klee_message("- All queries: %lu", allQueriesCount);
-  klee_message("- Unhandled queries: %lu", unhandledQueries);
-  klee_message("- Relevant queries: %lu", relevantQueries);
-  klee_message("- Relevant address dependent queries: %lu", addressDependentQueries);
-  klee_message("- Equal queries: %lu", queries.size());
-  klee_message("- Isomorphic queries: %lu", equivalent.size());
+  klee_message("- All queries: %lu", stats.allQueriesCount);
+  klee_message("- Unhandled queries: %lu", stats.unhandledQueries);
+  klee_message("- Relevant queries: %lu", stats.relevantQueries);
+  klee_message("- Relevant address dependent queries: %lu", stats.addressDependentQueries);
+  klee_message("- Equal queries: %lu", stats.queries.size());
+  klee_message("- Isomorphic queries: %lu", stats.equivalent.size());
 
   size_t isoCacheSize = UseMapCache ? queryMap.size() : queryList.size();
   klee_message("- Isomorphism cache: %lu", isoCacheSize);
