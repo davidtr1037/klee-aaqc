@@ -180,6 +180,15 @@ namespace klee {
   private:
     struct CacheKeyHash {
       unsigned operator()(const SolverQuery &q) const {
+        unsigned result = q.expr->hash();
+        for (ref<Expr> e : q.constraints) {
+          result ^= e->hash();
+        }
+        return result;
+      }
+    };
+    struct CacheKeyChecksum {
+      unsigned operator()(const SolverQuery &q) const {
         unsigned result = q.expr->getChecksum();
         for (ref<Expr> e : q.constraints) {
           result ^= e->getChecksum();
@@ -206,7 +215,8 @@ namespace klee {
     /* TODO: remove... */
     std::vector<CacheEntry> queryList;
     /* TODO: use this one */
-    std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> queryMap;
+    std::unordered_map<SolverQuery, CacheResult, CacheKeyChecksum> queryMap;
+    /* TODO: use CacheKeyHash or CacheKeyChecksum? */
     std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> equalityCache;
 
   public:
