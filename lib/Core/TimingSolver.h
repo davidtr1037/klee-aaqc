@@ -48,12 +48,7 @@ namespace klee {
 
     /* TODO: a bit hacky... */
     bool operator==(const SolverQuery &other) const {
-      assert(canHandle == other.canHandle);
-      if (canHandle) {
-        return isIsomorphic(other);
-      } else {
-        return isEqual(other);
-      }
+      assert(0);
     }
 
     bool isEqual(const SolverQuery &other) const;
@@ -230,8 +225,8 @@ namespace klee {
     /* TODO: remove... */
     std::vector<CacheEntry> queryList;
     /* TODO: use equality template? */
-    std::unordered_map<SolverQuery, CacheResult, CacheKeyChecksum> queryMap;
-    std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> equalityCache;
+    std::unordered_map<SolverQuery, CacheResult, CacheKeyChecksum, CacheKeyIsomorphism> queryMap;
+    std::unordered_map<SolverQuery, CacheResult, CacheKeyHash, CacheKeyEquality> equalityCache;
 
   public:
     /// TimingSolver - Construct a new timing solver.
