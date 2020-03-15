@@ -16,6 +16,7 @@
 
 #include <vector>
 #include <unordered_map>
+#include <unordered_set>
 
 namespace klee {
   class ExecutionState;
@@ -178,6 +179,19 @@ namespace klee {
   class TimingSolver {
 
   private:
+
+    struct CacheKeyEquality {
+      bool operator()(const SolverQuery &q1, const SolverQuery &q2) const {
+        return q1.isEqual(q2);
+      }
+    };
+
+    struct CacheKeyIsomorphism {
+      bool operator()(const SolverQuery &q1, const SolverQuery &q2) const {
+        return q1.isIsomorphic(q2);
+      }
+    };
+
     struct CacheKeyHash {
       unsigned operator()(const SolverQuery &q) const {
         unsigned result = q.expr->hash();
@@ -187,6 +201,7 @@ namespace klee {
         return result;
       }
     };
+
     struct CacheKeyChecksum {
       unsigned operator()(const SolverQuery &q) const {
         unsigned result = q.expr->getChecksum();
@@ -200,8 +215,10 @@ namespace klee {
   public:
 
     struct QueryStatistics {
-      std::vector<SolverQuery> queries;
-      std::vector<SolverQuery> equivalent;
+      std::unordered_set<SolverQuery, CacheKeyHash, CacheKeyEquality> queries;
+      std::unordered_set<SolverQuery, CacheKeyChecksum, CacheKeyIsomorphism> equivalent;
+      //std::vector<SolverQuery> queries;
+      //std::vector<SolverQuery> equivalent;
       uint64_t relevantQueries = 0;
       uint64_t allQueriesCount = 0;
       uint64_t addressDependentQueries = 0;

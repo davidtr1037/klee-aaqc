@@ -388,29 +388,33 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
     //q.dump();
   }
 
-  bool found;
+  stats.queries.insert(q);
+  stats.equivalent.insert(q);
+  return;
 
-  found = false;
-  for (SolverQuery other : stats.queries) {
-    if (q.isEqual(other)) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    stats.queries.push_back(q);
-  }
+  //bool found;
 
-  found = false;
-  for (SolverQuery other : stats.equivalent) {
-    if (q.isIsomorphic(other)) {
-      found = true;
-      break;
-    }
-  }
-  if (!found) {
-    stats.equivalent.push_back(q);
-  }
+  //found = false;
+  //for (SolverQuery other : stats.queries) {
+  //  if (q.isEqual(other)) {
+  //    found = true;
+  //    break;
+  //  }
+  //}
+  //if (!found) {
+  //  stats.queries.push_back(q);
+  //}
+
+  //found = false;
+  //for (SolverQuery other : stats.equivalent) {
+  //  if (q.isIsomorphic(other)) {
+  //    found = true;
+  //    break;
+  //  }
+  //}
+  //if (!found) {
+  //  stats.equivalent.push_back(q);
+  //}
 }
 
 bool TimingSolver::shouldCacheQuery(ref<Expr> expr) {
