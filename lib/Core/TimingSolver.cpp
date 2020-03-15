@@ -366,6 +366,7 @@ SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
 }
 
 /* TODO: don't count queries such as 'addr_10 != 0' */
+/* TODO: use unordered_map */
 void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
   TimerStatIncrementer timer(stats::cachingTime);
   if (simplifyExprs) {
