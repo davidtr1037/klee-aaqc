@@ -217,8 +217,6 @@ namespace klee {
     struct QueryStatistics {
       std::unordered_set<SolverQuery, CacheKeyHash, CacheKeyEquality> queries;
       std::unordered_set<SolverQuery, CacheKeyChecksum, CacheKeyIsomorphism> equivalent;
-      //std::vector<SolverQuery> queries;
-      //std::vector<SolverQuery> equivalent;
       uint64_t relevantQueries = 0;
       uint64_t allQueriesCount = 0;
       uint64_t addressDependentQueries = 0;
@@ -231,9 +229,8 @@ namespace klee {
 
     /* TODO: remove... */
     std::vector<CacheEntry> queryList;
-    /* TODO: use this one */
+    /* TODO: use equality template? */
     std::unordered_map<SolverQuery, CacheResult, CacheKeyChecksum> queryMap;
-    /* TODO: use CacheKeyHash or CacheKeyChecksum? */
     std::unordered_map<SolverQuery, CacheResult, CacheKeyHash> equalityCache;
 
   public:
