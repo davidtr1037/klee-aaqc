@@ -34,6 +34,8 @@ UpdateNode::UpdateNode(const UpdateNode *_next,
     size = 1 + next->size;
   }
   else size = 1;
+
+  isSymbolic = (next && next->isSymbolic) || index->isSymbolic || value->isSymbolic;
 }
 
 extern "C" void vc_DeleteExpr(void*);

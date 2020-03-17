@@ -498,6 +498,7 @@ class UpdateNode {
 public:
   const UpdateNode *next;
   ref<Expr> index, value;
+  bool isSymbolic;
   
 private:
   /// size of this update sequence, including this update
@@ -609,6 +610,9 @@ public:
   unsigned hash() const;
   unsigned getChecksum() const;
   bool isIsomorphic(const UpdateList &b, ArrayMapping &map) const;
+  bool isSymbolic() {
+    return (root->isSymbolicArray() && !root->isAddressArray) || (head && head->isSymbolic);
+  }
 private:
   void tryFreeNodes();
 };
