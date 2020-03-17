@@ -464,6 +464,7 @@ void SpecialFunctionHandler::handleMemalign(ExecutionState &state,
                         alignment);
 }
 
+/* TODO: simplify address constraints (in gnu make...) */
 void SpecialFunctionHandler::handleAssume(ExecutionState &state,
                             KInstruction *target,
                             std::vector<ref<Expr> > &arguments) {

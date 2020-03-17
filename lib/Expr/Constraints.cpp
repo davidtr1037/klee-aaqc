@@ -174,6 +174,7 @@ void ConstraintManager::addConstraint(ref<Expr> e) {
 }
 
 bool ConstraintManager::isAddressExpr(ref<Expr> e) const {
+  /* TODO: use isAddressConcatExpr API? */
   if (isa<ConcatExpr>(e)) {
     ConcatExpr* concat = dyn_cast<ConcatExpr>(e);
     if (concat) {
