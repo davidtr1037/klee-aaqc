@@ -276,6 +276,8 @@ public:
   /// isFalse - Is this the false expression.
   bool isFalse() const;
 
+  bool isAddressConcatExpr() const;
+
   /* Static utility methods */
 
   static void printKind(llvm::raw_ostream &os, Kind k);

@@ -303,6 +303,21 @@ void Expr::printKind(llvm::raw_ostream &os, Kind k) {
 //  return true;
 //}
 
+bool Expr::isAddressConcatExpr() const {
+  if (!flag) {
+    return false;
+  }
+
+  const ConcatExpr* concat = dyn_cast<ConcatExpr>(this);
+  if (concat) {
+    ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+    if (re && re->updates.root->isAddressArray) {
+      return true;
+    }
+  }
+  return false;
+}
+
 bool Expr::isIsomorphic(const Expr &b) const {
   ArrayMapping map;
   return isIsomorphic(b, map);
