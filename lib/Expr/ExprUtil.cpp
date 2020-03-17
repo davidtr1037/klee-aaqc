@@ -34,17 +34,22 @@ void klee::findReads(ref<Expr> e,
   while (!stack.empty()) {
     ref<Expr> top = stack.back();
     stack.pop_back();
+    if (!top->isSymbolic) {
+      continue;
+    }
 
     if (ReadExpr *re = dyn_cast<ReadExpr>(top)) {
       // We memoized so can just add to list without worrying about
       // repeats.
       results.push_back(re);
 
-      if (!isa<ConstantExpr>(re->index) &&
-          visited.insert(re->index).second)
-        stack.push_back(re->index);
+      if (!isa<ConstantExpr>(re->index) && visited.insert(re->index).second) {
+        if (re->index->isSymbolic) {
+          stack.push_back(re->index);
+        }
+      }
       
-      if (visitUpdates) {
+      if (visitUpdates && re->updates.isSymbolic()) {
         // XXX this is probably suboptimal. We want to avoid a potential
         // explosion traversing update lists which can be quite
         // long. However, it seems silly to hash all of the update nodes
@@ -53,12 +58,16 @@ void klee::findReads(ref<Expr> e,
         // head, which often will be shared among multiple nodes.
         if (updates.insert(re->updates.head).second) {
           for (const UpdateNode *un=re->updates.head; un; un=un->next) {
-            if (!isa<ConstantExpr>(un->index) &&
-                visited.insert(un->index).second)
-              stack.push_back(un->index);
-            if (!isa<ConstantExpr>(un->value) &&
-                visited.insert(un->value).second)
-              stack.push_back(un->value);
+            if (!isa<ConstantExpr>(un->index) && visited.insert(un->index).second) {
+              if (un->index->isSymbolic) {
+                stack.push_back(un->index);
+              }
+            }
+            if (!isa<ConstantExpr>(un->value) && visited.insert(un->value).second) {
+              if (un->value->isSymbolic) {
+                stack.push_back(un->value);
+              }
+            }
           }
         }
       }
@@ -66,9 +75,9 @@ void klee::findReads(ref<Expr> e,
       Expr *e = top.get();
       for (unsigned i=0; i<e->getNumKids(); i++) {
         ref<Expr> k = e->getKid(i);
-        if (!isa<ConstantExpr>(k) &&
-            visited.insert(k).second)
+        if (!isa<ConstantExpr>(k) && visited.insert(k).second && k->isSymbolic) {
           stack.push_back(k);
+        }
       }
     }
   }
