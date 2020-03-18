@@ -354,6 +354,7 @@ ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> expr,
   return expr;
 }
 
+/* TODO: avoid copy on return */
 SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
                                      ref<Expr> expr,
                                      bool canHandle) {

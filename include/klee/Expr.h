@@ -679,6 +679,7 @@ private:
       }
     }
 
+    /* TODO: can be optimized */
     for (const UpdateNode *un = updates.head; un; un = un->next) {
       if (un->index->flag || un->value->flag) {
         ulflag = flag = true;
