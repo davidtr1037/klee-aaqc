@@ -54,7 +54,9 @@ namespace klee {
   };
 
   /* TODO: remove */
-  void sliceConstraints(const Query& query, std::vector<ref<Expr>> &result);
+  void sliceConstraints(const Query& query,
+                        std::vector<ref<Expr>> &result,
+                        std::vector<unsigned> &offsets);
 
   class Solver {
     // DO NOT IMPLEMENT.
