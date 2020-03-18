@@ -610,7 +610,7 @@ public:
   unsigned hash() const;
   unsigned getChecksum() const;
   bool isIsomorphic(const UpdateList &b, ArrayMapping &map) const;
-  bool isSymbolic() {
+  bool isSymbolic() const {
     return (root->isSymbolicArray() && !root->isAddressArray) || (head && head->isSymbolic);
   }
 private:
@@ -660,6 +660,8 @@ private:
     updates(_updates), index(_index) {
     assert(updates.root);
     ulflag = false;
+    isSymbolic = false;
+
     if (index->flag) {
       flag = true;
     }
@@ -682,10 +684,10 @@ private:
         ulflag = flag = true;
         break;
       }
-      if (un->index->isSymbolic || un->value->isSymbolic) {
-        isSymbolic = true;
-        break;
-      }
+    }
+
+    if (updates.isSymbolic()) {
+      isSymbolic = true;
     }
   }
 
