@@ -89,6 +89,10 @@ public:
 
   bool isAddressExpr(ref<Expr> e) const;
 
+  ref<Expr> getConstraint(unsigned i) const {
+    return constraints[i];
+  }
+
 private:
   std::vector< ref<Expr> > constraints;
 

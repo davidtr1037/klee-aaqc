@@ -105,7 +105,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
     expr = state.constraints.simplifyExpr(expr);
 
   if (CollectQueryStats) {
-    collectStats(state, ade);
+    collectStats(state, ade, expr);
   }
 
   bool success = false;
@@ -119,7 +119,10 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
 
-    SolverQuery q = buildQuery(state, ade);
+    //SolverQuery q = buildQuery(state, ade, expr);
+    SolverQuery q, rewrittenQ;
+    buildQuery(state, ade, expr, q, rewrittenQ);
+
     CacheResult cachedResult;
     bool found = lookupQuery(state, q, cachedResult);
     if (found) {
@@ -179,7 +182,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 
   if (CollectQueryStats) {
     if (useCache) {
-      collectStats(state, ade);
+      collectStats(state, ade, expr);
     } else {
       stats.unhandledQueries++;
     }
@@ -196,7 +199,10 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
 
-    SolverQuery q = buildQuery(state, ade, useCache);
+    //SolverQuery q = buildQuery(state, ade, expr, useCache);
+    SolverQuery q, rewrittenQ;
+    buildQuery(state, ade, expr, q, rewrittenQ, useCache);
+
     CacheResult cachedResult;
     bool found = lookupQuery(state, q, cachedResult);
     if (found) {
@@ -354,21 +360,35 @@ ref<Expr> TimingSolver::canonicalizeQuery(ref<Expr> expr,
   return expr;
 }
 
-/* TODO: avoid copy on return */
-SolverQuery TimingSolver::buildQuery(const ExecutionState &state,
-                                     ref<Expr> expr,
-                                     bool canHandle) {
+void TimingSolver::buildQuery(const ExecutionState &state,
+                              ref<Expr> expr,
+                              ref<Expr> rewrittenExpr,
+                              SolverQuery &q,
+                              SolverQuery &rewrittenQ,
+                              bool canHandle) {
   TimerStatIncrementer timer(stats::cachingTime);
   assert(!isa<ConstantExpr>(expr));
-  Query query(state.constraints, expr);
-  std::vector<ref<Expr>> required;
-  sliceConstraints(query, required);
-  return SolverQuery(required, expr, canHandle);
+  /* TODO: remove assertion */
+  assert(state.constraints.size() == state.rewrittenConstraints.size());
+
+  rewrittenQ.expr = rewrittenQ.expr;
+  Query query(state.rewrittenConstraints, rewrittenExpr);
+  std::vector<unsigned> offsets;
+  sliceConstraints(query, rewrittenQ.constraints, offsets);
+  rewrittenQ.canHandle = true;
+
+  q.expr = expr;
+  for (unsigned index : offsets) {
+    q.constraints.push_back(state.constraints.getConstraint(index));
+  }
+  q.canHandle = canHandle;
 }
 
 /* TODO: don't count queries such as 'addr_10 != 0' */
 /* TODO: use unordered_map */
-void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
+void TimingSolver::collectStats(const ExecutionState &state,
+                                ref<Expr> expr,
+                                ref<Expr> rewrittenExpr) {
   TimerStatIncrementer timer(stats::cachingTime);
   if (simplifyExprs) {
     expr = state.constraints.simplifyExpr(expr);
@@ -382,7 +402,9 @@ void TimingSolver::collectStats(const ExecutionState &state, ref<Expr> expr) {
   expr = canonicalizeQuery(expr, wasNegated);
 
   /* slice the path constraints */
-  SolverQuery q = buildQuery(state, expr);
+  //SolverQuery q = buildQuery(state, expr, rewrittenExpr);
+  SolverQuery q, rewrittenQ;
+  buildQuery(state, expr, rewrittenExpr, q, rewrittenQ);
   stats.relevantQueries++;
   if (q.isAddressDependent) {
     stats.addressDependentQueries++;

@@ -277,6 +277,15 @@ inline llvm::raw_ostream &operator<<(llvm::raw_ostream &os,
   return os;
 }
 
+  struct WorklistItem {
+    ref<Expr> e;
+    unsigned index;
+    IndependentElementSet set;
+
+    WorklistItem(ref<Expr> e, unsigned index, IndependentElementSet set) :
+      e(e), index(index), set(set) { }
+  };
+
 // Breaks down a constraint into all of it's individual pieces, returning a
 // list of IndependentElementSets or the independent factors.
 //
@@ -343,33 +352,52 @@ getAllIndependentConstraintsSets(const Query &query) {
 
 static 
 IndependentElementSet getIndependentConstraints(const Query& query,
-                                                std::vector< ref<Expr> > &result) {
+                                                std::vector< ref<Expr> > &result,
+                                                std::vector<unsigned> &offsets) {
   IndependentElementSet eltsClosure(query.expr);
-  std::vector< std::pair<ref<Expr>, IndependentElementSet> > worklist;
+  std::vector<WorklistItem> worklist;
 
-  for (ConstraintManager::const_iterator it = query.constraints.begin(), 
-         ie = query.constraints.end(); it != ie; ++it)
-    worklist.push_back(std::make_pair(*it, IndependentElementSet(*it)));
+  unsigned index = 0;
+  for (ref<Expr> e : query.constraints) {
+    worklist.push_back(WorklistItem(e, index, IndependentElementSet(e)));
+    index++;
+  }
 
   // XXX This should be more efficient (in terms of low level copy stuff).
   bool done = false;
   do {
     done = true;
-    std::vector< std::pair<ref<Expr>, IndependentElementSet> > newWorklist;
-    for (std::vector< std::pair<ref<Expr>, IndependentElementSet> >::iterator
-           it = worklist.begin(), ie = worklist.end(); it != ie; ++it) {
-      if (it->second.intersects(eltsClosure)) {
-        if (eltsClosure.add(it->second))
+    std::vector<WorklistItem> newWorklist;
+    for (WorklistItem &item : worklist) {
+      if (item.set.intersects(eltsClosure)) {
+        if (eltsClosure.add(item.set)) {
           done = false;
-        result.push_back(it->first);
-        // Means that we have added (z=y)added to (x=y)
-        // Now need to see if there are any (z=?)'s
+        }
+        result.push_back(item.e);
+        offsets.push_back(item.index);
       } else {
-        newWorklist.push_back(*it);
+        newWorklist.push_back(item);
       }
     }
     worklist.swap(newWorklist);
   } while (!done);
+  //do {
+  //  done = true;
+  //  std::vector< std::pair<ref<Expr>, IndependentElementSet> > newWorklist;
+  //  for (std::vector< std::pair<ref<Expr>, IndependentElementSet> >::iterator
+  //         it = worklist.begin(), ie = worklist.end(); it != ie; ++it) {
+  //    if (it->second.intersects(eltsClosure)) {
+  //      if (eltsClosure.add(it->second))
+  //        done = false;
+  //      result.push_back(it->first);
+  //      // Means that we have added (z=y)added to (x=y)
+  //      // Now need to see if there are any (z=?)'s
+  //    } else {
+  //      newWorklist.push_back(*it);
+  //    }
+  //  }
+  //  worklist.swap(newWorklist);
+  //} while (!done);
 
   KLEE_DEBUG(
     std::set< ref<Expr> > reqset(result.begin(), result.end());
@@ -390,8 +418,10 @@ IndependentElementSet getIndependentConstraints(const Query& query,
   return eltsClosure;
 }
 
-void klee::sliceConstraints(const Query& query, std::vector<ref<Expr>> &result) {
-  getIndependentConstraints(query, result);
+void klee::sliceConstraints(const Query& query,
+                            std::vector<ref<Expr>> &result,
+                            std::vector<unsigned> &offsets) {
+  getIndependentConstraints(query, result, offsets);
 }
 
 // Extracts which arrays are referenced from a particular independent set.  Examines both
@@ -438,8 +468,9 @@ public:
 bool IndependentSolver::computeValidity(const Query& query,
                                         Solver::Validity &result) {
   std::vector< ref<Expr> > required;
+  std::vector<unsigned> offsets;
   IndependentElementSet eltsClosure =
-    getIndependentConstraints(query, required);
+    getIndependentConstraints(query, required, offsets);
   ConstraintManager tmp(required);
   return solver->impl->computeValidity(Query(tmp, query.expr), 
                                        result);
@@ -447,8 +478,9 @@ bool IndependentSolver::computeValidity(const Query& query,
 
 bool IndependentSolver::computeTruth(const Query& query, bool &isValid) {
   std::vector< ref<Expr> > required;
+  std::vector<unsigned> offsets;
   IndependentElementSet eltsClosure = 
-    getIndependentConstraints(query, required);
+    getIndependentConstraints(query, required, offsets);
   ConstraintManager tmp(required);
   return solver->impl->computeTruth(Query(tmp, query.expr), 
                                     isValid);
@@ -456,8 +488,9 @@ bool IndependentSolver::computeTruth(const Query& query, bool &isValid) {
 
 bool IndependentSolver::computeValue(const Query& query, ref<Expr> &result) {
   std::vector< ref<Expr> > required;
+  std::vector<unsigned> offsets;
   IndependentElementSet eltsClosure = 
-    getIndependentConstraints(query, required);
+    getIndependentConstraints(query, required, offsets);
   ConstraintManager tmp(required);
   return solver->impl->computeValue(Query(tmp, query.expr), result);
 }

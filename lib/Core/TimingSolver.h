@@ -46,6 +46,11 @@ namespace klee {
       }
     }
 
+    SolverQuery() :
+      isAddressDependent(false), canHandle(false) {
+
+    }
+
     /* TODO: a bit hacky... */
     bool operator==(const SolverQuery &other) const {
       assert(0);
@@ -276,9 +281,19 @@ namespace klee {
 
     SolverQuery buildQuery(const ExecutionState &state,
                            ref<Expr> expr,
+                           ref<Expr> rewrittenExpr,
                            bool canHandle = true);
 
-    void collectStats(const ExecutionState &state, ref<Expr> expr);
+    void buildQuery(const ExecutionState &state,
+                    ref<Expr> expr,
+                    ref<Expr> rewrittenExpr,
+                    SolverQuery &q,
+                    SolverQuery &rewrittenQ,
+                    bool canHandle = true);
+
+    void collectStats(const ExecutionState &state,
+                      ref<Expr> expr,
+                      ref<Expr> rewrittenExpr);
 
     bool shouldCacheQuery(ref<Expr> expr);
 
