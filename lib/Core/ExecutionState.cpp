@@ -688,37 +688,73 @@ ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
 }
 
 UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) const {
+  struct WriteUpdate {
+    ref<Expr> index;
+    ref<Expr> value;
+    bool needed;
+    WriteUpdate(ref<Expr> index, ref<Expr> value, bool needed) :
+      index(index), value(value), needed(needed) {
+
+    }
+  };
+
   std::vector<ref<ConstantExpr>> constants(ul.root->size);
-  std::vector<bool> wasOverwritten(ul.root->size);
 
   for (unsigned i = 0; i < ul.root->size; i++) {
     constants[i] = ul.root->constantValues[i];
-    wasOverwritten[i] = false;
   }
 
-  /* TODO: use a list? */
-  std::vector<std::pair<ref<Expr>, ref<Expr>>> writes;
+  std::list<WriteUpdate> writes;
+  //std::list<std::pair<ref<Expr>, ref<Expr>>> writes;
+  //std::list<std::pair<ref<Expr>, ref<Expr>>> needed;
   for (const UpdateNode *un = ul.head; un; un = un->next) {
     ref<Expr> index = un->index;
     ref<Expr> value = un->value;
-    if (isa<ConstantExpr>(index)) {
-      /* the index is concrete */
+    //writes.push_front(std::make_pair(index, value));
+    writes.push_front(WriteUpdate(index, value, true));
+  }
+
+  bool canSetConstants = true;
+  for (WriteUpdate &u : writes) {
+    ref<Expr> index = u.index;
+    ref<Expr> value = u.value;
+    if (canSetConstants && isa<ConstantExpr>(index)) {
       uint64_t offset = dyn_cast<ConstantExpr>(index)->getZExtValue();
-      if (!wasOverwritten[offset]) {
-        if (isa<ConstantExpr>(value)) {
-          /* the value is concrete */
-          constants[offset] = dyn_cast<ConstantExpr>(value);
-        } else {
-          /* the value is symbolic */
-          writes.push_back(std::make_pair(index, value));
-        }
-        wasOverwritten[offset] = true;
+      if (isa<ConstantExpr>(value)) {
+        constants[offset] = dyn_cast<ConstantExpr>(value);
+        u.needed = false;
+      } else {
+        //needed.push_back(std::make_pair(index, value));
       }
     } else {
-      /* the index is symbolic */
-      writes.push_back(std::make_pair(index, value));
+      //needed.push_back(std::make_pair(index, value));
+      canSetConstants = false;
     }
   }
+
+  ///* TODO: use a list? */
+  //std::vector<std::pair<ref<Expr>, ref<Expr>>> writes;
+  //for (const UpdateNode *un = ul.head; un; un = un->next) {
+  //  ref<Expr> index = un->index;
+  //  ref<Expr> value = un->value;
+  //  if (isa<ConstantExpr>(index)) {
+  //    /* the index is concrete */
+  //    uint64_t offset = dyn_cast<ConstantExpr>(index)->getZExtValue();
+  //    if (!wasOverwritten[offset]) {
+  //      if (isa<ConstantExpr>(value)) {
+  //        /* the value is concrete */
+  //        constants[offset] = dyn_cast<ConstantExpr>(value);
+  //      } else {
+  //        /* the value is symbolic */
+  //        writes.push_back(std::make_pair(index, value));
+  //      }
+  //      wasOverwritten[offset] = true;
+  //    }
+  //  } else {
+  //    /* the index is symbolic */
+  //    writes.push_back(std::make_pair(index, value));
+  //  }
+  //}
 
   bool reusing = (array != nullptr);
   if (!array) {
@@ -745,8 +781,10 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
     }
   }
 
-  for (auto i : writes) {
-    updates.extend(i.first, i.second);
+  for (WriteUpdate &u : writes) {
+    if (u.needed) {
+      updates.extend(u.index, u.value);
+    }
   }
 
   return updates;
