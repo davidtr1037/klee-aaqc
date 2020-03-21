@@ -699,18 +699,14 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
   };
 
   std::vector<ref<ConstantExpr>> constants(ul.root->size);
-
   for (unsigned i = 0; i < ul.root->size; i++) {
     constants[i] = ul.root->constantValues[i];
   }
 
   std::list<WriteUpdate> writes;
-  //std::list<std::pair<ref<Expr>, ref<Expr>>> writes;
-  //std::list<std::pair<ref<Expr>, ref<Expr>>> needed;
   for (const UpdateNode *un = ul.head; un; un = un->next) {
     ref<Expr> index = un->index;
     ref<Expr> value = un->value;
-    //writes.push_front(std::make_pair(index, value));
     writes.push_front(WriteUpdate(index, value, true));
   }
 
@@ -723,11 +719,8 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
       if (isa<ConstantExpr>(value)) {
         constants[offset] = dyn_cast<ConstantExpr>(value);
         u.needed = false;
-      } else {
-        //needed.push_back(std::make_pair(index, value));
       }
     } else {
-      //needed.push_back(std::make_pair(index, value));
       canSetConstants = false;
     }
   }
@@ -782,6 +775,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
   }
 
   for (WriteUpdate &u : writes) {
+    /* TODO: try to implement with two lists to avoid re-scan... */
     if (u.needed) {
       updates.extend(u.index, u.value);
     }
