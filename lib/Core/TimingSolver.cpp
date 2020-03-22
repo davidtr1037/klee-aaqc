@@ -137,7 +137,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
       } else {
         /* may be false or may be true... */
         assert(cachedResult.mayBeFalse() || cachedResult.mayBeTrue());
-        success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+        //success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+        ConstraintManager cm(rewrittenQ.constraints);
+        success = solver->evaluate(Query(cm, expr, true), result);
         CacheResult newResult(result);
         insertQuery(state, q, newResult);
       }
@@ -148,7 +150,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
         assert(result == test);
       }
     } else {
-      success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+      //success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+      ConstraintManager cm(rewrittenQ.constraints);
+      success = solver->evaluate(Query(cm, expr, true), result);
       if (success) {
         CacheResult newResult(result);
         insertQuery(state, q, newResult);
@@ -210,7 +214,9 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     if (found) {
       if (cachedResult.mayBeTrue()) {
         CacheResult newResult;
-        success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+        //success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+        ConstraintManager cm(rewrittenQ.constraints);
+        success = solver->mustBeTrue(Query(cm, expr, true), result);
         if (result) {
           /* mayByTrue and mustBeTrue --> mustBeTrue */
           newResult.setMustBeTrue();
@@ -230,7 +236,10 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
         assert(result == test);
       }
     } else {
-      success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+      //success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+      ConstraintManager cm(rewrittenQ.constraints);
+      success = solver->mustBeTrue(Query(cm, expr, true), result);
+
       CacheResult newResult;
       if (result) {
         newResult.setMustBeTrue();
