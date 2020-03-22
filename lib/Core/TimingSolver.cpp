@@ -101,6 +101,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
+  /* TODO: simplify using rewritten constraints? */
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
@@ -177,6 +178,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
+  /* TODO: simplify using rewritten constraints? */
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
