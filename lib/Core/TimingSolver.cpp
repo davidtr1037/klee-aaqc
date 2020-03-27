@@ -111,16 +111,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    if (simplifyExprs) {
-      if (expr->flag) {
-        TimerStatIncrementer timer(stats::cachingTime);
-        ade = state.constraints.simplifyExpr(ade);
-      } else {
-        ade = expr;
-      }
-    }
-    if (isa<ConstantExpr>(ade)) {
-      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? Solver::True : Solver::False;
+    /* TODO: simplify address dependent expression? */
+    if (isa<ConstantExpr>(expr)) {
+      result = dyn_cast<ConstantExpr>(expr)->isTrue() ? Solver::True : Solver::False;
       return true;
     }
 
@@ -200,16 +193,9 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    if (simplifyExprs) {
-      if (expr->flag) {
-        TimerStatIncrementer timer(stats::cachingTime);
-        ade = state.constraints.simplifyExpr(ade);
-      } else {
-        ade = expr;
-      }
-    }
-    if (isa<ConstantExpr>(ade)) {
-      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? true : false;
+    /* TODO: simplify address dependent expression? */
+    if (isa<ConstantExpr>(expr)) {
+      result = dyn_cast<ConstantExpr>(expr)->isTrue() ? true : false;
       return true;
     }
 
