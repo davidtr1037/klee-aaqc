@@ -101,6 +101,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
+  /* TODO: simplify using rewritten constraints? */
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
@@ -110,12 +111,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    if (simplifyExprs) {
-      TimerStatIncrementer timer(stats::cachingTime);
-      ade = state.constraints.simplifyExpr(ade);
-    }
-    if (isa<ConstantExpr>(ade)) {
-      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? Solver::True : Solver::False;
+    /* TODO: simplify address dependent expression? */
+    if (isa<ConstantExpr>(expr)) {
+      result = dyn_cast<ConstantExpr>(expr)->isTrue() ? Solver::True : Solver::False;
       return true;
     }
 
@@ -136,7 +134,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
       } else {
         /* may be false or may be true... */
         assert(cachedResult.mayBeFalse() || cachedResult.mayBeTrue());
-        success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+        //success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+        ConstraintManager cm(rewrittenQ.constraints);
+        success = solver->evaluate(Query(cm, expr, true), result);
         CacheResult newResult(result);
         insertQuery(state, q, newResult);
       }
@@ -147,7 +147,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
         assert(result == test);
       }
     } else {
-      success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+      //success = solver->evaluate(Query(state.rewrittenConstraints, expr), result);
+      ConstraintManager cm(rewrittenQ.constraints);
+      success = solver->evaluate(Query(cm, expr, true), result);
       if (success) {
         CacheResult newResult(result);
         insertQuery(state, q, newResult);
@@ -177,6 +179,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
+  /* TODO: simplify using rewritten constraints? */
   if (simplifyExprs)
     expr = state.constraints.simplifyExpr(expr);
 
@@ -190,12 +193,9 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    if (simplifyExprs) {
-      TimerStatIncrementer timer(stats::cachingTime);
-      ade = state.constraints.simplifyExpr(ade);
-    }
-    if (isa<ConstantExpr>(ade)) {
-      result = dyn_cast<ConstantExpr>(ade)->isTrue() ? true : false;
+    /* TODO: simplify address dependent expression? */
+    if (isa<ConstantExpr>(expr)) {
+      result = dyn_cast<ConstantExpr>(expr)->isTrue() ? true : false;
       return true;
     }
 
@@ -208,7 +208,9 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
     if (found) {
       if (cachedResult.mayBeTrue()) {
         CacheResult newResult;
-        success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+        //success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+        ConstraintManager cm(rewrittenQ.constraints);
+        success = solver->mustBeTrue(Query(cm, expr, true), result);
         if (result) {
           /* mayByTrue and mustBeTrue --> mustBeTrue */
           newResult.setMustBeTrue();
@@ -228,7 +230,10 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
         assert(result == test);
       }
     } else {
-      success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+      //success = solver->mustBeTrue(Query(state.rewrittenConstraints, expr), result);
+      ConstraintManager cm(rewrittenQ.constraints);
+      success = solver->mustBeTrue(Query(cm, expr, true), result);
+
       CacheResult newResult;
       if (result) {
         newResult.setMustBeTrue();

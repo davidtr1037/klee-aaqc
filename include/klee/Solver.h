@@ -25,9 +25,10 @@ namespace klee {
   public:
     const ConstraintManager &constraints;
     ref<Expr> expr;
+    bool wasSliced;
 
-    Query(const ConstraintManager& _constraints, ref<Expr> _expr)
-      : constraints(_constraints), expr(_expr) {
+    Query(const ConstraintManager& _constraints, ref<Expr> _expr, bool wasSliced = false)
+      : constraints(_constraints), expr(_expr), wasSliced(wasSliced) {
     }
 
     /// withExpr - Return a copy of the query with the given expression.

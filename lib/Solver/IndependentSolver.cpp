@@ -467,6 +467,9 @@ public:
   
 bool IndependentSolver::computeValidity(const Query& query,
                                         Solver::Validity &result) {
+  if (query.wasSliced) {
+    return solver->impl->computeValidity(query, result);
+  }
   std::vector< ref<Expr> > required;
   std::vector<unsigned> offsets;
   IndependentElementSet eltsClosure =
@@ -477,6 +480,9 @@ bool IndependentSolver::computeValidity(const Query& query,
 }
 
 bool IndependentSolver::computeTruth(const Query& query, bool &isValid) {
+  if (query.wasSliced) {
+    return solver->impl->computeTruth(query, isValid);
+  }
   std::vector< ref<Expr> > required;
   std::vector<unsigned> offsets;
   IndependentElementSet eltsClosure = 
@@ -487,6 +493,9 @@ bool IndependentSolver::computeTruth(const Query& query, bool &isValid) {
 }
 
 bool IndependentSolver::computeValue(const Query& query, ref<Expr> &result) {
+  if (query.wasSliced) {
+    return solver->impl->computeValue(query, result);
+  }
   std::vector< ref<Expr> > required;
   std::vector<unsigned> offsets;
   IndependentElementSet eltsClosure = 
