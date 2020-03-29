@@ -101,9 +101,9 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
-  /* TODO: simplify using rewritten constraints? */
-  if (simplifyExprs)
-    expr = state.constraints.simplifyExpr(expr);
+  if (simplifyExprs) {
+    expr = state.rewrittenConstraints.simplifyExpr(expr);
+  }
 
   if (CollectQueryStats) {
     collectStats(state, ade, expr);
@@ -179,9 +179,9 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
-  /* TODO: simplify using rewritten constraints? */
-  if (simplifyExprs)
-    expr = state.constraints.simplifyExpr(expr);
+  if (simplifyExprs) {
+    expr = state.rewrittenConstraints.simplifyExpr(expr);
+  }
 
   if (CollectQueryStats) {
     if (useCache) {
@@ -288,8 +288,9 @@ bool TimingSolver::getValue(const ExecutionState& state, ref<Expr> expr,
   TimerStatIncrementer timer(stats::solverTime);
   stats.allQueriesCount++;
 
-  if (simplifyExprs)
-    expr = state.constraints.simplifyExpr(expr);
+  if (simplifyExprs) {
+    expr = state.rewrittenConstraints.simplifyExpr(expr);
+  }
 
   //ConstraintManager cm;
   //fillConstraints(state, cm, expr);
