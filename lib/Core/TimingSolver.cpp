@@ -111,10 +111,17 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    /* TODO: simplify address dependent expression? */
     if (isa<ConstantExpr>(expr)) {
       result = dyn_cast<ConstantExpr>(expr)->isTrue() ? Solver::True : Solver::False;
       return true;
+    }
+    if (simplifyExprs) {
+      if (expr->flag) {
+        TimerStatIncrementer timer(stats::cachingTime);
+        ade = state.constraints.simplifyExpr(ade);
+      } else {
+        ade = expr;
+      }
     }
 
     //SolverQuery q = buildQuery(state, ade, expr);
@@ -193,10 +200,17 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
 
   bool success = false;
   if (shouldCacheQuery(ade)) {
-    /* TODO: simplify address dependent expression? */
     if (isa<ConstantExpr>(expr)) {
       result = dyn_cast<ConstantExpr>(expr)->isTrue() ? true : false;
       return true;
+    }
+    if (simplifyExprs) {
+      if (expr->flag) {
+        TimerStatIncrementer timer(stats::cachingTime);
+        ade = state.constraints.simplifyExpr(ade);
+      } else {
+        ade = expr;
+      }
     }
 
     //SolverQuery q = buildQuery(state, ade, expr, useCache);
