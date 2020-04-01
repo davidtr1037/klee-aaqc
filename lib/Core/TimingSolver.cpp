@@ -116,7 +116,7 @@ bool TimingSolver::evaluate(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
     if (simplifyExprs) {
-      if (expr->flag) {
+      if (ade->flag) {
         TimerStatIncrementer timer(stats::cachingTime);
         ade = state.constraints.simplifyExpr(ade);
       } else {
@@ -205,7 +205,7 @@ bool TimingSolver::mustBeTrue(const ExecutionState& state, ref<Expr> expr,
       return true;
     }
     if (simplifyExprs) {
-      if (expr->flag) {
+      if (ade->flag) {
         TimerStatIncrementer timer(stats::cachingTime);
         ade = state.constraints.simplifyExpr(ade);
       } else {
