@@ -391,7 +391,7 @@ void TimingSolver::buildQuery(const ExecutionState &state,
   /* TODO: remove assertion */
   assert(state.constraints.size() == state.rewrittenConstraints.size());
 
-  rewrittenQ.expr = rewrittenQ.expr;
+  rewrittenQ.expr = rewrittenExpr;
   Query query(state.rewrittenConstraints, rewrittenExpr);
   std::vector<unsigned> offsets;
   sliceConstraints(query, rewrittenQ.constraints, offsets);
