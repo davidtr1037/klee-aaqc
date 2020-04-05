@@ -205,10 +205,10 @@ const UpdateList &ObjectState::getUpdates() const {
     // FIXME: We should be able to do this more efficiently, we just need to be
     // careful to get the interaction with the cache right. In particular we
     // should avoid creating UpdateNode instances we never use.
-    unsigned NumWrites = updates.head ? updates.head->getSize() : 0;
+    unsigned NumWrites = !updates.head.isNull() ? updates.head->getSize() : 0;
     std::vector< std::pair< ref<Expr>, ref<Expr> > > Writes(NumWrites);
-    const UpdateNode *un = updates.head;
-    for (unsigned i = NumWrites; i != 0; un = un->next) {
+    const UpdateNode *un = updates.head.get();
+    for (unsigned i = NumWrites; i != 0; un = un->next.get()) {
       --i;
       Writes[i] = std::make_pair(un->index, un->value);
     }
@@ -274,7 +274,7 @@ void ObjectState::makeConcrete() {
 }
 
 void ObjectState::makeSymbolic() {
-  assert(!updates.head &&
+  assert(updates.head.isNull() &&
          "XXX makeSymbolic of objects with symbolic values is unsupported");
 
   // XXX simplify this, can just delete various arrays I guess
@@ -629,7 +629,7 @@ void ObjectState::print() const {
   }
 
   llvm::errs() << "\tUpdates:\n";
-  for (const UpdateNode *un=updates.head; un; un=un->next) {
+  for (const UpdateNode *un=updates.head.get(); un; un=un->next.get()) {
     llvm::errs() << "\t\t[" << un->index << "] = " << un->value << "\n";
   }
 }
@@ -637,7 +637,7 @@ void ObjectState::print() const {
 void ObjectState::getArrays(std::set<const Array *> &arrays) const {
   std::vector<const Array *> local;
 
-  for (const UpdateNode *n = updates.head; n; n = n->next) {
+  for (const UpdateNode *n = updates.head.get(); n; n = n->next.get()) {
     local.clear();
     findSymbolicObjects(n->index, local);
     findSymbolicObjects(n->value, local);

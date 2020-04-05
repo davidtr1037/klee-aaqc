@@ -73,7 +73,7 @@ T ExprRangeEvaluator<T>::evalRead(const UpdateList &ul,
                                   T index) {
   T res;
 
-  for (const UpdateNode *un=ul.head; un; un=un->next) {
+  for (const UpdateNode *un=ul.head.get(); un; un=un->next.get()) {
     T ui = evaluate(un->index);
 
     if (ui.mustEqual(index)) {

@@ -92,7 +92,7 @@ private:
     if (isVerySimple(e)) {
       return true;
     } else if (const ReadExpr *re = dyn_cast<ReadExpr>(e)) {
-      return isVerySimple(re->index) && isVerySimpleUpdate(re->updates.head);
+      return isVerySimple(re->index) && isVerySimpleUpdate(re->updates.head.get());
     } else {
       Expr *ep = e.get();
       for (unsigned i=0; i<ep->getNumKids(); i++)
@@ -113,7 +113,7 @@ private:
     // FIXME: This needs to be non-recursive.
     if (un) {
       if (couldPrintUpdates.insert(un).second) {
-        scanUpdate(un->next);
+        scanUpdate(un->next.get());
         scan1(un->index);
         scan1(un->value);
       } else {
@@ -130,7 +130,7 @@ private:
           scan1(ep->getKid(i));
         if (const ReadExpr *re = dyn_cast<ReadExpr>(e)) {
           usedArrays.insert(re->updates.root);
-          scanUpdate(re->updates.head);
+          scanUpdate(re->updates.head.get());
         }
       } else {
         shouldPrint.insert(e);
@@ -139,7 +139,7 @@ private:
   }
 
   void printUpdateList(const UpdateList &updates, PrintContext &PC) {
-    const UpdateNode *head = updates.head;
+    const UpdateNode *head = updates.head.get();
 
     // Special case empty list.
     if (!head) {
@@ -153,7 +153,7 @@ private:
     bool openedList = false, nextShouldBreak = false;
     unsigned outerIndent = PC.pos;
     unsigned middleIndent = 0;
-    for (const UpdateNode *un = head; un; un = un->next) {      
+    for (const UpdateNode *un = head; un; un = un->next.get()) {
       // We are done if we hit the cache.
       std::map<const UpdateNode*, unsigned>::iterator it = 
         updateBindings.find(un);
