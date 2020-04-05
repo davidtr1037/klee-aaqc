@@ -281,7 +281,7 @@ ref<Expr> ExprOptimizer::getSelectOptExpr(
       assert(read->updates.root->isConstantArray() &&
              "Expected concrete array, found symbolic array");
       auto arrayConstValues = read->updates.root->constantValues;
-      for (const UpdateNode *un = read->updates.head; un; un = un->next) {
+      for (const UpdateNode *un = read->updates.head.get(); un; un = un->next.get()) {
         auto ce = dyn_cast<ConstantExpr>(un->index);
         assert(ce && "Not a constant expression");
         uint64_t index = ce->getAPValue().getZExtValue();
@@ -356,7 +356,7 @@ ref<Expr> ExprOptimizer::getSelectOptExpr(
           arrayConstValues.push_back(ConstantExpr::create(0, Expr::Int8));
         }
       }
-      for (const UpdateNode *un = read->updates.head; un; un = un->next) {
+      for (const UpdateNode *un = read->updates.head.get(); un; un = un->next.get()) {
         auto ce = dyn_cast<ConstantExpr>(un->index);
         assert(ce && "Not a constant expression");
         uint64_t index = ce->getAPValue().getLimitedValue();
