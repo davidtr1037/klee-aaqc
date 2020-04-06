@@ -470,8 +470,8 @@ ExprHandle STPBuilder::getInitialRead(const Array *root, unsigned index) {
 }
 
 ::VCExpr STPBuilder::getArrayForUpdate(const Array *root, 
-                                       const UpdateNode *un) {
-  if (!un) {
+                                       const ref<UpdateNode> un) {
+  if (un.isNull()) {
       return(getInitialArray(root));
   }
   else {
@@ -481,7 +481,7 @@ ExprHandle STPBuilder::getInitialRead(const Array *root, unsigned index) {
       
       if (!hashed) {
 	un_expr = vc_writeExpr(vc,
-                               getArrayForUpdate(root, un->next.get()),
+                               getArrayForUpdate(root, un->next),
                                construct(un->index, 0),
                                construct(un->value, 0));
 	
@@ -561,7 +561,7 @@ ExprHandle STPBuilder::constructActual(ref<Expr> e, int *width_out) {
     assert(re && re->updates.root);
     *width_out = re->updates.root->getRange();
     return vc_readExpr(vc,
-                       getArrayForUpdate(re->updates.root, re->updates.head.get()),
+                       getArrayForUpdate(re->updates.root, re->updates.head),
                        construct(re->index, 0));
   }
     
