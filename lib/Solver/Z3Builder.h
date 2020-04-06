@@ -155,7 +155,7 @@ private:
                                       Z3ASTHandle isSigned);
 
   Z3ASTHandle getInitialArray(const Array *os);
-  Z3ASTHandle getArrayForUpdate(const Array *root, const UpdateNode *un);
+  Z3ASTHandle getArrayForUpdate(const Array *root, const ref<UpdateNode> un);
 
   Z3ASTHandle constructActual(ref<Expr> e, int *width_out);
   Z3ASTHandle construct(ref<Expr> e, int *width_out);

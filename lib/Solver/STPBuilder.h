@@ -103,7 +103,7 @@ private:
   ExprHandle constructSDivByConstant(ExprHandle expr_n, unsigned width, uint64_t d);
 
   ::VCExpr getInitialArray(const Array *os);
-  ::VCExpr getArrayForUpdate(const Array *root, const UpdateNode *un);
+  ::VCExpr getArrayForUpdate(const Array *root, const ref<UpdateNode> un);
 
   ExprHandle constructActual(ref<Expr> e, int *width_out);
   ExprHandle construct(ref<Expr> e, int *width_out);
