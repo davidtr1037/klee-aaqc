@@ -1149,7 +1149,7 @@ ExprVisitor::Action SubstVisitor::visitRead(const ReadExpr &e) {
     if (i == cache.end()) {
       updates = UpdateList(e.updates.root, nullptr);
       std::list<const UpdateNode *> nodes;
-      for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+      for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
         nodes.push_front(n);
       }
       for (const UpdateNode *n : nodes) {
