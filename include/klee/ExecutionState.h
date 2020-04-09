@@ -418,7 +418,7 @@ public:
 
   struct UpdateListEquality {
     bool operator()(const UpdateList &u1, const UpdateList &u2) const {
-      return true; //u1.root == u2.root && u1.head == u2.head;
+      return u1.root == u2.root && u1.head == u2.head;
     }
   };
 
