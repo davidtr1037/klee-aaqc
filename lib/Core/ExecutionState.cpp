@@ -677,11 +677,14 @@ ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
     }
   }
 
-  AddressUnfolder unfolder(*this);
-  ref<Expr> unfolded = unfolder.visit(address);
+  //AddressUnfolder unfolder(*this);
+  //ref<Expr> unfolded = unfolder.visit(address);
 
-  ReadExprOptimizer optimizer(*this, unfolder.arrays);
-  ref<Expr> optimized = optimizer.visit(unfolded);
+  //ReadExprOptimizer optimizer(*this, unfolder.arrays);
+  //ref<Expr> optimized = optimizer.visit(unfolded);
+
+  SubstVisitor subst(*this);
+  ref<Expr> optimized = subst.visit(address);
 
   assert(!optimized->flag);
   return optimized;
@@ -1100,4 +1103,68 @@ ExprVisitor::Action ReadExprOptimizer::visitRead(const ReadExpr &e) {
 
   ref<Expr> index = visit(e.index);
   return Action::changeTo(ReadExpr::create(updates, index));
+}
+
+ExprVisitor::Action SubstVisitor::visitConcat(const ConcatExpr &e) {
+  ref<ReadExpr> re = dyn_cast<ReadExpr>(e.getLeft());
+  if (!re.isNull() && re->updates.root->isAddressArray) {
+    assert(isa<ConstantExpr>(re->index));
+    ref<AddressRecord> ar = state.getAddressConstraint(re->updates.root->id);
+    return Action::changeTo(ar->address);
+  }
+
+  return Action::doChildren();
+}
+
+ExprVisitor::Action SubstVisitor::visitRead(const ReadExpr &e) {
+  if (!e.flag) {
+    return Action::skipChildren();
+  }
+
+  if (e.updates.root->isAddressArray) {
+    ref<ConstantExpr> index = dyn_cast<ConstantExpr>(e.index);
+    if (index.isNull()) {
+      /* should not happen... */
+      assert(false);
+    }
+
+    ref<AddressRecord> ar = state.getAddressConstraint(e.updates.root->id);
+    return Action::changeTo(ar->bytes[index->getZExtValue()]);
+  }
+
+  bool changed = false;
+
+  /* rewrite index (if needed...) */
+  assert(e.updates.root);
+  ref<Expr> index = e.index;
+  if (e.index->flag) {
+    index = visit(index);
+    changed = true;
+  }
+
+  /* rewrite update list (if needed...) */
+  UpdateList updates = UpdateList(nullptr, nullptr);
+  if (e.ulflag) {
+    updates = UpdateList(e.updates.root, nullptr);
+    std::list<const UpdateNode *> nodes;
+    for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+      nodes.push_front(n);
+    }
+    for (const UpdateNode *n : nodes) {
+      ref<Expr> index = visit(n->index);
+      ref<Expr> value = visit(n->value);
+      updates.extend(index, value);
+    }
+    updates = state.getRewrittenUL(updates);
+    changed = true;
+  } else {
+    updates = e.updates;
+  }
+
+  if (changed) {
+    /* TODO: do some caching? */
+    return Action::changeTo(ReadExpr::create(updates, index));
+  }
+
+  return Action::doChildren();
 }

@@ -401,6 +401,23 @@ public:
   const ExecutionState &state;
   const std::set<uint64_t> &arrays;
 };
+
+class SubstVisitor : public ExprVisitor {
+protected:
+
+  ExprVisitor::Action visitConcat(const ConcatExpr &e);
+  ExprVisitor::Action visitRead(const ReadExpr &e);
+
+public:
+
+  SubstVisitor(const ExecutionState &state) :
+    state(state) {
+
+  }
+
+  const ExecutionState &state;
+};
+
 }
 
 #endif
