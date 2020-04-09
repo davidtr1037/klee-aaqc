@@ -28,6 +28,7 @@
 #include <map>
 #include <set>
 #include <vector>
+#include <unordered_map>
 
 namespace klee {
 class Array;
@@ -415,7 +416,20 @@ public:
 
   }
 
+  struct UpdateListEquality {
+    bool operator()(const UpdateList &u1, const UpdateList &u2) const {
+      return true; //u1.root == u2.root && u1.head == u2.head;
+    }
+  };
+
+  struct UpdateListHash {
+    unsigned operator()(const UpdateList &u) const {
+      return u.hash();
+    }
+  };
+
   const ExecutionState &state;
+  std::unordered_map<UpdateList, UpdateList, UpdateListHash, UpdateListEquality> cache;
 };
 
 }

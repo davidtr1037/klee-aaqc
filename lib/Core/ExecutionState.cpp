@@ -1145,17 +1145,23 @@ ExprVisitor::Action SubstVisitor::visitRead(const ReadExpr &e) {
   /* rewrite update list (if needed...) */
   UpdateList updates = UpdateList(nullptr, nullptr);
   if (e.ulflag) {
-    updates = UpdateList(e.updates.root, nullptr);
-    std::list<const UpdateNode *> nodes;
-    for (const UpdateNode *n = e.updates.head; n; n = n->next) {
-      nodes.push_front(n);
+    auto i = cache.find(e.updates);
+    if (i == cache.end()) {
+      updates = UpdateList(e.updates.root, nullptr);
+      std::list<const UpdateNode *> nodes;
+      for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+        nodes.push_front(n);
+      }
+      for (const UpdateNode *n : nodes) {
+        ref<Expr> index = visit(n->index);
+        ref<Expr> value = visit(n->value);
+        updates.extend(index, value);
+      }
+      updates = state.getRewrittenUL(updates);
+      cache.insert(std::make_pair(e.updates, updates));
+    } else {
+      updates = i->second;
     }
-    for (const UpdateNode *n : nodes) {
-      ref<Expr> index = visit(n->index);
-      ref<Expr> value = visit(n->value);
-      updates.extend(index, value);
-    }
-    updates = state.getRewrittenUL(updates);
     changed = true;
   } else {
     updates = e.updates;
