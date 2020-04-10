@@ -430,8 +430,8 @@ Z3ASTHandle Z3Builder::getInitialRead(const Array *root, unsigned index) {
 }
 
 Z3ASTHandle Z3Builder::getArrayForUpdate(const Array *root,
-                                         const UpdateNode *un) {
-  if (!un) {
+                                         const ref<UpdateNode> un) {
+  if (un.isNull()) {
     return (getInitialArray(root));
   } else {
     // FIXME: This really needs to be non-recursive.
@@ -522,7 +522,7 @@ Z3ASTHandle Z3Builder::constructActual(ref<Expr> e, int *width_out) {
     ReadExpr *re = cast<ReadExpr>(e);
     assert(re && re->updates.root);
     *width_out = re->updates.root->getRange();
-    return readExpr(getArrayForUpdate(re->updates.root, re->updates.head),
+    return readExpr(getArrayForUpdate(re->updates.root, re->updates.head.get()),
                     construct(re->index, 0));
   }
 

@@ -489,24 +489,22 @@ public:
 
 /// Class representing a byte update of an array.
 class UpdateNode {
-  friend class UpdateList;  
-
-  mutable unsigned refCount;
   // cache instead of recalc
   unsigned hashValue;
   unsigned checksum;
 
 public:
-  const UpdateNode *next;
+  const ref<UpdateNode> next;
   ref<Expr> index, value;
   bool isSymbolic;
+  unsigned refCount;
   
 private:
   /// size of this update sequence, including this update
   unsigned size;
   
 public:
-  UpdateNode(const UpdateNode *_next, 
+  UpdateNode(const ref<UpdateNode> _next,
              const ref<Expr> &_index, 
              const ref<Expr> &_value);
 
@@ -517,9 +515,13 @@ public:
   unsigned getChecksum() const { return checksum; }
   bool isIsomorphic(const UpdateNode &b, ArrayMapping &map) const;
 
-private:
-  UpdateNode() : refCount(0) {}
-  ~UpdateNode();
+  UpdateNode() : refCount(0) {
+
+  }
+
+  ~UpdateNode() {
+
+  }
 
   void computeHash();
 };
@@ -593,17 +595,17 @@ public:
   const Array *root;
   
   /// pointer to the most recent update node
-  const UpdateNode *head;
+  ref<UpdateNode> head;
   
 public:
-  UpdateList(const Array *_root, const UpdateNode *_head);
-  UpdateList(const UpdateList &b);
-  ~UpdateList();
+  UpdateList(const Array *_root, const ref<UpdateNode> &_head);
+  UpdateList(const UpdateList &b) = default;
+  ~UpdateList() = default;
   
-  UpdateList &operator=(const UpdateList &b);
+  UpdateList &operator=(const UpdateList &b) = default;
 
   /// size of this update list
-  unsigned getSize() const { return (head ? head->getSize() : 0); }
+  unsigned getSize() const { return (!head.isNull() ? head->getSize() : 0); }
   
   void extend(const ref<Expr> &index, const ref<Expr> &value);
 
@@ -612,10 +614,9 @@ public:
   unsigned getChecksum() const;
   bool isIsomorphic(const UpdateList &b, ArrayMapping &map) const;
   bool isSymbolic() const {
-    return (root->isSymbolicArray() && !root->isAddressArray) || (head && head->isSymbolic);
+    return (root->isSymbolicArray() && !root->isAddressArray) ||
+           (!head.isNull() && head->isSymbolic);
   }
-private:
-  void tryFreeNodes();
 };
 
 /// Class representing a one byte read from an array. 
@@ -672,7 +673,7 @@ private:
 
     if (updates.root->isSymbolicArray()) {
       if (updates.root->isAddressArray) {
-        assert(isa<ConstantExpr>(index) && updates.head == nullptr);
+        assert(isa<ConstantExpr>(index) && updates.head.isNull());
         flag = true;
         isSymbolic = false;
       } else {
@@ -681,7 +682,7 @@ private:
     }
 
     /* TODO: can be optimized */
-    for (const UpdateNode *un = updates.head; un; un = un->next) {
+    for (const UpdateNode *un = updates.head.get(); un; un = un->next.get()) {
       if (un->index->flag || un->value->flag) {
         ulflag = flag = true;
         break;

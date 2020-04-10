@@ -33,14 +33,14 @@ struct ArrayCmpFn {
 };  
   
 struct UpdateNodeHashFn  {
-  unsigned operator()(const UpdateNode* un) const {
-    return(un ? un->hash() : 0);
+  unsigned operator()(ref<UpdateNode> un) const {
+    return(!un.isNull() ? un->hash() : 0);
   }
 };
     
 struct UpdateNodeCmpFn {
-  bool operator()(const UpdateNode* un1, const UpdateNode* un2) const {
-    return(un1 == un2);
+  bool operator()(ref<UpdateNode> un1, ref<UpdateNode> un2) const {
+    return(un1.get() == un2.get());
   }
 };  
 
@@ -57,15 +57,15 @@ public:
   bool lookupArrayExpr(const Array* array, T& exp) const;
   void hashArrayExpr(const Array* array, T& exp);  
   
-  bool lookupUpdateNodeExpr(const UpdateNode* un, T& exp) const;
-  void hashUpdateNodeExpr(const UpdateNode* un, T& exp);  
+  bool lookupUpdateNodeExpr(ref<UpdateNode> un, T& exp) const;
+  void hashUpdateNodeExpr(ref<UpdateNode> un, T& exp);
   
 protected:
   typedef std::unordered_map<const Array*, T, ArrayHashFn, ArrayCmpFn> ArrayHash;
   typedef typename ArrayHash::iterator ArrayHashIter;
   typedef typename ArrayHash::const_iterator ArrayHashConstIter;
   
-  typedef std::unordered_map<const UpdateNode*, T, UpdateNodeHashFn, UpdateNodeCmpFn> UpdateNodeHash;
+  typedef std::unordered_map<ref<UpdateNode>, T, UpdateNodeHashFn, UpdateNodeCmpFn> UpdateNodeHash;
   typedef typename UpdateNodeHash::iterator UpdateNodeHashIter;
   typedef typename UpdateNodeHash::const_iterator UpdateNodeHashConstIter;
   
@@ -103,7 +103,7 @@ void ArrayExprHash<T>::hashArrayExpr(const Array* array, T& exp) {
 }
 
 template<class T>
-bool ArrayExprHash<T>::lookupUpdateNodeExpr(const UpdateNode* un, T& exp) const
+bool ArrayExprHash<T>::lookupUpdateNodeExpr(ref<UpdateNode> un, T& exp) const
 {
   bool res = false;
   
@@ -111,7 +111,7 @@ bool ArrayExprHash<T>::lookupUpdateNodeExpr(const UpdateNode* un, T& exp) const
   TimerStatIncrementer t(stats::arrayHashTime);
 #endif
   
-  assert(un);
+  assert(!un.isNull());
   UpdateNodeHashConstIter it = _update_node_hash.find(un);
   if (it != _update_node_hash.end()) {
     exp = it->second;
@@ -121,13 +121,13 @@ bool ArrayExprHash<T>::lookupUpdateNodeExpr(const UpdateNode* un, T& exp) const
 }
 
 template<class T>
-void ArrayExprHash<T>::hashUpdateNodeExpr(const UpdateNode* un, T& exp) 
+void ArrayExprHash<T>::hashUpdateNodeExpr(ref<UpdateNode> un, T& exp)
 {
 #ifdef KLEE_ARRAY_DEBUG
   TimerStatIncrementer t(stats::arrayHashTime);
 #endif
   
-  assert(un);
+  assert(!un.isNull());
   _update_node_hash[un] = exp;
 }
 

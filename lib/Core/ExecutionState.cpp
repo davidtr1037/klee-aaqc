@@ -707,7 +707,7 @@ UpdateList ExecutionState::rewriteUL(const UpdateList &ul, const Array *array) c
   }
 
   std::list<WriteUpdate> writes;
-  for (const UpdateNode *un = ul.head; un; un = un->next) {
+  for (const UpdateNode *un = ul.head.get(); un; un = un->next.get()) {
     ref<Expr> index = un->index;
     ref<Expr> value = un->value;
     writes.push_front(WriteUpdate(index, value, true));
@@ -830,7 +830,7 @@ bool ExecutionState::findRewrittenObject(const UpdateList &ul,
 
 UpdateList ExecutionState::getRewrittenUL(const UpdateList &ul) const {
   assert(ul.root);
-  if (!ul.head) {
+  if (ul.head.isNull()) {
     /* if the list is empty, nothing to rewrite... */
     return ul;
   }
@@ -1060,7 +1060,7 @@ ExprVisitor::Action AddressUnfolder::visitRead(const ReadExpr &e) {
   if (e.ulflag) {
     updates = UpdateList(e.updates.root, nullptr);
     std::list<const UpdateNode *> nodes;
-    for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+    for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
       nodes.push_front(n);
     }
     for (const UpdateNode *n : nodes) {
@@ -1088,7 +1088,7 @@ ExprVisitor::Action ReadExprOptimizer::visitRead(const ReadExpr &e) {
     UpdateList rw = UpdateList(e.updates.root, nullptr);
 
     std::list<const UpdateNode *> nodes;
-    for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+    for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
       nodes.push_front(n);
     }
     for (const UpdateNode *n : nodes) {
@@ -1149,7 +1149,7 @@ ExprVisitor::Action SubstVisitor::visitRead(const ReadExpr &e) {
     if (i == cache.end()) {
       updates = UpdateList(e.updates.root, nullptr);
       std::list<const UpdateNode *> nodes;
-      for (const UpdateNode *n = e.updates.head; n; n = n->next) {
+      for (const UpdateNode *n = e.updates.head.get(); n; n = n->next.get()) {
         nodes.push_front(n);
       }
       for (const UpdateNode *n : nodes) {

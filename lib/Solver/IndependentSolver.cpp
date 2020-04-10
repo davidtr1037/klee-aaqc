@@ -126,13 +126,13 @@ public:
 
       // Reads of a constant array don't alias.
       if (re->updates.root->isConstantArray() &&
-          !re->updates.head)
+          re->updates.head.isNull())
         continue;
 
       /* TODO: check correctness... */
-      if (re->updates.root->isConstantArray() && re->updates.head) {
+      if (re->updates.root->isConstantArray() && !re->updates.head.isNull()) {
         bool isOK = true;
-        for (const UpdateNode *un = re->updates.head; un != nullptr; un = un->next) {
+        for (const UpdateNode *un = re->updates.head.get(); un != nullptr; un = un->next.get()) {
           //if (!isa<ConstantExpr>(un->index) || !isa<ConstantExpr>(un->value)) {
           /* TODO: check correctness... */
           if (un->index->isSymbolic || un->value->isSymbolic) {

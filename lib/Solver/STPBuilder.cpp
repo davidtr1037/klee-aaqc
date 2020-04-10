@@ -473,8 +473,8 @@ ExprHandle STPBuilder::getInitialRead(const Array *root, unsigned index) {
 }
 
 ::VCExpr STPBuilder::getArrayForUpdate(const Array *root, 
-                                       const UpdateNode *un) {
-  if (!un) {
+                                       const ref<UpdateNode> un) {
+  if (un.isNull()) {
       return(getInitialArray(root));
   }
   else {
