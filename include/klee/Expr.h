@@ -92,7 +92,8 @@ Todo: Shouldn't bool \c Xor just be written as not equal?
 
 struct ArrayMapping {
   //std::vector<std::pair<uint64_t, uint64_t>> map;
-  std::map<uint64_t, uint64_t> map;
+  std::map<uint64_t, uint64_t> map1;
+  std::map<uint64_t, uint64_t> map2;
   llvm::DenseSet<std::pair<const Expr *, const Expr *>> checked;
 
   bool add(const Array *from, const Array *to);

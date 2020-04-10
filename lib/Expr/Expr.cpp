@@ -47,34 +47,56 @@ cl::opt<bool> ConstArrayOpt(
 bool ArrayMapping::add(const Array *from, const Array *to) {
   uint64_t a = from->id;
   uint64_t b = to->id;
-  if (a > b) {
-    uint64_t t;
-    t = a;
-    a = b;
-    b = t;
+
+  std::pair<std::map<uint64_t, uint64_t>::iterator, bool> result;
+  result = map1.insert(std::make_pair(a, b));
+  if (!result.second) {
+    /* 'a' already exists */
+    if (result.first->second != b) {
+      return false;
+    }
   }
 
-  auto i = map.find(a);
-  if (i != map.end()) {
-    /* 'a' is match, so must bt matched to 'b' */
-    return i->second == b;
+  result = map2.insert(std::make_pair(b, a));
+  if (!result.second) {
+    /* 'b' already exists */
+    if (result.first->second != a) {
+      return false;
+    }
   }
 
-  if (a == b) {
-    /* 'a' and 'b' were not encountered before */
-    map[a] = b;
-    return true;
-  }
-
-  /* 'a' != 'b' and 'a' is not found */
-  i = map.find(b);
-  if (i != map.end()) {
-    /* 'b' is already mapped to another value */
-    return false;
-  }
-
-  map[a] = b;
   return true;
+
+  //uint64_t a = from->id;
+  //uint64_t b = to->id;
+  //if (a > b) {
+  //  uint64_t t;
+  //  t = a;
+  //  a = b;
+  //  b = t;
+  //}
+
+  //auto i = map.find(a);
+  //if (i != map.end()) {
+  //  /* 'a' is match, so must bt matched to 'b' */
+  //  return i->second == b;
+  //}
+
+  //if (a == b) {
+  //  /* 'a' and 'b' were not encountered before */
+  //  map[a] = b;
+  //  return true;
+  //}
+
+  ///* 'a' != 'b' and 'a' is not found */
+  //i = map.find(b);
+  //if (i != map.end()) {
+  //  /* 'b' is already mapped to another value */
+  //  return false;
+  //}
+
+  //map[a] = b;
+  //return true;
 
   //for (auto &p : map) {
   //  if (p.first == from->id) {
@@ -96,7 +118,10 @@ bool ArrayMapping::add(const Array *from, const Array *to) {
 
 void ArrayMapping::dump() const {
   errs() << "Array mapping:\n";
-  for (auto &i : map) {
+  for (auto &i : map1) {
+    errs() << i.first << " -- " << i.second << "\n";
+  }
+  for (auto &i : map2) {
     errs() << i.first << " -- " << i.second << "\n";
   }
 }
