@@ -28,26 +28,15 @@ namespace klee {
   public:
     std::vector<ref<Expr>> constraints;
     ref<Expr> expr;
-    bool isAddressDependent;
     bool canHandle;
 
     SolverQuery(std::vector<ref<Expr>> &constraints, ref<Expr> expr, bool canHandle)
       : constraints(constraints), expr(expr), canHandle(canHandle) {
-      isAddressDependent = false;
-      if (expr->flag) {
-        isAddressDependent = true;
-      } else {
-        for (ref<Expr> e : constraints) {
-          if (e->flag) {
-            isAddressDependent = true;
-            break;
-          }
-        }
-      }
+
     }
 
     SolverQuery() :
-      isAddressDependent(false), canHandle(false) {
+      canHandle(false) {
 
     }
 
@@ -59,6 +48,18 @@ namespace klee {
     bool isEqual(const SolverQuery &other) const;
 
     bool isIsomorphic(const SolverQuery &other) const;
+
+    bool isAddressDependent() const {
+      if (expr->flag) {
+        return true;
+      }
+      for (ref<Expr> e : constraints) {
+        if (e->flag) {
+          return true;
+        }
+      }
+      return false;
+    }
 
     void dump() const;
   };

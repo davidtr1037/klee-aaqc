@@ -426,7 +426,7 @@ void TimingSolver::collectStats(const ExecutionState &state,
   SolverQuery q, rewrittenQ;
   buildQuery(state, expr, rewrittenExpr, q, rewrittenQ);
   stats.relevantQueries++;
-  if (q.isAddressDependent) {
+  if (q.isAddressDependent()) {
     stats.addressDependentQueries++;
     //q.dump();
   }
