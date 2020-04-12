@@ -432,6 +432,8 @@ cl::opt<unsigned> PartitionSize("partition-size", cl::init(100), cl::desc("...")
 cl::opt<bool> SplitObjects("split-objects", cl::init(false), cl::desc("..."));
 
 cl::opt<unsigned> SplitThreshold("split-threshold", cl::init(128), cl::desc("..."));
+
+cl::opt<bool> ValidateSafety("validate-safety", cl::init(false), cl::desc("..."));
 } // namespace
 
 namespace klee {
@@ -2299,6 +2301,7 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
   case Instruction::GetElementPtr: {
     KGEPInstruction *kgepi = static_cast<KGEPInstruction*>(ki);
     ref<Expr> base = eval(ki, 0, state).value;
+    ref<Expr> backup = base;
 
     for (std::vector< std::pair<unsigned, uint64_t> >::iterator 
            it = kgepi->indices.begin(), ie = kgepi->indices.end(); 
@@ -2312,6 +2315,13 @@ void Executor::executeInstruction(ExecutionState &state, KInstruction *ki) {
     if (kgepi->offset)
       base = AddExpr::create(base,
                              Expr::createPointer(kgepi->offset));
+    if (ValidateSafety) {
+      bool isMultipleResolution = false;
+      validatePointerArithmetic(state, backup, base, isMultipleResolution);
+      if (isMultipleResolution) {
+        break;
+      }
+    }
     bindLocal(ki, state, base);
     break;
   }
@@ -4811,6 +4821,91 @@ bool Executor::getMatchingOps(ExecutionState &state,
   }
 
   return true;
+}
+
+void Executor::validatePointerArithmetic(ExecutionState &state,
+                                         ref<Expr> addr1,
+                                         ref<Expr> addr2,
+                                         bool &isMultipleResolution) {
+  ResolutionList rl1, rl2;
+  std::vector<AllocationContext> contexts;
+  bool incomplete = false;
+
+  solver->setTimeout(coreSolverTimeout);
+  incomplete = state.addressSpace.resolve(state,
+                                          solver,
+                                          addr1,
+                                          rl1,
+                                          contexts,
+                                          0,
+                                          coreSolverTimeout);
+  assert(!incomplete);
+  solver->setTimeout(time::Span());
+
+  solver->setTimeout(coreSolverTimeout);
+  incomplete = state.addressSpace.resolve(state,
+                                          solver,
+                                          addr2,
+                                          rl2,
+                                          contexts,
+                                          0,
+                                          coreSolverTimeout);
+  assert(!incomplete);
+  solver->setTimeout(time::Span());
+  if (rl2.empty()) {
+    solver->setTimeout(coreSolverTimeout);
+    addr2 = SubExpr::create(addr2, ConstantExpr::alloc(1, Expr::Int64));
+    incomplete = state.addressSpace.resolve(state,
+                                            solver,
+                                            addr2,
+                                            rl2,
+                                            contexts,
+                                            0,
+                                            coreSolverTimeout);
+    assert(!incomplete);
+    solver->setTimeout(time::Span());
+  }
+
+  if (rl1.size () != rl2.size()) {
+    klee_error("inconsistent number of resolved memory objects");
+  }
+
+  if (rl1.empty()) {
+      klee_error("out of bound pointers on GEP");
+  }
+
+  if (rl1.size() == 1) {
+    const MemoryObject *mo1 = rl1[0].first;
+    const MemoryObject *mo2 = rl2[0].first;
+    if (mo1->address != mo2->address) {
+      klee_error("invalid pointer arithmetic");
+    }
+    return;
+  }
+
+  ExecutionState *unbound = &state;
+  klee_message("multiple resolution on GEP: %lu", rl1.size());
+  for (ObjectPair &op : rl1) {
+    const MemoryObject *mo = op.first;
+    ref<Expr> inBounds = mo->getBoundsCheckPointer(addr1, 1);
+    StatePair branches = fork(*unbound, inBounds, true);
+    ExecutionState *bound = branches.first;
+    if (bound) {
+      bound->pc = bound->prevPC;
+    } else {
+      assert(0);
+    }
+
+    unbound = branches.second;
+    if (!unbound) {
+      break;
+    }
+  }
+  if (unbound) {
+    klee_error("out of bound pointer on multiple resolution");
+  }
+
+  isMultipleResolution = true;
 }
 
 void Executor::prepareForEarlyExit() {

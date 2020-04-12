@@ -623,6 +623,11 @@ public:
   bool getMatchingOps(ExecutionState &state,
                       RebaseID &rid,
                       std::vector<ObjectPair> &ops);
+
+  void validatePointerArithmetic(ExecutionState &state,
+                                 ref<Expr> addr1,
+                                 ref<Expr> addr2,
+                                 bool &isMultipleResolution);
 };
   
 } // End klee namespace
