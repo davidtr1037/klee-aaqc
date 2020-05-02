@@ -547,6 +547,8 @@ public:
   uint64_t id;
   /* TODO: add docs */
   bool isAddressArray;
+  /* TODO: add docs */
+  mutable unsigned attachedSize;
 
 private:
   unsigned hashValue;

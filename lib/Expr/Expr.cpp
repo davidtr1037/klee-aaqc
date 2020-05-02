@@ -45,6 +45,10 @@ cl::opt<bool> ConstArrayOpt(
 
 /* TODO: map only symbolic address arrays? */
 bool ArrayMapping::add(const Array *from, const Array *to) {
+  if (from->attachedSize != to->attachedSize) {
+    return false;
+  }
+
   uint64_t a = from->id;
   uint64_t b = to->id;
 
@@ -743,6 +747,7 @@ Array::Array(const std::string &_name, uint64_t _size,
   id = n++;
   /* if starts with "addr_", then it is a symbolic address array */
   isAddressArray = (name.find("addr_") == 0);
+  attachedSize = 0;
 }
 
 Array::~Array() {
