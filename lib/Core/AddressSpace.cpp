@@ -127,6 +127,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
       --oi;
       const MemoryObject *mo = oi->first;
         
+      stats::resolveQueries += 1;
       bool mayBeTrue;
       if (!solver->mayBeTrue(state, 
                              mo->getBoundsCheckPointer(address), mayBeTrue))
@@ -136,6 +137,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
         success = true;
         return true;
       } else {
+        stats::resolveQueries += 1;
         bool mustBeTrue;
         if (!solver->mustBeTrue(state, 
                                 UgeExpr::create(address, mo->getBaseExpr()),
@@ -150,6 +152,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
     for (oi=start; oi!=end; ++oi) {
       const MemoryObject *mo = oi->first;
 
+      stats::resolveQueries += 1;
       bool mustBeTrue;
       if (!solver->mustBeTrue(state, 
                               UltExpr::create(address, mo->getBaseExpr()),
@@ -160,6 +163,7 @@ bool AddressSpace::resolveOne(ExecutionState &state,
       } else {
         bool mayBeTrue;
 
+        stats::resolveQueries += 1;
         if (!solver->mayBeTrue(state, 
                                mo->getBoundsCheckPointer(address),
                                mayBeTrue))
