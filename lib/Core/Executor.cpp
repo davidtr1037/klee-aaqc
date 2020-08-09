@@ -3820,6 +3820,13 @@ void Executor::executeMemoryOperation(ExecutionState &state,
     klee_message("traversed %lu objects", rl.size());
   }
 
+  std::sort(
+    rl.begin(), rl.end(), [ ]( const auto& op1, const auto& op2) { return op1.first->address < op2.first->address; }
+  );
+  for (ObjectPair &op : rl) {
+    klee_message("mo: %lu", op.first->address);
+  }
+
   if (UseRebase && !rl.empty()) {
     if (rebaseObjects(state, rl)) {
       if (usingAlternativeResolve) {
