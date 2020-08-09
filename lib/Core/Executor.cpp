@@ -4335,6 +4335,8 @@ void Executor::symbolizeMO(ExecutionState &state,
   info.arrayID = array->id;
 
   mo->sainfo = info;
+
+  array->attachedSize = mo->size;
 }
 
 void Executor::rebaseObject(ExecutionState &state, ObjectPair &op) {
