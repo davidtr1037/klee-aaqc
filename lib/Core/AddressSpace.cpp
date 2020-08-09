@@ -192,7 +192,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
   ref<Expr> inBounds = mo->getBoundsCheckPointer(p);
   stats::resolveQueries += 1;
   bool mayBeTrue;
-  if (!solver->mayBeTrue(state, inBounds, mayBeTrue, false)) {
+  if (!solver->mayBeTrue(state, inBounds, mayBeTrue, true)) {
     return 1;
   }
 
@@ -204,7 +204,7 @@ int AddressSpace::checkPointerInObject(ExecutionState &state,
     if (size == 1) {
       stats::resolveQueries += 1;
       bool mustBeTrue;
-      if (!solver->mustBeTrue(state, inBounds, mustBeTrue, false))
+      if (!solver->mustBeTrue(state, inBounds, mustBeTrue, true))
         return 1;
       if (mustBeTrue)
         return 0;
