@@ -539,7 +539,7 @@ void TimingSolver::dump() const {
   klee_message("- Isomorphic queries: %lu", stats.equivalent.size());
 
   size_t isoCacheSize = UseMapCache ? queryMap.size() : queryList.size();
-  klee_message("- Isomorphism cache: %lu", isoCacheSize);
   klee_message("- Equality cache: %lu", equalityCache.size());
+  klee_message("- Isomorphism cache: %lu", isoCacheSize);
   klee_message("- Total cache: %lu", isoCacheSize + equalityCache.size());
 }
