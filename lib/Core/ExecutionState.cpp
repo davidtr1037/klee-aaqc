@@ -645,17 +645,17 @@ ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
     }
   }
 
-  /* a common case where the address is (A + C) */
+  /* a common case where the address is (C + A) */
   if (isa<AddExpr>(address)) {
     AddExpr *add = dyn_cast<AddExpr>(address);
     ConstantExpr *leftCE = dyn_cast<ConstantExpr>(add->left);
-    if (leftCE) {
-      if (isa<ConcatExpr>(add->right)) {
-        ConcatExpr *concat = dyn_cast<ConcatExpr>(add->right);
+    if (leftCE && isa<ConcatExpr>(add->right)) {
+      ConcatExpr *concat = dyn_cast<ConcatExpr>(add->right);
+      if (concat->isPureAddress) {
         ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
         if (re && re->updates.root->isAddressArray) {
-          ref<AddressRecord> ar = getAddressConstraint(re->updates.root->id);
           /* TODO: use directly ConstantExpr? */
+          ref<AddressRecord> ar = getAddressConstraint(re->updates.root->id);
           return AddExpr::create(ar->address, leftCE);
         }
       }
@@ -1106,13 +1106,16 @@ ExprVisitor::Action ReadExprOptimizer::visitRead(const ReadExpr &e) {
 }
 
 ExprVisitor::Action SubstVisitor::visitConcat(const ConcatExpr &e) {
-  ref<ReadExpr> re = dyn_cast<ReadExpr>(e.getLeft());
-  if (!re.isNull() && re->updates.root->isAddressArray) {
-    assert(isa<ConstantExpr>(re->index));
-    ref<AddressRecord> ar = state.getAddressConstraint(re->updates.root->id);
-    return Action::changeTo(ar->address);
+  if (e.isPureAddress) {
+    ReadExpr *re = dyn_cast<ReadExpr>(e.getLeft());
+    if (re && re->updates.root->isAddressArray) {
+      assert(isa<ConstantExpr>(re->index));
+      ref<AddressRecord> ar = state.getAddressConstraint(re->updates.root->id);
+      return Action::changeTo(ar->address);
+    } else {
+      assert(0);
+    }
   }
-
   return Action::doChildren();
 }
 

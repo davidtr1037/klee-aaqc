@@ -781,6 +781,7 @@ private:
   ref<Expr> left, right;  
 
 public:
+  bool isPureAddress;
   static ref<Expr> alloc(const ref<Expr> &l, const ref<Expr> &r) {
     ref<Expr> c(new ConcatExpr(l, r));
     c->computeHash();
@@ -819,6 +820,37 @@ private:
     width = l->getWidth() + r->getWidth();
     flag = left->flag || right->flag;
     isSymbolic = left->isSymbolic || right->isSymbolic;
+    isPureAddress = false;
+
+    ReadExpr *reLeft = dyn_cast<ReadExpr>(l);
+    if (reLeft && reLeft->updates.root->isAddressArray) {
+      ReadExpr *reRight = dyn_cast<ReadExpr>(r);
+      if (reRight && reRight->updates.root->isAddressArray) {
+        /* RE . RE */
+        isPureAddress = true;
+      } else {
+        ConcatExpr *concatRight = dyn_cast<ConcatExpr>(r);
+        if (concatRight && concatRight->isPureAddress) {
+          /* RE . C */
+          isPureAddress = true;
+        }
+      }
+    } else {
+      ConcatExpr *concatLeft = dyn_cast<ConcatExpr>(l);
+      if (concatLeft && concatLeft->isPureAddress) {
+        ReadExpr *reRight = dyn_cast<ReadExpr>(r);
+        if (reRight && reRight->updates.root->isAddressArray) {
+          /* C . RE */
+          isPureAddress = true;
+        } else {
+          ConcatExpr *concatRight = dyn_cast<ConcatExpr>(r);
+          if (concatRight && concatRight->isPureAddress) {
+            /* C . C */
+            isPureAddress = true;
+          }
+        }
+      }
+    }
   }
 
 public:
