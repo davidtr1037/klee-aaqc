@@ -912,6 +912,7 @@ ref<Expr> ConcatExpr::create8(const ref<Expr> &kid1, const ref<Expr> &kid2,
 			      ConcatExpr::create(kid4, ConcatExpr::create4(kid5, kid6, kid7, kid8)))));
 }
 
+/* TODO: use isPureAddress? */
 bool ConcatExpr::isIsomorphic(const Expr &other, ArrayMapping &map) const {
   ReadExpr *re = dyn_cast<ReadExpr>(getLeft());
   if (re && re->updates.root->isAddressArray) {
