@@ -226,6 +226,7 @@ namespace klee {
 
     Solver *solver;
     bool simplifyExprs;
+    bool useRebase;
     QueryStatistics stats;
 
     /* TODO: remove... */
@@ -240,8 +241,8 @@ namespace klee {
     /// \param _simplifyExprs - Whether expressions should be
     /// simplified (via the constraint manager interface) prior to
     /// querying.
-    TimingSolver(Solver *_solver, bool _simplifyExprs = true) 
-      : solver(_solver), simplifyExprs(_simplifyExprs) {}
+    TimingSolver(Solver *_solver, bool _simplifyExprs = true, bool useRebase = false)
+      : solver(_solver), simplifyExprs(_simplifyExprs), useRebase(useRebase) {}
     ~TimingSolver() {
       delete solver;
     }

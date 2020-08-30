@@ -25,6 +25,7 @@ cl::opt<bool> CollectQueryStats("collect-query-stats", cl::init(false), cl::desc
 cl::opt<bool> UseIsomorphismCache("use-iso-cache", cl::init(false), cl::desc("..."));
 cl::opt<bool> ValidateCaching("validate-caching", cl::init(false), cl::desc("..."));
 cl::opt<bool> UseMapCache("use-map-cache", cl::init(true), cl::desc("..."));
+/* TODO: remove later... */
 cl::opt<bool> UseRebaseConstraints("use-rebase-constraints", cl::init(true), cl::desc("..."));
 
 /***/
@@ -402,7 +403,7 @@ void TimingSolver::buildQuery(const ExecutionState &state,
   for (unsigned index : offsets) {
     q.constraints.push_back(state.constraints.getConstraint(index));
   }
-  if (UseIsomorphismCache && UseRebaseConstraints) {
+  if (useRebase && UseRebaseConstraints) {
     for (ref<Expr> e : state.getRebaseConstraints()) {
       q.constraints.push_back(e);
     }
