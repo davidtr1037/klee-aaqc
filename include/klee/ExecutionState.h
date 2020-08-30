@@ -283,6 +283,9 @@ public:
   /* TODO: add docs */
   char *local_next_slot;
 
+  /* should be used only for address-aware caching */
+  std::vector<ref<Expr>> rebaseConstraints;
+
 private:
   ExecutionState() : ptreeNode(0) {}
 
@@ -366,6 +369,12 @@ public:
   const Array *getRewrittenArray(const Array *array) const;
 
   void updateRewrittenArray(const Array *array, const Array *rewritten);
+
+  void addRebaseConstraints(ref<Expr> segment, ref<Expr> object, uint64_t offset);
+
+  std::vector<ref<Expr>> getRebaseConstraints() const {
+    return rebaseConstraints;
+  }
 };
 
 class AddressUnfolder : public ExprVisitor {

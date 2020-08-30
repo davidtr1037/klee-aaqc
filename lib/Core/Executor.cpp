@@ -4556,6 +4556,8 @@ void Executor::fillSegment(ExecutionState &state,
                                     segmentMO->address + offset + subObject.offset);
       segmentOS->addSubSegment(offset + subObject.offset, subObject.size, subObject.info);
     }
+    /* ... */
+    state.addRebaseConstraints(segmentMO->sainfo.address, mo->sainfo.address, offset);
   }
 }
 

@@ -976,6 +976,14 @@ void ExecutionState::updateRewrittenArray(const Array *array,
   }
 }
 
+void ExecutionState::addRebaseConstraints(ref<Expr> segment,
+                                          ref<Expr> object,
+                                          uint64_t offset) {
+  ref<Expr> target = AddExpr::create(segment, ConstantExpr::create(offset, Expr::Int64));
+  ref<Expr> eq = EqExpr::create(object, target);
+  rebaseConstraints.push_back(eq);
+}
+
 AllocationContext ExecutionState::getAC() const {
   uint64_t h = 0;
   unsigned int j = 0;
