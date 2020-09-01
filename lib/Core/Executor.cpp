@@ -3708,7 +3708,8 @@ void Executor::executeMemoryOperation(ExecutionState &state,
   ObjectPair op;
   bool success;
   solver->setTimeout(coreSolverTimeout);
-  if (!state.addressSpace.resolveOne(state, solver, originalAddress, op, success)) {
+  ref<Expr> toResolve = originalAddress->isSymbolic ? originalAddress : address;
+  if (!state.addressSpace.resolveOne(state, solver, toResolve, op, success)) {
     address = toConstant(state, address, "resolveOne failure");
     success = state.addressSpace.resolveOne(cast<ConstantExpr>(address), op);
   }
@@ -3739,12 +3740,7 @@ void Executor::executeMemoryOperation(ExecutionState &state,
 
     if (inBounds) {
       /* TODO: optimize if unfolded address is constant? */
-      ref<Expr> offset = mo->getOffsetExpr(originalAddress);
-      ref<Expr> rewrittenOffset = state.unfold(offset);
-      if (isa<ConstantExpr>(rewrittenOffset)) {
-        offset = rewrittenOffset;
-      }
-
+      ref<Expr> offset = mo->getOptimizedOffsetExpr(originalAddress, address);
       const ObjectState *os = op.second;
       if (isWrite) {
         if (os->readOnly) {
@@ -3858,19 +3854,11 @@ void Executor::executeMemoryOperation(ExecutionState &state,
                                 ReadOnly);
         } else {
           ObjectState *wos = bound->addressSpace.getWriteable(mo, os);
-          ref<Expr> offset = mo->getOffsetExpr(originalAddress);
-          ref<Expr> rewrittenOffset = bound->unfold(offset);
-          if (isa<ConstantExpr>(rewrittenOffset)) {
-            offset = rewrittenOffset;
-          }
+          ref<Expr> offset = mo->getOptimizedOffsetExpr(originalAddress, address);
           wos->write(offset, value);
         }
       } else {
-        ref<Expr> offset = mo->getOffsetExpr(originalAddress);
-        ref<Expr> rewrittenOffset = bound->unfold(offset);
-        if (isa<ConstantExpr>(rewrittenOffset)) {
-          offset = rewrittenOffset;
-        }
+        ref<Expr> offset = mo->getOptimizedOffsetExpr(originalAddress, address);
         if (shouldSplit(state, mo, os, offset)) {
           splitMO(*bound, ObjectPair(mo, os));
           executeMemoryOperation(*bound, isWrite, originalAddress, value, target, false, false);

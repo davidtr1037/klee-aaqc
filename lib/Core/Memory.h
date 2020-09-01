@@ -147,6 +147,20 @@ public:
   ref<Expr> getOffsetExpr(ref<Expr> pointer) const {
     return SubExpr::create(pointer, getBaseExpr());
   }
+  ref<Expr> getOptimizedOffsetExpr(ref<Expr> pointer, ref<Expr> unfolded) const {
+    if (pointer->isSymbolic) {
+      /* can't be unfolded to a constant */
+      return getOffsetExpr(pointer);
+    } else {
+      ref<ConstantExpr> c = dyn_cast<ConstantExpr>(unfolded);
+      if (c.isNull()) {
+        /* should not happen... */
+        assert(0);
+      } else {
+        return ConstantExpr::create(c->getZExtValue() - address, Context::get().getPointerWidth());
+      }
+    }
+  }
   ref<Expr> getBoundsCheckPointer(ref<Expr> pointer) const {
     return getBoundsCheckOffset(getOffsetExpr(pointer));
   }
