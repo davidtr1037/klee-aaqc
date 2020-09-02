@@ -237,7 +237,8 @@ ExecutionState::ExecutionState(const ExecutionState& state):
     openMergeStack(state.openMergeStack),
     steppedInstructions(state.steppedInstructions),
     rewrittenConstraints(state.rewrittenConstraints),
-    local_next_slot(state.local_next_slot)
+    local_next_slot(state.local_next_slot),
+    rebaseConstraints(state.rebaseConstraints)
 {
   for (unsigned int i=0; i<symbolics.size(); i++)
     symbolics[i].first->refCount++;
