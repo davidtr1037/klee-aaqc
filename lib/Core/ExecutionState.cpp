@@ -639,10 +639,13 @@ ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
   /* a common case where the address is just (A) */
   if (isa<ConcatExpr>(address)) {
     ConcatExpr *concat = dyn_cast<ConcatExpr>(address);
-    ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
-    if (re && re->updates.root->isAddressArray) {
-      ref<AddressRecord> ar = getAddressConstraint(re->updates.root->id);
-      return ar->address;
+    /* TODO: what if it's a partial concat (7 bytes...)? */
+    if (concat->isPureAddress) {
+      ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
+      if (re && re->updates.root->isAddressArray) {
+        ref<AddressRecord> ar = getAddressConstraint(re->updates.root->id);
+        return ar->address;
+      }
     }
   }
 
@@ -670,8 +673,7 @@ ref<Expr> ExecutionState::unfold(const ref<Expr> address) const {
     if (leftCE && leftCE->getZExtValue() == 0) {
       if (isa<ConcatExpr>(eq->right)) {
         ConcatExpr *concat = dyn_cast<ConcatExpr>(eq->right);
-        ReadExpr *re = dyn_cast<ReadExpr>(concat->getLeft());
-        if (re && re->updates.root->isAddressArray) {
+        if (concat->isPureAddress) {
           return ConstantExpr::alloc(0, Expr::Bool);
         }
       }
