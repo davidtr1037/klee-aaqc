@@ -50,7 +50,7 @@ cl::opt<bool> klee::ReuseArrays("reuse-arrays", cl::init(true), cl::desc("..."))
 
 cl::opt<unsigned> klee::UseKContext("use-kcontext", cl::init(0), cl::desc("..."));
 
-cl::opt<bool> klee::UseGlobalID("use-global-id", cl::init(false), cl::desc("..."));
+cl::opt<bool> klee::UseGlobalID("use-global-id", cl::init(true), cl::desc("..."));
 
 cl::opt<bool> klee::UseGlobalRewriteCache("use-global-rewrite-cache", cl::init(true), cl::desc("..."));
 
