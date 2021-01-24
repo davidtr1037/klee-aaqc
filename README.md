@@ -93,5 +93,5 @@ We extended KLEE with several command line options.
 The main options are:
 - _use-sym-addr_: use the symbolic addressing model (required for address-aware query caching)
 - _use-iso-cahce_: use the address-aware query caching
-- _collect-query-stats_: use the address-aware query caching
+- _collect-query-stats_: collect various query statistics
 - _validate-caching_: validate the correctness of the caching
