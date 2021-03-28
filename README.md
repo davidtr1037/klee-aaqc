@@ -2,6 +2,7 @@ Address-Aware Query Caching for KLEE
 =============================
 
 An extension of KLEE which enables efficient caching of address dependent queries.
+Based on this [paper](https://davidtr1037.github.io/files/icst_2021_final.pdf).
 
 ## Build
 
